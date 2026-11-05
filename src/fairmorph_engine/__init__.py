@@ -1,6 +1,3 @@
-__version__ = "0.0.1"
+"""FAIRmorph Engine - Headless Core."""
 
-def placeholder():
-    print("FAIRmorph Engine - Core processing pipeline for ecological data transformation. Active development starting soon.")
-    
-__version__ = "0.0.1"
+__version__ = "0.1.0"

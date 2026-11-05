@@ -1,0 +1,28 @@
+repos:
+  - repo: local
+    hooks:
+      - id: sync-metadata
+        name: Sync Engine Metadata
+        entry: python scripts/sync_metadata.py
+        language: system
+        pass_filenames: false
+        files: ^(pyproject\.toml|CITATION\.cff|codemeta\.json)$
+
+  # Hygiene (endings, whitespaces, large files check)
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+
+  # Ruff: Extrem schnelles Linting & Formatting
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.4.4
+    hooks:
+      # Linter & automatische Fixes (Imports etc.)
+      - id: ruff
+        args: [ --fix ]
+      # Formatierung
+      - id: ruff-format
