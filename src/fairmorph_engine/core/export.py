@@ -151,30 +151,22 @@ def export_dwca(project: Path, run_id: str, emit) -> dict:
     sources = {entry["role"]: entry for entry in snapshot["sources"]}
     if {key: value["sha256"] for key, value in sources.items()} != EXPECTED_SOURCE_HASHES:
         raise ValueError("RUN does not reference the approved CS-PHOC source snapshot")
-    # The metadata revision used by this RUN must match the pinned project reference.
-    from importlib.resources import files as package_files
-
-    reference_metadata = json.loads(
-        (
-            package_files("fairmorph_engine") / "fixtures" / "cs_phoc" / "publication-metadata.json"
-        ).read_text(encoding="utf-8")
-    )
-    metadata_relative = "packages/cs-phoc/publication-metadata.json"
+    # Verify the immutable metadata revision in the RUN snapshot.
+    revisions = snapshot.get("metadata_revisions", [])
+    if len(revisions) != 1:
+        raise ValueError("RUN must pin one metadata revision")
+    metadata_entry = revisions[0]
+    metadata_relative = Path(metadata_entry["path"])
+    if metadata_relative.is_absolute() or ".." in metadata_relative.parts:
+        raise ValueError("Metadata path escapes project")
     metadata_path = project / metadata_relative
     if (
         not metadata_path.is_file()
         or metadata_path.is_symlink()
-        or json.loads(metadata_path.read_text(encoding="utf-8")) != reference_metadata
+        or not metadata_path.resolve().is_relative_to(project.resolve())
+        or sha256(metadata_path) != metadata_entry["sha256"]
     ):
-        raise ValueError("Pinned CS-PHOC publication metadata is missing or altered")
-    if snapshot["metadata_revisions"] != [
-        {
-            "path": metadata_relative,
-            "sha256": sha256(metadata_path),
-            "provenance": "pinned_cs_phoc_published_reference",
-        }
-    ]:
-        raise ValueError("RUN publication metadata revision differs from project")
+        raise ValueError("RUN publication metadata revision is missing or modified")
 
     files = {}
     for role, entry in sources.items():
@@ -275,62 +267,50 @@ def verify_project(project: Path) -> dict:
         if not path.is_file() or sha256(path) != item["sha256"]:
             raise ValueError(f"Missing or corrupt source object: {item['object_path']}")
         objects.append(item["sha256"])
-    from fairmorph_engine.core.csphoc import EXPECTED_SOURCE_HASHES
-
-    expected_imports = {f"{role}-{digest}" for role, digest in EXPECTED_SOURCE_HASHES.items()}
+    import_entries = {}
     imports_root = project / "imports"
-    imports = set()
     if imports_root.is_dir():
         for entry in imports_root.iterdir():
+            if not entry.is_dir() or entry.is_symlink():
+                raise ValueError("Unexpected import directory entry")
             record = json.loads((entry / "manifest.json").read_text(encoding="utf-8"))
             validate_contract("import", record)
-            if (
-                record["import_id"] != entry.name
-                or record["sha256"] != EXPECTED_SOURCE_HASHES[record["role"]]
-            ):
-                raise ValueError("Import record does not match approved source")
-            object_path = project / record["object_path"]
-            if not object_path.is_file() or sha256(object_path) != record["sha256"]:
+            if record["import_id"] != entry.name:
+                raise ValueError("Import record identifier differs from directory")
+            relative = Path(record["object_path"])
+            if relative.is_absolute() or ".." in relative.parts:
+                raise ValueError("Import object path escapes project")
+            target = project / relative
+            if not target.is_file() or target.is_symlink() or sha256(target) != record["sha256"]:
                 raise ValueError("Import record points to missing or corrupt object")
-            imports.add(entry.name)
-    if imports != expected_imports:
-        raise ValueError("Project source imports are incomplete")
-    virtual = json.loads(
-        (project / "packages" / "cs-phoc" / "virtual-descriptor.json").read_text(encoding="utf-8")
-    )
-    validate_contract("virtual-package", virtual)
-    if {item["name"]: item["sha256"] for item in virtual["resources"]} != EXPECTED_SOURCE_HASHES:
-        raise ValueError("Virtual package resources do not match approved sources")
-    if objects and set(objects) != set(EXPECTED_SOURCE_HASHES.values()):
-        raise ValueError("Project object index is incomplete")
-    from importlib.resources import files
-
-    published = json.loads(
-        (
-            files("fairmorph_engine") / "fixtures" / "cs_phoc" / "publication-metadata.json"
-        ).read_text(encoding="utf-8")
-    )
-    metadata = project / "packages" / "cs-phoc" / "publication-metadata.json"
-    if (
-        not metadata.is_file()
-        or metadata.is_symlink()
-        or json.loads(metadata.read_text(encoding="utf-8")) != published
-    ):
-        raise ValueError("Pinned CS-PHOC publication metadata is missing or altered")
-    metadata_hash = sha256(metadata)
+            import_entries[entry.name] = record
+    for package_id in manifest["package_ids"]:
+        if not package_id or any(ch in package_id for ch in "/\\"):
+            raise ValueError("Invalid package identifier")
+        package_file = project / "packages" / package_id / "virtual-descriptor.json"
+        descriptor = json.loads(package_file.read_text(encoding="utf-8"))
+        validate_contract("virtual-package", descriptor)
+        if descriptor["package_id"] != package_id:
+            raise ValueError("Package identifier differs from manifest")
+        for resource in descriptor["resources"]:
+            if not any(
+                entry["role"] == resource["name"]
+                and entry["sha256"] == resource["sha256"]
+                and entry["object_path"] == resource["object_path"]
+                for entry in import_entries.values()
+            ):
+                raise ValueError("Package resource is not imported")
     runs = []
     for run_id in manifest["run_ids"]:
         run_dir, _ = verified_run(project, run_id)
         snapshot = json.loads((run_dir / "inputs.snapshot.json").read_text(encoding="utf-8"))
-        expected_revision = [
-            {
-                "path": "packages/cs-phoc/publication-metadata.json",
-                "sha256": metadata_hash,
-                "provenance": "pinned_cs_phoc_published_reference",
-            }
-        ]
-        if snapshot["metadata_revisions"] != expected_revision:
-            raise ValueError("RUN publication metadata revision differs from project")
+        for revision in snapshot.get("metadata_revisions", []):
+            relative = Path(revision["path"])
+            if relative.is_absolute() or ".." in relative.parts:
+                raise ValueError("Metadata revision path escapes project")
+            target = project / relative
+            if not target.is_file() or target.is_symlink() or sha256(target) != revision["sha256"]:
+                raise ValueError("RUN metadata revision differs from project")
         runs.append(run_id)
     catalog = project / "catalog" / "catalog.sqlite"
     if not catalog.is_file():

@@ -14,14 +14,14 @@ application-data project path.
 ```sh
 fairmorph-engine handshake
 fairmorph-engine poc --records 1000     # legacy IPC smoke test
-fairmorph-engine csphoc --project ./CS-PHOC.fairmorph
+fairmorph-engine csphoc --project ./CS-PHOC.fairmorph --events examples/cs-phoc/cs-phoc-events.csv --counts examples/cs-phoc/cs-phoc-counts.csv --decision examples/cs-phoc/decision.json
 fairmorph-engine verify-project --project ./CS-PHOC.fairmorph
 fairmorph-engine export-package --project ./CS-PHOC.fairmorph --run-id <RUN_ID>
 fairmorph-engine dwca-preflight          # reports the published target profile
 fairmorph-engine export-dwca --project ./CS-PHOC.fairmorph --run-id <RUN_ID>
 ```
 
-`csphoc` uses two **bundled, SHA-256 pinned** CSV source files and a bundled,
+`csphoc` imports two **explicitly selected, SHA-256 pinned** example CSV sources and an
 explicitly user-approved transformation decision. Optional `--events`, `--counts`,
 and `--decision` overrides are only suitable for controlled tests: any source
 whose hash differs from the approved originals is refused before project creation.
@@ -85,8 +85,7 @@ RUN artifacts and exports, plus the project and catalog RUN indexes.
 The PoC JSON schemas in `contracts/` are mirrored into the wheel as
 `fairmorph_engine/contracts/*.schema.json`. They cover the project, import,
 virtual package, immutable input snapshot, immutable RUN, quality report,
-and independent export manifest. The packaged CSV examples are under
-`fairmorph_engine/fixtures/cs_phoc/`.
+and independent export manifest. Example data, mapping decisions and publication metadata are under `examples/cs-phoc/`, **not distributed inside the installed Engine**.
 
 The `export-package` command creates a local, separately versioned Frictionless
 Data Package. The `export-dwca` command creates an independent, SHA-256-indexed

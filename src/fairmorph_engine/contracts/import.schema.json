@@ -6,8 +6,8 @@
   "required": ["schema_version", "import_id", "role", "original_name", "sha256", "object_path"],
   "properties": {
     "schema_version": {"const": "fairmorph.poc.import/1"},
-    "import_id": {"type": "string", "pattern": "^(events|counts)-[0-9a-f]{64}$"},
-    "role": {"enum": ["events", "counts"]},
+    "import_id": {"type": "string", "pattern": "^[A-Za-z0-9_.-]+-[0-9a-f]{64}$"},
+    "role": {"type": "string", "minLength": 1},
     "original_name": {"type": "string", "minLength": 1},
     "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
     "object_path": {"type": "string", "pattern": "^objects/sha256/[0-9a-f]{2}/[0-9a-f]{64}$"}
