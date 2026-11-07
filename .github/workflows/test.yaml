@@ -1,9 +1,9 @@
 name: Engine CI (Lint & Test)
 
 on:
-  push:
-    branches: [ "main", "choire/setup" ]
   pull_request:
+    branches: [main]
+  workflow_dispatch:
 
 jobs:
   test:
