@@ -13,7 +13,7 @@ from pathlib import Path
 
 from jsonschema import Draft202012Validator, FormatChecker
 
-from fairmorph_engine.core.project import initialize_project, import_resource, register_package
+from fairmorph_engine.core.project import import_resource, initialize_project, register_package
 
 COUNT_FIELDS = {
     "ad_female_count": ("adult", "female"),

@@ -4,6 +4,7 @@ import hashlib
 import json
 import sys
 from pathlib import Path
+from typing import Annotated
 
 import typer
 
@@ -64,8 +65,8 @@ app.command(name="verify-project", help="Verify project sources, RUNs and export
 
 @app.command(name="init-project")
 def init_project_command(
-    project: Path = typer.Option(..., "--project"),
-    name: str = typer.Option("FAIRmorph project", "--name"),
+    project: Annotated[Path, typer.Option("--project")],
+    name: Annotated[str, typer.Option("--name")] = "FAIRmorph project",
 ) -> None:
     """Create an empty dataset-independent project."""
     from fairmorph_engine.core.project import initialize_project
@@ -82,9 +83,9 @@ def init_project_command(
 
 @app.command(name="import-resource")
 def import_resource_command(
-    project: Path = typer.Option(..., "--project"),
-    source: Path = typer.Option(..., "--source"),
-    role: str = typer.Option(..., "--role"),
+    project: Annotated[Path, typer.Option("--project")],
+    source: Annotated[Path, typer.Option("--source")],
+    role: Annotated[str, typer.Option("--role")],
 ) -> None:
     """Import original source bytes without an implicit mapping."""
     from fairmorph_engine.core.project import import_resource

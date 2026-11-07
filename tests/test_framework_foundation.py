@@ -7,8 +7,8 @@ import sys
 
 import pytest
 
-from fairmorph_engine.core.project import initialize_project, import_resource, register_package
 from fairmorph_engine.core.export import verify_project
+from fairmorph_engine.core.project import import_resource, initialize_project, register_package
 
 
 def test_arbitrary_import_and_virtual_package(tmp_path):
