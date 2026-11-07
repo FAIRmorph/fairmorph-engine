@@ -3,13 +3,16 @@
 import csv
 import json
 from pathlib import Path
+from typing import Annotated
 
 import typer
 
 
 def inspect_csv(
-    source: Path = typer.Argument(..., help="Path to a UTF-8 CSV file"),
-    output: Path | None = typer.Option(None, "--output", help="Optional summary JSON output"),
+    source: Annotated[Path, typer.Argument(help="Path to a UTF-8 CSV file")],
+    output: Annotated[
+        Path | None, typer.Option("--output", help="Optional summary JSON output")
+    ] = None,
 ) -> None:
     """Read a local CSV incrementally without modifying the source file."""
     from fairmorph_engine.cli import compute_sha256, emit_event
