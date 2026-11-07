@@ -8,8 +8,8 @@ from pathlib import Path
 import typer
 
 # 1. Das Subcommand aus dem commands-Paket importieren
-from fairmorph_engine.commands.poc import run_poc
 from fairmorph_engine.commands.inspect_csv import inspect_csv
+from fairmorph_engine.commands.poc import run_poc
 
 app = typer.Typer(
     name="fairmorph",
