@@ -132,7 +132,9 @@ def test_existing_configuration_tampering_is_rejected(tmp_path, mock_parquet):
         decision,
         lambda *args, **kwargs: None,
     )
-    config_hash = hashlib.sha256(canonical_bytes(json.loads(decision.read_text()))).hexdigest()
+    config_hash = hashlib.sha256(
+        canonical_bytes(json.loads(decision.read_text(encoding="utf-8")))
+    ).hexdigest()
     stored = project / "configurations" / config_hash / "approval.json"
     stored.write_text('{"status":"suggested"}', encoding="utf-8")
     with pytest.raises(ValueError, match="approval has changed"):
