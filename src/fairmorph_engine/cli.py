@@ -62,6 +62,40 @@ app.command(name="verify-project", help="Verify project sources, RUNs and export
 )
 
 
+@app.command(name="init-project")
+def init_project_command(
+    project: Path = typer.Option(..., "--project"),
+    name: str = typer.Option("FAIRmorph project", "--name"),
+) -> None:
+    """Create an empty dataset-independent project."""
+    from fairmorph_engine.core.project import initialize_project
+
+    try:
+        index = initialize_project(project, name)
+        emit_event("result", status="success", data={
+            "project_id": index["project_id"], "project_path": str(project.resolve())
+        })
+    except (ValueError, OSError) as error:
+        emit_event("result", status="error", message=str(error))
+        raise typer.Exit(code=1) from error
+
+
+@app.command(name="import-resource")
+def import_resource_command(
+    project: Path = typer.Option(..., "--project"),
+    source: Path = typer.Option(..., "--source"),
+    role: str = typer.Option(..., "--role"),
+) -> None:
+    """Import original source bytes without an implicit mapping."""
+    from fairmorph_engine.core.project import import_resource
+
+    try:
+        emit_event("result", status="success", data=import_resource(project, source, role))
+    except (ValueError, OSError) as error:
+        emit_event("result", status="error", message=str(error))
+        raise typer.Exit(code=1) from error
+
+
 @app.command(name="handshake")
 def handshake() -> None:
     """Advertise the supported PoC contract without changing any project data."""
@@ -75,6 +109,8 @@ def handshake() -> None:
             "engine_version": "0.1.0",
             "commands": [
                 "poc",
+                "init-project",
+                "import-resource",
                 "csphoc",
                 "export-package",
                 "dwca-preflight",

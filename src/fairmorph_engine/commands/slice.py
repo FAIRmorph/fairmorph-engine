@@ -1,6 +1,5 @@
 """Fixed CS-PHOC PoC transformation entry point (no interactive data selection)."""
 
-from importlib.resources import files
 from pathlib import Path
 from typing import Annotated
 
@@ -27,15 +26,10 @@ def run_csphoc(
     from fairmorph_engine.cli import emit_event
 
     try:
-        # Bundled, checksum-pinned reference data: no Workbench file picker required.
-        fixture = files("fairmorph_engine") / "fixtures" / "cs_phoc"
-        run_slice(
-            project,
-            events or Path(str(fixture / "cs-phoc-events.csv")),
-            counts or Path(str(fixture / "cs-phoc-counts.csv")),
-            decision or Path(str(fixture / "decision.json")),
-            emit_event,
-        )
+        # Explicitly select the example resources; no data bundled with the engine.
+        if events is None or counts is None or decision is None:
+            raise ValueError("CS-PHOC requires --events, --counts and --decision from an example project")
+        run_slice(project, events, counts, decision, emit_event)
     except (ValueError, RuntimeError, OSError, KeyError, ImportError, ValidationError) as error:
         emit_event("result", status="error", message=str(error))
         raise typer.Exit(code=1) from error

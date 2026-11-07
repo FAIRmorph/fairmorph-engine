@@ -13,6 +13,8 @@ from pathlib import Path
 
 from jsonschema import Draft202012Validator, FormatChecker
 
+from fairmorph_engine.core.project import initialize_project, import_resource, register_package
+
 COUNT_FIELDS = {
     "ad_female_count": ("adult", "female"),
     "ad_male_count": ("adult", "male"),
@@ -301,59 +303,19 @@ def run_slice(project: Path, events: Path, counts: Path, decision_file: Path, em
             raise ValueError(f"CS-PHOC {role} source differs from approved reference")
 
     emit("progress", stage="INITIALIZING", percentage=5, message="Verifying CS-PHOC sources")
-    if project.exists() and project.is_symlink():
-        raise ValueError("Project directory must not be a symbolic link")
-    project.mkdir(parents=True, exist_ok=True)
-    _init_catalog(project)
+    initialize_project(project, "CS-PHOC PoC")
     project_file = project / "project.json"
-    if not project_file.exists():
-        document = {
-            "schema_version": PROJECT_VERSION,
-            "project_id": str(uuid.uuid4()),
-            "name": "CS-PHOC PoC",
-            "catalog_schema_version": "poc/1",
-            "package_ids": ["cs-phoc"],
-            "run_ids": [],
-            "input_objects": [],
-        }
-        validate_contract("project", document)
-        write_json(project_file, document)
-    else:
-        validate_contract("project", json.loads(project_file.read_text(encoding="utf-8")))
-
-    events_hash, events_ref = _import_source(project, events)
-    counts_hash, counts_ref = _import_source(project, counts)
-    _record_import(project, "events", events.name, events_hash, events_ref)
-    _record_import(project, "counts", counts.name, counts_hash, counts_ref)
+    events_resource = import_resource(project, events, "events")
+    counts_resource = import_resource(project, counts, "counts")
+    events_hash, events_ref = events_resource["sha256"], events_resource["object_path"]
+    counts_hash, counts_ref = counts_resource["sha256"], counts_resource["object_path"]
+    register_package(project, "cs-phoc", {"events": events_resource, "counts": counts_resource})
     package_dir = project / "packages" / "cs-phoc"
-    package_dir.mkdir(parents=True, exist_ok=True)
-    virtual_descriptor = package_dir / "virtual-descriptor.json"
-    if not virtual_descriptor.exists():
-        descriptor = {
-            "schema_version": "fairmorph.poc.virtual-package/1",
-            "package_id": "cs-phoc",
-            "virtual": True,
-            "resources": [
-                {"name": "events", "sha256": events_hash, "object_path": events_ref},
-                {"name": "counts", "sha256": counts_hash, "object_path": counts_ref},
-            ],
-        }
-        validate_contract("virtual-package", descriptor)
-        write_json(virtual_descriptor, descriptor)
-    else:
-        prior = json.loads(virtual_descriptor.read_text(encoding="utf-8"))
-        validate_contract("virtual-package", prior)
-        supplied = {r["name"]: r["sha256"] for r in prior.get("resources", [])}
-        if supplied != {"events": events_hash, "counts": counts_hash}:
-            raise ValueError("Existing project package sources differ from approved fixture")
-    # Store the scholarly publication reference as a pinned project metadata revision.
-    from importlib.resources import files
-
-    reference_metadata = json.loads(
-        (
-            files("fairmorph_engine") / "fixtures" / "cs_phoc" / "publication-metadata.json"
-        ).read_text(encoding="utf-8")
-    )
+    # Publication metadata belongs to the example, not the installed engine.
+    metadata_source = decision_file.parent / "publication-metadata.json"
+    if not metadata_source.is_file():
+        raise ValueError("Project publication metadata not found beside approved mapping")
+    reference_metadata = json.loads(metadata_source.read_text(encoding="utf-8"))
     metadata_file = package_dir / "publication-metadata.json"
     if not metadata_file.is_file():
         write_json(metadata_file, reference_metadata)
