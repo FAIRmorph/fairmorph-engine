@@ -5,6 +5,7 @@ import json
 import sys
 import time
 from datetime import UTC, datetime
+from typing import Annotated
 
 import typer
 
@@ -16,9 +17,9 @@ def emit(event_type: str, **kwargs) -> None:
 
 
 def run_poc(
-    records: int = typer.Option(
-        1000, "--records", "-r", help="Anzahl der zu generierenden Test-Datensätze v2"
-    ),
+    records: Annotated[
+        int, typer.Option("--records", "-r", help="Anzahl der zu generierenden Test-Datensätze v2")
+    ] = 1000,
 ) -> None:
     """Führt eine simulierte Transformation mit Live-NDJSON-Rückmeldung aus."""
     emit(

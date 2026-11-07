@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://www.fairmorph.org/contracts/poc/1/inputs.snapshot.schema.json",
+  "title": "FAIRmorph PoC immutable input snapshot",
+  "type": "object",
+  "required": ["schema_version", "sources", "package_revisions", "metadata_revisions", "configuration_sha256"],
+  "properties": {
+    "schema_version": {"const": "fairmorph.poc.inputs/1"},
+    "sources": {"type": "array", "minItems": 2, "items": {"type": "object", "required": ["role", "sha256", "object_path"], "properties": {
+      "role": {"enum": ["events", "counts"]},
+      "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+      "object_path": {"type": "string", "pattern": "^objects/sha256/[0-9a-f]{2}/[0-9a-f]{64}$"}}, "additionalProperties": false}},
+    "package_revisions": {"type": "array"},
+    "metadata_revisions": {"type": "array"},
+    "configuration_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+  },
+  "additionalProperties": false
+}

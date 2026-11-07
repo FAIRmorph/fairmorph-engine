@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://www.fairmorph.org/contracts/poc/1/virtual-package.schema.json",
+  "title": "FAIRmorph PoC virtual package descriptor",
+  "type": "object",
+  "required": ["schema_version", "package_id", "virtual", "resources"],
+  "properties": {
+    "schema_version": {"const": "fairmorph.poc.virtual-package/1"},
+    "package_id": {"const": "cs-phoc"},
+    "virtual": {"const": true},
+    "resources": {"type": "array", "minItems": 2, "maxItems": 2, "items": {
+      "type": "object", "required": ["name", "sha256", "object_path"],
+      "properties": {
+        "name": {"enum": ["events", "counts"]},
+        "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "object_path": {"type": "string", "pattern": "^objects/sha256/[0-9a-f]{2}/[0-9a-f]{64}$"}
+      }, "additionalProperties": false
+    }}
+  }, "additionalProperties": false
+}
