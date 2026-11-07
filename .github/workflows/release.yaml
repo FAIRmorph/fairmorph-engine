@@ -109,4 +109,4 @@ jobs:
             -H "Accept: application/vnd.github.v3+json" \
             -H "Authorization: Bearer ${{ steps.app-token.outputs.token }}" \
             https://api.github.com/repos/fairmorph/fairmorph.org/dispatches \
-            -d '{"event_type": "docs-update"}'
+            -d '{"event_type": "code-updated"}'
