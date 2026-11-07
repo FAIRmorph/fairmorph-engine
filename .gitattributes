@@ -1,0 +1,3 @@
+# Preserve the exact bytes of approved CS-PHOC source datasets.
+examples/cs-phoc/*.csv -text
+src/fairmorph_engine/fixtures/cs_phoc/*.csv -text
