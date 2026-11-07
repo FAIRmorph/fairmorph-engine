@@ -9,6 +9,13 @@ import typer
 
 # 1. Das Subcommand aus dem commands-Paket importieren
 from fairmorph_engine.commands.poc import run_poc
+from fairmorph_engine.commands.slice import (
+    run_csphoc,
+    run_csphoc_export,
+    run_dwca_export,
+    run_dwca_preflight,
+    verify_csphoc_project,
+)
 
 app = typer.Typer(
     name="fairmorph",
@@ -40,6 +47,42 @@ def main_callback() -> None:
 
 # 2. Den importierten Befehl an der Typer-App registrieren
 app.command(name="poc", help="Führt den PoC-IPC-Benchmark aus")(run_poc)
+app.command(name="csphoc", help="Run the fixed CS-PHOC PoC transformation")(run_csphoc)
+app.command(name="export-package", help="Export a validated CS-PHOC RUN as a Data Package")(
+    run_csphoc_export
+)
+app.command(name="dwca-preflight", help="Describe the approved DwC-A target profile")(
+    run_dwca_preflight
+)
+app.command(name="export-dwca", help="Export validated CS-PHOC Event/Occurrence archive")(
+    run_dwca_export
+)
+app.command(name="verify-project", help="Verify project sources, RUNs and exports")(
+    verify_csphoc_project
+)
+
+
+@app.command(name="handshake")
+def handshake() -> None:
+    """Advertise the supported PoC contract without changing any project data."""
+    emit_event(
+        "result",
+        status="success",
+        data={
+            "protocol_version": "fairmorph.poc.ndjson/1",
+            "project_schema_version": "fairmorph.poc.project/1",
+            "run_schema_version": "fairmorph.poc.run/1",
+            "engine_version": "0.1.0",
+            "commands": [
+                "poc",
+                "csphoc",
+                "export-package",
+                "dwca-preflight",
+                "export-dwca",
+                "verify-project",
+            ],
+        },
+    )
 
 
 def main() -> None:

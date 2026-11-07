@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://www.fairmorph.org/contracts/poc/1/quality.schema.json",
+  "title": "FAIRmorph PoC CS-PHOC quality report",
+  "type": "object",
+  "required": ["schema_version", "events", "count_rows", "output_rows", "omitted_empty_cells", "explicit_zeros", "positive_cells", "invalid_nonempty_cells", "invalid_event_references", "finding_rows", "audit_scope"],
+  "properties": {
+    "schema_version": {"const": "fairmorph.poc.quality/1"},
+    "events": {"type": "integer", "minimum": 0},
+    "count_rows": {"type": "integer", "minimum": 0},
+    "output_rows": {"type": "integer", "minimum": 0},
+    "omitted_empty_cells": {"type": "integer", "minimum": 0},
+    "explicit_zeros": {"type": "integer", "minimum": 0},
+    "positive_cells": {"type": "integer", "minimum": 0},
+    "invalid_nonempty_cells": {"type": "integer", "minimum": 0},
+    "invalid_event_references": {"type": "integer", "minimum": 0},
+    "finding_rows": {"type": "integer", "minimum": 0},
+    "audit_scope": {"const": "structural_lineage_and_findings"}
+  },
+  "additionalProperties": false
+}

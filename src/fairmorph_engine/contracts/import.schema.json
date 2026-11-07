@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://www.fairmorph.org/contracts/poc/1/import.schema.json",
+  "title": "FAIRmorph PoC immutable source import manifest",
+  "type": "object",
+  "required": ["schema_version", "import_id", "role", "original_name", "sha256", "object_path"],
+  "properties": {
+    "schema_version": {"const": "fairmorph.poc.import/1"},
+    "import_id": {"type": "string", "pattern": "^(events|counts)-[0-9a-f]{64}$"},
+    "role": {"enum": ["events", "counts"]},
+    "original_name": {"type": "string", "minLength": 1},
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "object_path": {"type": "string", "pattern": "^objects/sha256/[0-9a-f]{2}/[0-9a-f]{64}$"}
+  },
+  "additionalProperties": false
+}

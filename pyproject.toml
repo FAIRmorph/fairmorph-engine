@@ -82,3 +82,6 @@ ignore = ["E501"]
 testpaths = ["tests"]
 pythonpath = ["src"]
 addopts = "-v --strict-markers"
+
+[tool.setuptools.package-data]
+"fairmorph_engine" = ["fixtures/cs_phoc/*.csv", "fixtures/cs_phoc/*.json", "contracts/*.schema.json"]
