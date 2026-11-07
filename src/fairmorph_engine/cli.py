@@ -9,6 +9,7 @@ import typer
 
 # 1. Das Subcommand aus dem commands-Paket importieren
 from fairmorph_engine.commands.poc import run_poc
+from fairmorph_engine.commands.inspect_csv import inspect_csv
 
 app = typer.Typer(
     name="fairmorph",
@@ -40,6 +41,7 @@ def main_callback() -> None:
 
 # 2. Den importierten Befehl an der Typer-App registrieren
 app.command(name="poc", help="Führt den PoC-IPC-Benchmark aus")(run_poc)
+app.command(name="inspect-csv", help="Inspect a local CSV dataset")(inspect_csv)
 
 
 def main() -> None:
