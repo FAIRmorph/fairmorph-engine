@@ -39,7 +39,7 @@ def test_inspect_csv_reports_columns_count_hash_and_output(tmp_path):
 
 def test_inspect_csv_handles_utf8_bom_and_empty_body(tmp_path):
     source = tmp_path / "empty.csv"
-    source.write_bytes(bytes([0xEF, 0xBB, 0xBF]) + b"scientificName,eventDate\\n")
+    source.write_bytes(bytes([0xEF, 0xBB, 0xBF]) + b"scientificName,eventDate\n")
     completed = invoke_csv(source)
     assert completed.returncode == 0, completed.stderr
     result = json.loads(completed.stdout.splitlines()[-1])
