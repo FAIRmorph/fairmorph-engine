@@ -1,0 +1,64 @@
+# Byte-compiled / optimized files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C-Extensions
+*.so
+
+# Distribution / Packaging
+dist/
+build/
+*.egg-info/
+*.egg
+.eggs/
+
+# Virtuelle Umgebungen & Paketmanager
+.venv/
+venv/
+env/
+ENV/
+*.whl
+
+# Test- & Coverage-Artefakte (Pytest, Coverage, Hypothesis)
+.pytest_cache/
+.hypothesis/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+
+# Linter & Tool-Caches (Ruff, Pre-commit, MyPy)
+.ruff_cache/
+.pre-commit-cache/
+.mypy_cache/
+
+# PyInstaller & Windows-Bundle Artefakte
+*.manifest
+fairmorph-engine-*-windows-x64.zip
+python-*-embed-*.zip
+
+# Lokale Daten- & Testdatenbanken (DuckDB, GeoPackage WAL/SHM Locks)
+*.duckdb
+*.duckdb.wal
+*.gpkg-wal
+*.gpkg-shm
+*.sqlite-wal
+*.sqlite-shm
+
+# Temporäre Spuren von Terminals / Editoren
+*.log
+*~
+*.swp
+*.swo
+
+# Betriebssystem-Dateien
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDEs & Editoren
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json

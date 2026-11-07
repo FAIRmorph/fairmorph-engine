@@ -1,20 +1,41 @@
-name: Publish to PyPI
+name: Release & Distribution
 
 on:
   release:
     types: [published]
 
 jobs:
-  pypi-publish:
-    name: Upload release to PyPI
+  quality-gate:
+    name: Pre-Release Quality Gate
     runs-on: ubuntu-latest
-    environment:
-      name: pypi
-      url: https://pypi.org/p/fairmorph-engine
-    permissions:
-      id-token: write
-      contents: read
+    steps:
+      - uses: actions/checkout@v4
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Verify Code Style & Lint
+        run: |
+          ruff check src tests
+          ruff format --check src tests
+
+      - name: Run Test Suite
+        run: pytest
+
+  bundle-windows:
+    name: Build Windows Embeddable Bundle
+    needs: [quality-gate] # Wartet ebenfalls auf das Quality Gate
+    runs-on: windows-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
@@ -28,8 +49,64 @@ jobs:
           python -m pip install --upgrade pip
           pip install build
 
-      - name: Build package
-        run: python -m build
+      - name: Build Engine Wheel
+        run: python -m build --wheel
 
-      - name: Publish package to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
+      - name: Assemble Windows Embeddable Bundle
+        shell: pwsh
+        run: |
+          $ver = "3.11.9"
+          $embedZip = "python-$ver-embed-amd64.zip"
+          Invoke-WebRequest -Uri "https://www.python.org/ftp/python/$ver/$embedZip" -OutFile $embedZip
+
+          # 1. Zielverzeichnis bin/ aufsetzen & Runtime entpacken
+          New-Item -ItemType Directory -Path dist/bundle/bin -Force | Out-Null
+          Expand-Archive -Path $embedZip -DestinationPath dist/bundle/bin -Force
+
+          # 2. python311._pth modifizieren: 'import site' aktivieren und Pfade ergänzen
+          $pth = Get-Item dist/bundle/bin/python311._pth
+          $pthContent = Get-Content $pth
+          $pthContent = $pthContent -replace '#import site', 'import site'
+          $pthContent += "`n.`n./site-packages`n"
+          Set-Content -Path $pth -Value $pthContent
+
+          # 3. Wheel und alle Abhängigkeiten isoliert in site-packages installieren
+          $wheel = (Get-Item dist/*.whl).FullName
+          python -m pip install --no-warn-script-location --target dist/bundle/bin/site-packages $wheel
+
+          # 4. CLI-Batch-Launcher im Bundle-Root erzeugen
+          $launcher = "@echo off`r`n`"%~dp0bin\python.exe`" -m fairmorph_engine.cli %*"
+          Set-Content -Path dist/bundle/fairmorph-engine.bat -Value $launcher
+
+          # 5. Versionsspezifisches Archiv erstellen
+          $tag = "${{ github.event.release.tag_name }}"
+          Compress-Archive -Path dist/bundle/* -DestinationPath "fairmorph-engine-${tag}-windows-x64.zip"
+
+      - name: Upload Windows Bundle to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: fairmorph-engine-*-windows-x64.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  trigger-documentation:
+    name: Trigger Documentation Rebuild
+    needs: [bundle-windows]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate Short-Lived App Token
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.DOCS_APP_ID }}
+          private-key: ${{ secrets.DOCS_APP_PRIVATE_KEY }}
+          owner: fairmorph
+          repositories: fairmorph.org
+
+      - name: Dispatch Docs Rebuild Event
+        run: |
+          curl --fail-with-body -X POST \
+            -H "Accept: application/vnd.github.v3+json" \
+            -H "Authorization: Bearer ${{ steps.app-token.outputs.token }}" \
+            https://api.github.com/repos/fairmorph/fairmorph.org/dispatches \
+            -d '{"event_type": "code-updated"}'

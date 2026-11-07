@@ -4,38 +4,81 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "fairmorph-engine"
-version = "0.0.2"
-description = "Core engine for transforming ecology observation and measurement data into interoperable data formats to support FAIR principles (Active development starting soon)"
+version = "0.1.0"
+description = "Offline-first engine for biodiversity data curation, EML 2.2.0 metadata editing, deterministic auditing, and Darwin Core / GeoPackage packaging orchestration."
 readme = "README.md"
-requires-python = ">=3.10"
-license = {text = "MIT"}
+requires-python = ">=3.11"
+license = "MIT"
+license-files = ["LICENSE*"]
 authors = [
-  { name = "FAIRmorph", email = "pypi@kreativmanufaktur.de" },
+    { name = "FAIRmorph Team", email = "contact@fairmorph.org" }
+]
+keywords = [
+    "biodiversity-data",
+    "data-curation",
+    "darwin-core",
+    "eml-metadata",
+    "geopackage",
+    "fair-data",
 ]
 classifiers = [
-    "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: MIT License",
-    "Operating System :: OS Independent",
-    "Development Status :: 1 - Planning",
+    "Private :: Do Not Upload",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.11",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX :: Linux",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+    "Topic :: Scientific/Engineering :: GIS",
+    "Development Status :: 3 - Alpha",
 ]
 dependencies = [
-    "pydantic>=2.0.0",
-    "pyyaml>=6.0",
-    "pandas>=2.0.0",
+    "typer>=0.12.0",
+    "pydantic>=2.7.0",
+    "pyyaml>=6.0.1",
+    "duckdb>=1.0.0",
+    "polars>=1.0.0",
+    "frictionless[excel,json]>=5.18.0",
+    "python-calamine>=0.2.0",
+    "pyogrio>=0.9.0",
+    "shapely>=2.0.0",
+    "pillow>=10.3.0",
+    "exifread>=3.0.0",
+    "lxml>=5.2.0",
+    "cryptography>=42.0.0",
+    "jinja2>=3.1.0",
 ]
 
 [project.optional-dependencies]
 dev = [
-    "pytest>=7.0.0",
-    "build",
-    "twine",
+    "pytest>=8.0.0",
+    "pytest-cov>=5.0.0",
+    "hypothesis>=6.100.0",
+    "ruff>=0.4.0",
+    "pre-commit>=3.7.0",
 ]
 
-[project.urls]
-"Homepage" = "https://github.com/fairmorph/fairmorph-engine"
-
 [project.scripts]
-fairmorph-engine = "fairmorph_engine.cli:main"
+fairmorph-engine = "fairmorph_engine.cli:app"
+
+[project.urls]
+Homepage = "https://www.fairmorph.org"
+Documentation = "https://github.com/fairmorph/fairmorph-engine/blob/main/README.md"
+Repository = "https://github.com/fairmorph/fairmorph-engine"
+Issues = "https://github.com/fairmorph/fairmorph-engine/issues"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B"]
+ignore = ["E501"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-v --strict-markers"
