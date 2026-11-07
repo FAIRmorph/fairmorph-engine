@@ -73,9 +73,11 @@ def init_project_command(
 
     try:
         index = initialize_project(project, name)
-        emit_event("result", status="success", data={
-            "project_id": index["project_id"], "project_path": str(project.resolve())
-        })
+        emit_event(
+            "result",
+            status="success",
+            data={"project_id": index["project_id"], "project_path": str(project.resolve())},
+        )
     except (ValueError, OSError) as error:
         emit_event("result", status="error", message=str(error))
         raise typer.Exit(code=1) from error

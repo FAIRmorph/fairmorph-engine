@@ -26,9 +26,14 @@ def test_arbitrary_import_and_virtual_package(tmp_path):
     assert len(list((project / "objects/sha256").glob("*/*"))) == 1
     with sqlite3.connect(project / "catalog/catalog.sqlite") as connection:
         assert connection.execute("SELECT count(*) FROM source_resources").fetchone()[0] == 2
-    package = register_package(project, "field-campaign", {"measurements": first, "records": second})
+    package = register_package(
+        project, "field-campaign", {"measurements": first, "records": second}
+    )
     assert len(package["resources"]) == 2
-    assert register_package(project, "field-campaign", {"measurements": first, "records": second}) == package
+    assert (
+        register_package(project, "field-campaign", {"measurements": first, "records": second})
+        == package
+    )
     assert verify_project(project)["completed_runs"] == 0
     updated = json.loads((project / "project.json").read_text(encoding="utf-8"))
     assert updated["package_ids"] == ["field-campaign"]
@@ -49,12 +54,30 @@ def test_detect_corrupted_immutable_object(tmp_path):
 
 def test_headless_cli(tmp_path):
     project = tmp_path / "headless.fairmorph"
-    init = subprocess.run([sys.executable, "-m", "fairmorph_engine.cli", "init-project",
-                           "--project", str(project)], capture_output=True, text=True, check=True)
+    init = subprocess.run(
+        [sys.executable, "-m", "fairmorph_engine.cli", "init-project", "--project", str(project)],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
     assert json.loads(init.stdout.splitlines()[-1])["status"] == "success"
     sample = tmp_path / "arbitrary.txt"
     sample.write_text("not a census", encoding="utf-8")
-    imported = subprocess.run([sys.executable, "-m", "fairmorph_engine.cli", "import-resource",
-                               "--project", str(project), "--source", str(sample), "--role",
-                               "arbitrary"], capture_output=True, text=True, check=True)
+    imported = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "fairmorph_engine.cli",
+            "import-resource",
+            "--project",
+            str(project),
+            "--source",
+            str(sample),
+            "--role",
+            "arbitrary",
+        ],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
     assert json.loads(imported.stdout.splitlines()[-1])["data"]["state"] == "imported_unmapped"

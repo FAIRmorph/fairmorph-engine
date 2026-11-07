@@ -48,7 +48,15 @@ def initialize_project(project: Path, name: str = "FAIRmorph project") -> dict:
     if not name.strip() or project.is_symlink():
         raise ValueError("Invalid project name or symbolic link")
     project.mkdir(parents=True, exist_ok=True)
-    for subdir in ("objects/sha256", "imports", "packages", "configurations", "runs", "exports", "catalog"):
+    for subdir in (
+        "objects/sha256",
+        "imports",
+        "packages",
+        "configurations",
+        "runs",
+        "exports",
+        "catalog",
+    ):
         (project / subdir).mkdir(parents=True, exist_ok=True)
     with connection(project) as db:
         db.execute("PRAGMA synchronous=FULL")
@@ -72,12 +80,18 @@ def initialize_project(project: Path, name: str = "FAIRmorph project") -> dict:
         db.execute("INSERT OR IGNORE INTO project_meta VALUES ('schema_version', 'poc/1')")
     target = project / "project.json"
     if not target.exists():
-        write_json(target, {
-            "schema_version": "fairmorph.poc.project/1",
-            "project_id": str(uuid.uuid4()), "name": name,
-            "catalog_schema_version": "poc/1", "package_ids": [],
-            "run_ids": [], "input_objects": [],
-        })
+        write_json(
+            target,
+            {
+                "schema_version": "fairmorph.poc.project/1",
+                "project_id": str(uuid.uuid4()),
+                "name": name,
+                "catalog_schema_version": "poc/1",
+                "package_ids": [],
+                "run_ids": [],
+                "input_objects": [],
+            },
+        )
     return json.loads(target.read_text(encoding="utf-8"))
 
 
@@ -107,8 +121,11 @@ def import_resource(project: Path, source: Path, role: str) -> dict:
             staging.unlink(missing_ok=True)
     import_id = f"{role}-{checksum}"
     manifest = {
-        "schema_version": "fairmorph.poc.import/1", "import_id": import_id,
-        "role": role, "original_name": source.name, "sha256": checksum,
+        "schema_version": "fairmorph.poc.import/1",
+        "import_id": import_id,
+        "role": role,
+        "original_name": source.name,
+        "sha256": checksum,
         "object_path": relative,
     }
     path = project / "imports" / import_id / "manifest.json"
@@ -119,10 +136,14 @@ def import_resource(project: Path, source: Path, role: str) -> dict:
         write_json(path, manifest)
     resource_id = f"resource-{import_id}"
     with connection(project) as db:
-        db.execute("INSERT OR IGNORE INTO source_objects VALUES (?, ?, ?)",
-                   (checksum, target.stat().st_size, source.name))
-        db.execute("INSERT OR IGNORE INTO source_resources VALUES (?, ?, ?, ?, ?)",
-                   (resource_id, source.name, checksum, import_id, "imported_unmapped"))
+        db.execute(
+            "INSERT OR IGNORE INTO source_objects VALUES (?, ?, ?)",
+            (checksum, target.stat().st_size, source.name),
+        )
+        db.execute(
+            "INSERT OR IGNORE INTO source_resources VALUES (?, ?, ?, ?, ?)",
+            (resource_id, source.name, checksum, import_id, "imported_unmapped"),
+        )
     update_index(project, object_entry={"sha256": checksum, "object_path": relative})
     return {**manifest, "resource_id": resource_id, "state": "imported_unmapped"}
 
@@ -137,11 +158,14 @@ def register_package(project: Path, package_id: str, resources: dict[str, dict])
     for role, resource in sorted(resources.items()):
         if role != resource["role"]:
             raise ValueError("Role mismatch")
-        entries.append({"name": role, "sha256": resource["sha256"],
-                        "object_path": resource["object_path"]})
+        entries.append(
+            {"name": role, "sha256": resource["sha256"], "object_path": resource["object_path"]}
+        )
     descriptor = {
         "schema_version": "fairmorph.poc.virtual-package/1",
-        "package_id": package_id, "virtual": True, "resources": entries,
+        "package_id": package_id,
+        "virtual": True,
+        "resources": entries,
     }
     path = project / "packages" / package_id / "virtual-descriptor.json"
     if path.exists():
@@ -150,10 +174,14 @@ def register_package(project: Path, package_id: str, resources: dict[str, dict])
     else:
         write_json(path, descriptor)
     with connection(project) as db:
-        db.execute("INSERT OR IGNORE INTO packages VALUES (?, ?, ?)",
-                   (package_id, f"packages/{package_id}/virtual-descriptor.json", digest(path)))
+        db.execute(
+            "INSERT OR IGNORE INTO packages VALUES (?, ?, ?)",
+            (package_id, f"packages/{package_id}/virtual-descriptor.json", digest(path)),
+        )
         for role, resource in sorted(resources.items()):
-            db.execute("INSERT OR IGNORE INTO package_resources VALUES (?, ?, ?)",
-                       (package_id, resource["resource_id"], role))
+            db.execute(
+                "INSERT OR IGNORE INTO package_resources VALUES (?, ?, ?)",
+                (package_id, resource["resource_id"], role),
+            )
     update_index(project, package_id=package_id)
     return descriptor

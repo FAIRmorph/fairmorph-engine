@@ -28,7 +28,9 @@ def run_csphoc(
     try:
         # Explicitly select the example resources; no data bundled with the engine.
         if events is None or counts is None or decision is None:
-            raise ValueError("CS-PHOC requires --events, --counts and --decision from an example project")
+            raise ValueError(
+                "CS-PHOC requires --events, --counts and --decision from an example project"
+            )
         run_slice(project, events, counts, decision, emit_event)
     except (ValueError, RuntimeError, OSError, KeyError, ImportError, ValidationError) as error:
         emit_event("result", status="error", message=str(error))
