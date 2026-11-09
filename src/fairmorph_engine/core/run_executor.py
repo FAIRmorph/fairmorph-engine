@@ -251,8 +251,14 @@ def execute_mapping_run(project: Path, mapping_sha256: str, emit=lambda *_a, **_
         _write_json(staging / "configuration.snapshot.json", mapping)
         quality = {
             "output_rows": len(rows),
-            "explicit_zeros": sum(row["value"] == 0 for row in rows),
-            "value_sum": sum(row["value"] for row in rows),
+            **(
+                {
+                    "explicit_zeros": observed_metrics["explicit_zeros"],
+                    "value_sum": observed_metrics["value_sum"],
+                }
+                if operation == TRANSFORM_VERSION
+                else {}
+            ),
             "transformation": operation,
         }
         _write_json(staging / "reports" / "quality.json", quality)
