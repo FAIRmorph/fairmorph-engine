@@ -10,10 +10,6 @@ import typer
 
 # 1. Das Subcommand aus dem commands-Paket importieren
 from fairmorph_engine.commands.poc import run_poc
-from fairmorph_engine.commands.slice import (
-    run_dwca_export,
-    run_dwca_preflight,
-)
 
 app = typer.Typer(
     name="fairmorph",
@@ -45,12 +41,6 @@ def main_callback() -> None:
 
 # 2. Den importierten Befehl an der Typer-App registrieren
 app.command(name="poc", help="Führt den PoC-IPC-Benchmark aus")(run_poc)
-app.command(name="dwca-preflight", help="Describe the approved DwC-A target profile")(
-    run_dwca_preflight
-)
-app.command(name="export-dwca", help="Export validated CS-PHOC Event/Occurrence archive")(
-    run_dwca_export
-)
 
 
 @app.command(name="export-package")
@@ -200,8 +190,6 @@ def handshake() -> None:
                 "approve-mapping",
                 "run-mapping",
                 "export-package",
-                "dwca-preflight",
-                "export-dwca",
                 "verify-project",
             ],
         },

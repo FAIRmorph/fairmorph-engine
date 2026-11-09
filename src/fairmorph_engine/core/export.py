@@ -8,13 +8,21 @@ import uuid
 from datetime import UTC, datetime
 from pathlib import Path
 
-from fairmorph_engine.core.csphoc import (
-    EXPORT_VERSION,
-    RUN_VERSION,
-    sha256,
-    validate_contract,
-    write_json,
-)
+from jsonschema import Draft202012Validator, FormatChecker
+
+from fairmorph_engine.core.project import digest as sha256
+from fairmorph_engine.core.project import write_json
+
+EXPORT_VERSION = "fairmorph.poc.export/1"
+RUN_VERSION = "fairmorph.poc.run/1"
+
+
+def validate_contract(name: str, document: dict) -> None:
+    """Validate a versioned generic artifact contract."""
+    path = Path(__file__).resolve().parents[1] / "contracts" / f"{name}.schema.json"
+    schema = json.loads(path.read_text(encoding="utf-8"))
+    Draft202012Validator(schema, format_checker=FormatChecker()).validate(document)
+
 
 _RUN_ID = re.compile(r"^[0-9]{8}T[0-9]{6}Z-[0-9a-f]{12}$")
 
@@ -59,7 +67,7 @@ def verified_run(project: Path, run_id: str) -> tuple[Path, dict]:
 
 def export_data_package(project: Path, run_id: str, emit):
     """Export CSV resources and checksums without modifying the source RUN."""
-    run_dir, run_manifest = verified_run(project, run_id)
+    run_dir, _ = verified_run(project, run_id)
     emit("progress", stage="EXPORTING", percentage=10, message="Verifying immutable RUN")
     from polars import read_parquet
 
@@ -89,14 +97,11 @@ def export_data_package(project: Path, run_id: str, emit):
                 "mediatype": "application/json",
             },
         ]
-        is_generic_run = run_manifest["schema_version"] == "fairmorph.poc.run/2"
         descriptor = {
             "profile": "data-package",
-            "name": "fairmorph-run" if is_generic_run else "cs-phoc-poc",
-            "title": "FAIRmorph verified RUN" if is_generic_run else "FAIRmorph CS-PHOC PoC",
-            "description": "Verified immutable RUN observations and lineage; not a Darwin Core Archive."
-            if is_generic_run
-            else "Approved wide-to-long output; not a Darwin Core Archive.",
+            "name": "fairmorph-run",
+            "title": "FAIRmorph verified RUN",
+            "description": "Verified immutable RUN observations and lineage; not a Darwin Core Archive.",
             "resources": resources,
         }
         write_json(package / "datapackage.json", descriptor)
@@ -134,135 +139,6 @@ def export_data_package(project: Path, run_id: str, emit):
         return manifest
     except Exception:
         (staging / "FAILED").write_text("Export incomplete\n", encoding="utf-8")
-        raise
-
-
-def dwca_profile() -> dict:
-    """Report the selected author-defined CS-PHOC publication contract."""
-    return {
-        "profile_id": "darwin-core-archive-event-occurrence",
-        "profile_version": "cs-phoc-published/1",
-        "source_doi": "https://doi.org/10.48361/gklk1u",
-        "core": "Event",
-        "core_rows": 536,
-        "extension": "Occurrence",
-        "extension_rows": 16940,
-        "zero_status": "absent",
-        "positive_status": "present",
-        "missing_category_cells": "omit",
-        "metadata_provenance": "FAIRmorph-derived, not the publisher's original EML",
-    }
-
-
-def export_dwca(project: Path, run_id: str, emit) -> dict:
-    """Materialize a new immutable DwC-A export from a verified completed RUN."""
-    from fairmorph_engine.core.csphoc import EXPECTED_SOURCE_HASHES, transform_sources
-    from fairmorph_engine.core.dwca import published_records, write_archive
-
-    run_dir, _ = verified_run(project, run_id)
-    emit("progress", stage="EXPORTING", percentage=10, message="Verifying RUN and pinned inputs")
-    snapshot = json.loads((run_dir / "inputs.snapshot.json").read_text(encoding="utf-8"))
-    sources = {entry["role"]: entry for entry in snapshot["sources"]}
-    if {key: value["sha256"] for key, value in sources.items()} != EXPECTED_SOURCE_HASHES:
-        raise ValueError("RUN does not reference the approved CS-PHOC source snapshot")
-    # Verify the immutable metadata revision in the RUN snapshot.
-    revisions = snapshot.get("metadata_revisions", [])
-    if len(revisions) != 1:
-        raise ValueError("RUN must pin one metadata revision")
-    metadata_entry = revisions[0]
-    metadata_relative = Path(metadata_entry["path"])
-    if metadata_relative.is_absolute() or ".." in metadata_relative.parts:
-        raise ValueError("Metadata path escapes project")
-    metadata_path = project / metadata_relative
-    if (
-        not metadata_path.is_file()
-        or metadata_path.is_symlink()
-        or not metadata_path.resolve().is_relative_to(project.resolve())
-        or sha256(metadata_path) != metadata_entry["sha256"]
-    ):
-        raise ValueError("RUN publication metadata revision is missing or modified")
-
-    files = {}
-    for role, entry in sources.items():
-        relative = Path(entry["object_path"])
-        if relative.is_absolute() or ".." in relative.parts:
-            raise ValueError("RUN source path escapes project")
-        source = project / relative
-        if not source.is_file() or source.is_symlink() or sha256(source) != entry["sha256"]:
-            raise ValueError(f"Missing or modified RUN source object: {role}")
-        files[role] = source
-
-    source_records, findings, _, _, _ = transform_sources(
-        files["events"], files["counts"], EXPECTED_SOURCE_HASHES["counts"]
-    )
-    if findings or len(source_records) != 16940:
-        raise ValueError("Source transformation no longer matches approved RUN")
-    # Compare persisted Parquet content, not just self-consistent manifest hashes.
-    from polars import read_parquet
-
-    observed = read_parquet(run_dir / "outputs" / "observations.parquet")
-    stored = {
-        (row["source_count_id"], row["source_column"]): (row["record_id"], row["value"])
-        for row in observed.to_dicts()
-    }
-    expected = {
-        (row["source_count_id"], row["source_column"]): (row["record_id"], row["value"])
-        for row in source_records
-    }
-    if len(stored) != len(source_records) or stored != expected:
-        raise ValueError("RUN output differs from approved source transformation")
-    events, occurrences = published_records(files["events"], files["counts"])
-    emit(
-        "progress", stage="EXPORTING", percentage=55, message="Writing Event and Occurrence tables"
-    )
-
-    export_id = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ") + "-" + uuid.uuid4().hex[:12]
-    staging = project / "exports" / f".pending-{export_id}"
-    package = staging / "package"
-    package.mkdir(parents=True, exist_ok=False)
-    try:
-        profile = write_archive(package, export_id, events, occurrences)
-        write_json(
-            package / "mapping-profile.json",
-            {
-                **dwca_profile(),
-                "publication_reference": "https://github.com/us-amlr/cs-phoc/blob/main/R/data_to_dwca.R",
-                "reference_limitations": [
-                    "WoRMS identifiers are pinned to the published 2026-11-07 reference snapshot, not refreshed online.",
-                    "EML is a provenance-labelled FAIRmorph derivative, not a byte-copy of IPT EML.",
-                    "event/occurrence record order and archive byte content are not asserted identical.",
-                ],
-            },
-        )
-        artifacts = [
-            {"path": f"package/{file.name}", "bytes": file.stat().st_size, "sha256": sha256(file)}
-            for file in sorted(package.iterdir())
-        ]
-        manifest = {
-            "schema_version": EXPORT_VERSION,
-            "export_id": export_id,
-            "source_run_id": run_id,
-            "profile_id": "darwin-core-archive-event-occurrence",
-            "profile_version": "cs-phoc-published/1",
-            "created_at": datetime.now(UTC).isoformat(),
-            "source_run_manifest_sha256": sha256(run_dir / "manifest.json"),
-            "artifacts": artifacts,
-        }
-        validate_contract("export", manifest)
-        write_json(staging / "export-manifest.json", manifest)
-        destination = project / "exports" / export_id
-        os.replace(staging, destination)
-        result = {
-            "export_id": export_id,
-            "source_run_id": run_id,
-            "export_path": str(destination.resolve()),
-            "manifest_path": str((destination / "export-manifest.json").resolve()),
-            **profile,
-        }
-        emit("result", status="success", data=result)
-        return result
-    except Exception:
-        (staging / "FAILED").write_text("Darwin Core Archive export incomplete\n", encoding="utf-8")
         raise
 
 

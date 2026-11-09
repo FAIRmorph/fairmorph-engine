@@ -8,6 +8,7 @@ import pytest
 from typer.testing import CliRunner
 
 from fairmorph_engine.cli import app
+from fairmorph_engine.core.publication_integrity import validate_publication_integrity
 
 
 def _result(response):
@@ -173,3 +174,123 @@ def test_external_profile_cli_review_and_run(tmp_path, counting_unit):
     assert "CS-PHOC" not in descriptor["title"]
     verified = _result(runner.invoke(app, ["verify-project", "--project", str(project)]))
     assert verified["completed_runs"] == 1
+
+
+def test_generic_publication_integrity_against_real_verified_run(tmp_path):
+    """No mocked RUN verification, project fixtures or publication defaults."""
+    runner = CliRunner()
+    project = tmp_path / "project"
+    source = tmp_path / "source.csv"
+    source.write_text("site,juveniles,adults\nA,0,2\nB,,3\n", encoding="utf-8")
+    _result(runner.invoke(app, ["init-project", "--project", str(project)]))
+    imported = _result(
+        runner.invoke(
+            app,
+            [
+                "import-resource", "--project", str(project),
+                "--source", str(source), "--role", "observations",
+            ],
+        )
+    )
+    mapping = {
+        "mapping_id": "survey",
+        "version": "1.0.0",
+        "operation": "wide-to-long-counts/1",
+        "source_sha256": hashlib.sha256(source.read_bytes()).hexdigest(),
+        "identifier": "site",
+        "empty_cell_policy": "omit",
+        "zero_cell_policy": "preserve",
+        "fields": [
+            {
+                "source_column": column,
+                "target_field": column,
+                "description": "Synthetic measurement",
+                "definition_source": "source_documentation",
+                "counting_unit": "individual",
+                "zero_meaning": "true_zero",
+                "missing_values": [],
+            }
+            for column in ("juveniles", "adults")
+        ],
+        "acceptance": {"output_rows": 3, "explicit_zeros": 1, "value_sum": 5},
+    }
+    mapping_file = tmp_path / "mapping.json"
+    mapping_file.write_text(json.dumps(mapping), encoding="utf-8")
+    staged = _result(
+        runner.invoke(
+            app,
+            [
+                "stage-csv-mapping",
+                "--project", str(project),
+                "--resource-id", imported["resource_id"],
+                "--profile", str(mapping_file),
+            ],
+        )
+    )
+    _result(
+        runner.invoke(
+            app,
+            [
+                "approve-mapping",
+                "--project", str(project),
+                "--mapping-sha256", staged["mapping_sha256"],
+                "--reviewer", "reviewer",
+            ],
+        )
+    )
+    run = _result(
+        runner.invoke(
+            app,
+            [
+                "run-mapping", "--project", str(project),
+                "--mapping-sha256", staged["mapping_sha256"],
+            ],
+        )
+    )
+    run_dir = project / "runs" / run["run_id"]
+    pin = hashlib.sha256((run_dir / "manifest.json").read_bytes()).hexdigest()
+    metadata = tmp_path / "metadata.json"
+    metadata.write_text('{"title":"Synthetic survey"}', encoding="utf-8")
+    profile = {
+        "schema_version": "fairmorph.poc.publication-profile/1",
+        "profile_id": "synthetic",
+        "version": "1.0.0",
+        "run_manifest_sha256": pin,
+        "metadata_sha256": hashlib.sha256(metadata.read_bytes()).hexdigest(),
+        "formats": ["dwca/1"],
+        "dwca": {
+            "core": "Occurrence",
+            "core_id_field": "record_id",
+            "core_fields": [
+                {
+                    "source_field": "record_id",
+                    "term": "http://rs.tdwg.org/dwc/terms/occurrenceID",
+                }
+            ],
+        },
+    }
+    projection = {
+        "schema_version": "fairmorph.poc.publication-projection/1",
+        "run_manifest_sha256": pin,
+        "tables": [
+            {
+                "row_type": "Occurrence",
+                "artifact_path": "outputs/observations.parquet",
+                "columns": ["record_id"],
+            }
+        ],
+    }
+    integrity = {
+        "schema_version": "fairmorph.poc.publication-integrity/1",
+        "run_manifest_sha256": pin,
+        "identifiers": [{"row_type": "Occurrence", "column": "record_id"}],
+        "relationships": [],
+    }
+    files = [tmp_path / name for name in ("publication.json", "projection.json", "integrity.json")]
+    for path, document in zip(files, (profile, projection, integrity), strict=True):
+        path.write_text(json.dumps(document), encoding="utf-8")
+    result = validate_publication_integrity(
+        project, run["run_id"], files[0], metadata, files[1], files[2]
+    )
+    assert result["integrity_verified"] is True
+    assert result["publication_ready"] is False

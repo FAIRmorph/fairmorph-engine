@@ -299,3 +299,15 @@ or full archive conformance. `publication_ready` remains false.
 The integrity validator rejects empty identifier tables, blank string
 identifiers, duplicate relationship declarations and mismatched foreign-key
 column types. All constraints remain external and independent of examples.
+
+### PoC architecture boundary: legacy publication commands
+
+The generic Engine CLI does not register the former dataset-specific
+`dwca-preflight` or `export-dwca` commands. The legacy publication
+implementation is not a generic adapter and must not be invoked as part
+of RUN/2 publication. Generic RUN verification and Frictionless export
+use Engine-owned hashing, JSON writing and contract validation rather
+than importing a reference project's module. A synthetic end-to-end
+Engine test now executes an approved RUN/2 and checks external publication
+integrity using the actual verified Parquet artifact. This is a PoC
+architecture proof, not production hardening or EML/DwC-A export.
