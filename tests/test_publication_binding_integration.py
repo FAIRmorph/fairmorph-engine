@@ -4,6 +4,7 @@ import hashlib
 import json
 
 import polars as pl
+import pytest
 
 from fairmorph_engine.core.publication_bindings import validate_publication_binding_columns
 
@@ -72,8 +73,6 @@ def test_publication_binding_integration_with_parquet(tmp_path, monkeypatch):
         {"source_field": "unavailable", "term": "http://rs.tdwg.org/dwc/terms/taxonID"}
     )
     profile_file.write_text(json.dumps(profile), encoding="utf-8")
-    import pytest
-
     with pytest.raises(ValueError, match="Publication bindings missing"):
         validate_publication_binding_columns(
             tmp_path, "synthetic-run", profile_file, metadata, projection_file
