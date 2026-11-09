@@ -61,6 +61,15 @@ def stage_csv_mapping(project: Path, resource_id: str, profile_file: Path) -> di
         raise ValueError("Source header does not contain unique mapping columns")
     if len(required) != len(set(required)):
         raise ValueError("Mapping identifier and field columns must be distinct")
+    auxiliary_ids = profile.get("auxiliary_resource_ids", [])
+    if resource_id in auxiliary_ids:
+        raise ValueError("Primary mapping resource cannot also be auxiliary")
+    with _catalog(project) as db:
+        for auxiliary_id in auxiliary_ids:
+            if db.execute(
+                "SELECT 1 FROM source_resources WHERE resource_id=?", (auxiliary_id,)
+            ).fetchone() is None:
+                raise ValueError(f"Auxiliary resource is not imported: {auxiliary_id}")
     bindings = []
     for item in profile["fields"]:
         definition = {
@@ -88,6 +97,7 @@ def stage_csv_mapping(project: Path, resource_id: str, profile_file: Path) -> di
         "version": profile["version"],
         "operation": profile["operation"],
         "source_resource_id": resource_id,
+        "auxiliary_resource_ids": sorted(auxiliary_ids),
         "profile_sha256": _file_digest(profile_file),
         "identifier": profile["identifier"],
         "empty_cell_policy": profile["empty_cell_policy"],
