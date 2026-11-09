@@ -218,3 +218,14 @@ The function returns `publication_ready: false` by design: the metadata
 has not yet been versioned into the RUN/2 snapshot or scientifically
 reviewed, and no EML/DwC-A adapter is invoked. It is not a CLI publication
 command or an approval mechanism. The tests use synthetic data only.
+
+### Explicit Darwin Core bindings
+
+When `dwca/1` is requested, the external publication profile now requires
+`dwca.event_fields` and `dwca.occurrence_fields`. Each binding declares
+a source-field name and an explicit Darwin Core term URI. The generic
+preflight rejects duplicate source fields, duplicate target terms and
+`eventID` mappings inconsistent with the configured Event core and
+Occurrence link identifiers. This is structural validation only: it does
+not establish that the named fields exist in a future Event/Occurrence
+projection, nor does it constitute a scientific approval or DwC-A export.
