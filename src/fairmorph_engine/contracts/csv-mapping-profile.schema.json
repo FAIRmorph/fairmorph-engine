@@ -85,7 +85,10 @@
           "zero_meaning": {
             "enum": [
               "true_zero",
-              "absence"
+              "absence",
+              "not_applicable",
+              "unknown",
+              "other"
             ]
           },
           "missing_values": {
@@ -246,7 +249,15 @@
             "items": {
               "required": [
                 "counting_unit"
-              ]
+              ],
+              "properties": {
+                "zero_meaning": {
+                  "enum": [
+                    "true_zero",
+                    "absence"
+                  ]
+                }
+              }
             }
           }
         }
