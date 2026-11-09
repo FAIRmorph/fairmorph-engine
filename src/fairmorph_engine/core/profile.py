@@ -66,9 +66,12 @@ def stage_csv_mapping(project: Path, resource_id: str, profile_file: Path) -> di
         raise ValueError("Primary mapping resource cannot also be auxiliary")
     with _catalog(project) as db:
         for auxiliary_id in auxiliary_ids:
-            if db.execute(
-                "SELECT 1 FROM source_resources WHERE resource_id=?", (auxiliary_id,)
-            ).fetchone() is None:
+            if (
+                db.execute(
+                    "SELECT 1 FROM source_resources WHERE resource_id=?", (auxiliary_id,)
+                ).fetchone()
+                is None
+            ):
                 raise ValueError(f"Auxiliary resource is not imported: {auxiliary_id}")
     bindings = []
     for item in profile["fields"]:
