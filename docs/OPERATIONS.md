@@ -1,6 +1,6 @@
-# Betrieb, Tests, Fehlerbehandlung und PoC-Abnahme
+# Operations, Testing, Error Handling and PoC Acceptance
 
-## 1. Installation und lokale Prüfung
+## 1. Installation and checks
 
 ```bash
 python -m pip install -e ".[dev]"
@@ -9,61 +9,61 @@ ruff format --check src tests
 pytest --cov=fairmorph_engine --cov-report=xml
 ```
 
-Die Engine benötigt Python 3.11 oder neuer. Der Testumfang der Standard-CI ergibt sich aus `pyproject.toml`: `testpaths = ["tests"]`. Die reguläre GitHub-Workflow-Matrix prüft Ubuntu und Windows. Projektbezogene Referenztests unter `examples/cs-phoc/tests/` gehören nicht automatisch zu diesem Standardumfang.
+Python 3.11+ is required. Standard pytest discovery is configured in `pyproject.toml` with `testpaths = ["tests"]`. The ordinary CI matrix covers Ubuntu and Windows. CS-PHOC reference tests under `examples/cs-phoc/tests/` are not automatically part of that regular suite.
 
-## 2. Typischer Betriebsablauf
+## 2. Operating sequence
 
-1. `init-project`: Projektstruktur ohne fachliche Interpretation erzeugen.
-2. `import-resource`: Originalbytes in SHA-Objektspeicher übernehmen; Rückgabe `resource_id` sichern.
-3. `stage-csv-mapping`: externes Profil mit Quelle, Felddefinitionen, Policies und Beziehungen prüfen.
-4. `approve-mapping`: Review-Identität und `mapping_sha256` festhalten.
-5. `run-mapping`: RUN/2 mit Parquet, Lineage und Qualitätsreport erzeugen; `run_id` sichern.
-6. `verify-project`: unveränderte Projekt-/RUN-/Exportkonsistenz prüfen.
-7. `export-package`: aus verifiziertem RUN generisches Datenpaket erstellen.
-8. Optional: externe Publikationsprofile prüfen und EML/DwC-A über Python-Adapter erzeugen.
+1. **Initialize:** `init-project` creates an empty project without scientific interpretation.
+2. **Import:** `import-resource` stores original SHA-256-addressed bytes and returns `resource_id`.
+3. **Stage:** `stage-csv-mapping` validates external field definitions, policies and relationships.
+4. **Approve:** `approve-mapping` records reviewer identity and the mapping hash.
+5. **Execute:** `run-mapping` generates RUN/2 with Parquet, lineage and quality metrics.
+6. **Verify:** `verify-project` checks indexed project/RUN/export consistency.
+7. **Export:** `export-package` creates a generic Data Package from a verified RUN.
+8. **Optional publication:** validate external publication declarations and call EML/DwC-A Python adapters.
 
-Die CLI gibt NDJSON aus. Automatisierungen sollten auf `event = result` und `status = success` prüfen und nicht allein auf stdout-Text oder Verzeichnisexistenz vertrauen.
+The CLI writes NDJSON. Automation should parse `event = result` and `status = success`, not infer success from directory existence.
 
-## 3. RUN-Publikation und Wiederherstellung
+## 3. Interrupted RUN publication
 
-Der Executor erstellt zunächst `runs/.pending-<run_id>/`. Nach erfolgreicher Verarbeitung wird das Verzeichnis nach `runs/<run_id>/` umbenannt und anschließend in `project.json` und SQLite registriert. Ein Prozessabbruch kann einen vollständigen, aber noch nicht überall indizierten RUN hinterlassen.
+Execution starts in `runs/.pending-<run_id>/`, then publishes to `runs/<run_id>/` and updates `project.json` and SQLite. Process interruption may leave a complete directory missing from one or both indexes.
 
-**Recovery-Verfahren:** Schreibende Prozesse stoppen, Sicherung des Projektverzeichnisses anfertigen, `reconcile-runs --project PATH` ausführen, danach `verify-project --project PATH`. Die Recovery verifiziert vollständige RUN-Verzeichnisse und ergänzt fehlende Indexeinträge; sie löscht keine fehlenden Referenzen und fördert keine `.pending-*`-Verzeichnisse zu abgeschlossenen RUNs. Fehlgeschlagene Staging-Versuche bleiben für die Analyse erhalten.
+**Recovery procedure:** stop all writers, back up the project, execute `reconcile-runs --project PATH`, then run `verify-project --project PATH`. Reconciliation verifies completed RUN directories and restores missing index entries. It does not delete missing references or automatically promote `.pending-*` directories. Failed staging directories remain available for investigation.
 
-**Grenzen:** Keine Cross-Process-Sperre, kein garantierter fsync-/Power-Loss-Schutz und keine atomare Mehrspeicher-Transaktion. Der Vorgang darf nicht gleichzeitig mit einem Writer laufen. Details und Testmatrix: [RUN-RECOVERY.md](RUN-RECOVERY.md).
+**Limitations:** no cross-process lock, no guaranteed fsync-level power-loss durability and no atomic transaction across filesystem and SQLite. See [RUN Recovery](RUN-RECOVERY.md).
 
-## 4. Tests und Qualitätssicherung
+## 4. Test coverage
 
-| Testfamilie | Zweck |
+| Test module/family | Coverage |
 | --- | --- |
-| `test_framework_foundation.py` | Projekt, Import, grundlegende Infrastruktur |
-| `test_profile_registry.py`, `test_registry_mapping.py` | Definitionen, Reviews, Mappingzustände |
-| `test_relationship_integrity.py`, `test_relationship_preflight_malformed.py` | CSV-Beziehungen, Kardinalität, fehlerhafte Zeilen |
-| `test_tabular_primitive.py`, `test_typed_tabular_poc.py` | Counts und typisierte Transformation |
-| `test_generic_run_executor.py` | Freigaben, RUN/2, Verifikation, Fehlerbehandlung |
-| `test_run_publication_fault_injection.py` | Gezielte Ausfälle an Publikations-/Recovery-Grenzen |
-| `test_independent_survey_e2e.py`, `test_cli_external_profile_e2e.py` | Generischer E2E-Durchlauf mit synthetischen Daten |
-| `test_publication_*.py`, `test_official_eml_schema.py` | Publikationsabsicht, Projektion, Integrität, EML/DwC-A |
-| `test_schema_registry.py` | Lokale, unveränderliche Schema-Versionen |
+| `test_framework_foundation.py` | Project initialization, imports and infrastructure |
+| `test_profile_registry.py`, `test_registry_mapping.py` | Field definitions, reviews and mapping states |
+| `test_relationship_integrity.py`, `test_relationship_preflight_malformed.py` | CSV relationships, cardinality and malformed rows |
+| `test_tabular_primitive.py`, `test_typed_tabular_poc.py` | Count and typed transformations |
+| `test_generic_run_executor.py` | RUN/2, approval, verification and failure handling |
+| `test_run_publication_fault_injection.py` | Injected RUN publication/recovery failures |
+| `test_independent_survey_e2e.py`, `test_cli_external_profile_e2e.py` | Dataset-independent synthetic end-to-end flows |
+| `test_publication_*.py`, `test_official_eml_schema.py` | Publication contracts, integrity and EML/DwC-A |
+| `test_schema_registry.py` | Immutable local schema versions |
 
-**Abnahmekriterien für Crash-Recovery:** Fehler vor RUN-Veröffentlichung hinterlassen keine abgeschlossenen Einträge; Fehler bei Indexaktualisierung rollen gewöhnliche I/O-Fehler zurück; ein nach RUN-Veröffentlichung simulierter Prozessabbruch lässt sich rekonstruieren; beschädigte RUNs werden abgewiesen; Recovery ist idempotent; die gesamte Testmatrix besteht auf Ubuntu und Windows.
+**Recovery acceptance criteria:** failed directory publication creates no completed RUN; ordinary index-write errors roll back; simulated crashes after directory publication can be reconciled; corrupt RUNs are rejected; reconciliation is idempotent; tests pass on both Ubuntu and Windows.
 
-**Statusregel:** Das Vorhandensein eines Tests ist kein Nachweis seines Erfolgs. Ein PoC gilt erst dann als abgenommen, wenn die CI für einen eindeutig benannten Commit erfolgreich ist und ein E2E-Abnahmeprotokoll Soll-/Ist-Werte, Fehlerfälle und Einschränkungen dokumentiert. Diese Dokumentation behauptet **keinen** bereits erreichten finalen Abnahmestatus.
+**Important:** Test presence does not establish test success. PoC acceptance requires successful CI for a named commit and a recorded end-to-end acceptance result with expected/actual values and known limitations. This documentation does **not** assert final acceptance.
 
-## 5. Fehleranalyse
+## 5. Troubleshooting
 
-- **Mapping nicht genehmigt:** Review und Mapping-SHA kontrollieren; keine automatische Freigabe.
-- **Originalobjekt modifiziert:** Hash gegen Importmanifest prüfen; nicht durch manuelle Änderung der SHA-Pins „reparieren“.
-- **Ungültige CSV-Zeile oder Beziehung:** CSV und deklarierte Schlüssel/Kardinalität korrigieren; Profil erneut prüfen.
-- **RUN-Artefakt beschädigt:** RUN nicht exportieren oder als abgeschlossen akzeptieren; Prüfsummenfehler untersuchen.
-- **Indexabweichung nach Unterbrechung:** Writer stoppen, Sicherung anfertigen, explizite Recovery ausführen.
-- **`.pending-*` vorhanden:** Nicht automatisch löschen; Fehlerdiagnostik und gegebenenfalls manuelle Bereinigung nach Untersuchung.
-- **EML/DwC-A-Validierung schlägt fehl:** Externe Metadaten, Projektion, Integritätsregeln und lokale XSDs prüfen.
+- **Mapping not approved:** inspect mapping hash and review status; never approve implicitly.
+- **Modified source:** compare bytes with import SHA-256; do not edit checksums to suppress an error.
+- **Malformed CSV or relationship:** correct rows, keys or declared cardinality and restage.
+- **Corrupt RUN artifact:** do not export or mark it completed; investigate checksum mismatch.
+- **Index mismatch after interruption:** stop writers, back up, then reconcile explicitly.
+- **Pending staging directory:** retain diagnostics; investigate before manual cleanup.
+- **EML/DwC-A validation failure:** check external metadata, projection, integrity rules and local XSDs.
 
-## 6. Bewusst nicht als produktionsreif ausgewiesen
+## 6. Non-production guarantees
 
-Cross-Process-Locking, vollständig transaktionale SQLite-/Dateisystem-Publikation, Stromausfall-Durability, systematisches Backup/Restore, öffentliche stabile Python-/Remote-API, automatische Projektmigration und fachliche Validierung beliebiger Wissenschaftsdomänen sind keine bereits erfüllten Produktionsgarantien. Die optionale CS-PHOC-Referenz dient ausschließlich einer zusätzlichen, explizit gestarteten Regression.
+Cross-process locking, atomic multi-store publication, power-loss durability, systematic backup/restore, stable public Python/remote APIs, automatic project migration and scientific validation across arbitrary domains are **not** claimed as implemented production guarantees. The CS-PHOC reference is an optional manually triggered regression.
 
-## 7. Nachvollziehbare Abnahme
+## 7. Acceptance evidence
 
-Ein finales Abnahmeprotokoll sollte mindestens Git-Commit, Betriebssystem-/Python-Version, Ruff- und Pytest-Ergebnis, generischen E2E-Durchlauf, Mapping-/RUN-/Export-Prüfsummen, Fault-Injection-Matrix, bekannte Einschränkungen und eine explizite Freigabeentscheidung enthalten. Ohne diese Nachweise bleibt die PoC-Abnahme offen.
+A final acceptance report should record Git commit SHA, OS/Python versions, Ruff and pytest outcomes, synthetic E2E results, mapping/RUN/export hashes, fault-injection matrix, known limitations and an explicit approval decision. Until those checks pass, PoC acceptance remains open.
