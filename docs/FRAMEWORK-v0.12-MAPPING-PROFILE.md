@@ -191,3 +191,19 @@ the RUN/2 snapshot and its pinned metadata. Project-specific acceptance
 tests must inspect the resulting EML and DwC-A artifacts from a concrete
 project RUN. No CS-PHOC identifiers, expected counts or publication decisions
 may be embedded in the generic adapter or Engine CI.
+
+### Publication intent contract (design increment, not an exporter)
+
+`contracts/publication-profile.schema.json` defines a dataset-independent
+external publication **intent** with exact RUN-manifest and metadata SHA-256
+references, requested EML/DwC-A format versions and explicit Event/Occurrence
+link-field names. `tests/test_publication_profile_contract.py` exercises
+the contract with synthetic identifiers; no `examples/` data is required.
+
+This initial contract is deliberately not wired into `run-mapping`,
+`export-package` or `export-dwca`. It does not authorize an export,
+implement reviewer approval, pin a full metadata revision in RUN/2, or define
+the complete column-to-Darwin-Core and EML metadata mappings. Those are
+required before a generic publication adapter can be implemented or claimed
+to produce valid scientific publications. The existing specialized DwC-A
+command remains legacy and must not be used as evidence of generic support.
