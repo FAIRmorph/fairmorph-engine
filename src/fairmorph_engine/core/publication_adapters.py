@@ -7,11 +7,11 @@ from pathlib import Path
 
 from lxml import etree
 
+from fairmorph_engine.core.eml_compiler import compile_eml_xml
 from fairmorph_engine.core.export import sha256
 from fairmorph_engine.core.publication import validate_publication_intent
 from fairmorph_engine.core.publication_materialize import materialize_publication_tables
 from fairmorph_engine.models.eml import ProjectMetadata
-from fairmorph_engine.core.eml_compiler import compile_eml_xml
 
 DWC = "http://rs.tdwg.org/dwc/terms/"
 DWC_TEXT = "http://rs.tdwg.org/dwc/text/"
@@ -86,13 +86,12 @@ def export_dwca(
     declared.extend(
         (item["row_type"], item["fields"]) for item in dwca.get("extensions", [])
     )
-    root = etree.Element(
-        "archive", nsmap={None: DWC_TEXT}, metadata="eml.xml"
-    )
+    root = etree.Element(f"{{{DWC_TEXT}}}archive", nsmap={None: DWC_TEXT})
     for index, (row_type, fields) in enumerate(declared):
+        row_type_tag = "core" if index == 0 else "extension"
         element = etree.SubElement(
             root,
-            "core" if index == 0 else "extension",
+            f"{{{DWC_TEXT}}}{row_type_tag}",
             encoding="UTF-8",
             fieldsTerminatedBy=",",
             linesTerminatedBy="\\n",
@@ -100,11 +99,10 @@ def export_dwca(
             ignoreHeaderLines="1",
             rowType=f"http://rs.tdwg.org/dwc/terms/{row_type}",
         )
-        etree.SubElement(element, "files")
-        element.find("files").append(etree.Element("location"))
-        element.find("files/location").text = f"{row_type}.csv"
+        files = etree.SubElement(element, f"{{{DWC_TEXT}}}files")
+        etree.SubElement(files, f"{{{DWC_TEXT}}}location").text = f"{row_type}.csv"
         if index == 0:
-            etree.SubElement(element, "id", index=str(next(
+            etree.SubElement(element, f"{{{DWC_TEXT}}}id", index=str(next(
                 i for i, field in enumerate(fields)
                 if field["term"] == DWC + core_field
             )))
@@ -120,9 +118,9 @@ def export_dwca(
             projected = {item["source_field"]: i for i, item in enumerate(fields)}
             if foreign not in projected:
                 raise ValueError("Extension core foreign key must be mapped to an output column")
-            etree.SubElement(element, "coreid", index=str(projected[foreign]))
+            etree.SubElement(element, f"{{{DWC_TEXT}}}coreid", index=str(projected[foreign]))
         for i, field in enumerate(fields):
-            etree.SubElement(element, "field", index=str(i), term=field["term"])
+            etree.SubElement(element, f"{{{DWC_TEXT}}}field", index=str(i), term=field["term"])
     metadata_xml = destination / "meta.xml"
     metadata_xml.write_bytes(
         etree.tostring(root, xml_declaration=True, encoding="UTF-8", pretty_print=True)
