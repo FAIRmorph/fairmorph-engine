@@ -77,8 +77,14 @@ def _approved_mapping(project: Path, mapping_sha256: str, snapshot: dict) -> tup
         resource_pins = {
             item["resource_id"]: item["object_sha256"] for item in snapshot["source_resources"]
         }
-        if resource_id not in resource_pins or len(resource_pins) != 1:
-            raise ValueError("Mapping does not pin exactly one source resource")
+        expected_resources = {resource_id, *mapping.get("auxiliary_resource_ids", [])}
+        if set(resource_pins) != expected_resources:
+            raise ValueError("Mapping source resources differ from approved snapshot")
+        for auxiliary_id in expected_resources - {resource_id}:
+            auxiliary_sha = resource_pins[auxiliary_id]
+            auxiliary = project / "objects" / "sha256" / auxiliary_sha[:2] / auxiliary_sha
+            if not auxiliary.is_file() or auxiliary.is_symlink() or _sha256(auxiliary) != auxiliary_sha:
+                raise ValueError("Missing or modified auxiliary source object")
         source_columns = []
         for binding in bindings:
             column = binding.get("source_column")
