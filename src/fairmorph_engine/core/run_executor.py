@@ -75,8 +75,7 @@ def _approved_mapping(project: Path, mapping_sha256: str, snapshot: dict) -> tup
             raise ValueError("Mapping requires one explicit source resource")
         resource_id = mapping["source_resource_id"]
         resource_pins = {
-            item["resource_id"]: item["object_sha256"]
-            for item in snapshot["source_resources"]
+            item["resource_id"]: item["object_sha256"] for item in snapshot["source_resources"]
         }
         if resource_id not in resource_pins or len(resource_pins) != 1:
             raise ValueError("Mapping does not pin exactly one source resource")
@@ -177,9 +176,9 @@ def execute_mapping_run(project: Path, mapping_sha256: str, emit=lambda *_a, **_
         lineage.parent.mkdir()
         frame = pl.DataFrame(rows)
         frame.write_parquet(output)
-        frame.select("record_id", "source_identifier", "source_line", "source_column").write_parquet(
-            lineage
-        )
+        frame.select(
+            "record_id", "source_identifier", "source_line", "source_column"
+        ).write_parquet(lineage)
         input_snapshot = {
             "schema_version": INPUT_SCHEMA_VERSION,
             "sources": [

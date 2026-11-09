@@ -123,14 +123,18 @@ def test_failed_processing_is_not_published(tmp_path, monkeypatch):
 
     project, _, _, draft = _prepare(tmp_path)
     _approve(project, draft)
+
     # Validate failure handling independently of optional installed Polars.
     class FakeFrame:
         def __init__(self, rows):
             self.rows = rows
+
         def select(self, *columns):
             return self
+
         def write_parquet(self, path):
             raise OSError("disk failure")
+
     monkeypatch.setitem(sys.modules, "polars", types.SimpleNamespace(DataFrame=FakeFrame))
     with pytest.raises(OSError, match="disk failure"):
         run_executor.execute_mapping_run(project, draft["sha256"])
