@@ -5,7 +5,7 @@ from pathlib import Path
 
 from jsonschema import Draft202012Validator
 
-from fairmorph_engine.core.export import verified_run, sha256
+from fairmorph_engine.core.export import sha256, verified_run
 
 
 def validate_publication_intent(project: Path, run_id: str, profile_file: Path, metadata_file: Path) -> dict:
