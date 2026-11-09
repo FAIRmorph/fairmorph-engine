@@ -46,3 +46,26 @@ def test_publication_preflight_pins_run_and_metadata(tmp_path, monkeypatch):
     profile_file.write_text(json.dumps(profile), encoding="utf-8")
     with pytest.raises(ValueError, match="RUN manifest SHA-256 mismatch"):
         validate_publication_intent(tmp_path, "synthetic-run", profile_file, metadata)
+
+    profile["run_manifest_sha256"] = digest(manifest_file)
+    profile["formats"] = ["dwca/1"]
+    profile["dwca"] = {
+        "core": "Event",
+        "core_id_field": "event_key",
+        "occurrence_event_id_field": "event_key",
+        "event_fields": [
+            {"source_field": "event_key", "term": "http://rs.tdwg.org/dwc/terms/eventID"}
+        ],
+        "occurrence_fields": [
+            {"source_field": "event_key", "term": "http://rs.tdwg.org/dwc/terms/eventID"}
+        ],
+    }
+    profile_file.write_text(json.dumps(profile), encoding="utf-8")
+    assert validate_publication_intent(tmp_path, "synthetic-run", profile_file, metadata)[
+        "status"
+    ] == "validated"
+
+    profile["dwca"]["occurrence_fields"][0]["source_field"] = "wrong_key"
+    profile_file.write_text(json.dumps(profile), encoding="utf-8")
+    with pytest.raises(ValueError, match="must bind its identifier"):
+        validate_publication_intent(tmp_path, "synthetic-run", profile_file, metadata)
