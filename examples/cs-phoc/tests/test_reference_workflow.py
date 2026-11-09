@@ -1,5 +1,7 @@
 """Real reference-data vertical slice through the generic, reviewed CLI workflow."""
 
+import csv
+import hashlib
 import json
 from pathlib import Path
 
@@ -87,7 +89,38 @@ def test_csphoc_generic_reference_vertical_slice(tmp_path):
         "--mapping-sha256",
         staged["mapping_sha256"],
     )
-    assert run["output_rows"] == 16940
+    assert run["output_rows"] == profile["acceptance"]["output_rows"]
+    run_dir = project / "runs" / run["run_id"]
+    from polars import read_parquet
+
+    observations = read_parquet(run_dir / "outputs" / "observations.parquet")
+    lineage = read_parquet(run_dir / "audit" / "lineage.parquet")
+    assert observations.height == lineage.height == 16940
+    assert observations["record_id"].n_unique() == observations.height
+    assert observations["value"].eq(0).sum() == 11599
+    assert observations["value"].sum() == 79232
+
+    # Independent oracle: compare every mapped source cell, not just totals.
+    expected = {}
+    with (example / "cs-phoc-counts.csv").open(newline="", encoding="utf-8-sig") as handle:
+        for line, source_row in enumerate(csv.DictReader(handle), start=2):
+            for field in profile["fields"]:
+                column = field["source_column"]
+                raw = source_row[column]
+                if raw == "":
+                    continue
+                expected[(line, column)] = (source_row["count_id"], int(raw))
+    actual = {
+        (row["source_line"], row["source_column"]): (row["source_identifier"], row["value"])
+        for row in observations.iter_rows(named=True)
+    }
+    assert len(actual) == len(expected) == 16940
+    assert actual == expected
+
+    source_hash = hashlib.sha256((example / "cs-phoc-counts.csv").read_bytes()).hexdigest()
+    assert source_hash == profile["source_sha256"]
+    assert counts["sha256"] == source_hash
+    assert (run_dir / "manifest.json").is_file()
     snapshot = json.loads(
         (project / "runs" / run["run_id"] / "inputs.snapshot.json").read_text(encoding="utf-8")
     )
