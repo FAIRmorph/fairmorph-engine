@@ -9,6 +9,7 @@ from typer.testing import CliRunner
 
 from fairmorph_engine.cli import app
 from fairmorph_engine.core.publication_integrity import validate_publication_integrity
+from fairmorph_engine.core.publication_materialize import materialize_publication_tables
 
 
 def _result(response):
@@ -308,3 +309,16 @@ def test_generic_publication_integrity_against_real_verified_run(tmp_path):
     )
     assert result["integrity_verified"] is True
     assert result["publication_ready"] is False
+
+    first = materialize_publication_tables(
+        project, run["run_id"], files[0], metadata, files[1], files[2], tmp_path / "publish-a"
+    )
+    second = materialize_publication_tables(
+        project, run["run_id"], files[0], metadata, files[1], files[2], tmp_path / "publish-b"
+    )
+    assert first == second
+    assert first["artifacts"][0]["rows"] == 3
+    assert first["artifacts"][0]["columns"] == ["occurrenceID"]
+    assert (tmp_path / "publish-a" / "Occurrence.csv").read_bytes() == (
+        tmp_path / "publish-b" / "Occurrence.csv"
+    ).read_bytes()

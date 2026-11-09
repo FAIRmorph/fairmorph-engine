@@ -311,3 +311,18 @@ than importing a reference project's module. A synthetic end-to-end
 Engine test now executes an approved RUN/2 and checks external publication
 integrity using the actual verified Parquet artifact. This is a PoC
 architecture proof, not production hardening or EML/DwC-A export.
+
+### PoC publication table materialization
+
+`core.publication_materialize.materialize_publication_tables` runs the
+external publication intent, projection and integrity checks against an
+actual verified RUN/2 before writing CSV tables into a caller-selected
+new directory. Each declared Event/Occurrence table is read from its
+pinned Parquet artifact, sorted by its externally declared identifier
+and projected through the externally declared Darwin Core term bindings.
+A stable JSON manifest records the source RUN and configuration hashes,
+output row counts, source artifacts and output checksums. Repeating the
+operation with the same inputs produces identical table bytes and manifest.
+This intentionally does not create `meta.xml`, EML or a DwC-A ZIP and
+does not assert publication readiness. Reference-project logic remains
+under `examples/`, which is not required for generic Engine tests.
