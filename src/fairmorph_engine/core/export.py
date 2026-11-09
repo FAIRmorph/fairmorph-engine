@@ -95,7 +95,8 @@ def export_data_package(project: Path, run_id: str, emit):
             "name": "fairmorph-run" if is_generic_run else "cs-phoc-poc",
             "title": "FAIRmorph verified RUN" if is_generic_run else "FAIRmorph CS-PHOC PoC",
             "description": "Verified immutable RUN observations and lineage; not a Darwin Core Archive."
-            if is_generic_run else "Approved wide-to-long output; not a Darwin Core Archive.",
+            if is_generic_run
+            else "Approved wide-to-long output; not a Darwin Core Archive.",
             "resources": resources,
         }
         write_json(package / "datapackage.json", descriptor)
