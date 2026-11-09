@@ -176,3 +176,54 @@ def test_generic_run_publication_with_fake_parquet_writer(tmp_path, monkeypatch)
     (path / "configuration.snapshot.json").write_text('{"tampered":true}', encoding="utf-8")
     with pytest.raises(ValueError, match="RUN artifact|Checksum"):
         verified_run(project, result["run_id"])
+
+
+def test_reconcile_repairs_interrupted_run_index_publication(tmp_path):
+    pytest.importorskip("polars")
+    from fairmorph_engine.core.export import verify_project
+    from fairmorph_engine.core.run_recovery import reconcile_runs
+
+    project, _, _, draft = _prepare(tmp_path)
+    _approve(project, draft)
+    manifest = execute_mapping_run(project, draft["sha256"])
+    run_id = manifest["run_id"]
+    index_file = project / "project.json"
+    index = json.loads(index_file.read_text(encoding="utf-8"))
+    index["run_ids"] = []
+    index_file.write_text(json.dumps(index), encoding="utf-8")
+    with sqlite3.connect(project / "catalog" / "catalog.sqlite") as db:
+        db.execute("DELETE FROM runs WHERE run_id=?", (run_id,))
+    with pytest.raises(ValueError, match="RUN index"):
+        verify_project(project)
+    recovered = reconcile_runs(project)
+    assert recovered["recovered"] == [run_id]
+    assert verify_project(project)["completed_runs"] == 1
+    assert reconcile_runs(project)["recovered"] == []
+
+
+def test_reconcile_fails_closed_on_missing_or_corrupt_published_run(tmp_path):
+    pytest.importorskip("polars")
+    from fairmorph_engine.core.run_recovery import reconcile_runs
+
+    project, _, _, draft = _prepare(tmp_path)
+    _approve(project, draft)
+    manifest = execute_mapping_run(project, draft["sha256"])
+    run_id = manifest["run_id"]
+    run_dir = project / "runs" / run_id
+    (run_dir / "outputs" / "observations.parquet").write_bytes(b"corrupt")
+    with pytest.raises(ValueError, match="Checksum|modified RUN artifact"):
+        reconcile_runs(project)
+    with sqlite3.connect(project / "catalog" / "catalog.sqlite") as db:
+        assert db.execute("SELECT COUNT(*) FROM runs").fetchone()[0] == 1
+
+
+def test_reconcile_preserves_failed_staging(tmp_path):
+    from fairmorph_engine.core.run_recovery import reconcile_runs
+
+    project, _, _, _ = _prepare(tmp_path)
+    pending = project / "runs" / ".pending-example"
+    pending.mkdir()
+    (pending / "FAILED").write_text("diagnostics", encoding="utf-8")
+    result = reconcile_runs(project)
+    assert result["pending"] == [".pending-example"]
+    assert (pending / "FAILED").read_text(encoding="utf-8") == "diagnostics"
