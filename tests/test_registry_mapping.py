@@ -5,12 +5,16 @@ import sqlite3
 import pytest
 
 from fairmorph_engine.core.registry import (
-    approve_mapping, define_field, mapping_snapshot, register_mapping, review_field,
+    approve_mapping,
+    define_field,
+    mapping_snapshot,
+    register_mapping,
+    review_field,
 )
 
 
 def test_unresolved_import_is_allowed_but_semantic_mapping_is_gated(tmp_path):
-    from fairmorph_engine.core.project import initialize_project, import_resource
+    from fairmorph_engine.core.project import import_resource, initialize_project
 
     project = tmp_path / "p.fairmorph"
     initialize_project(project)
@@ -37,7 +41,7 @@ def test_unresolved_import_is_allowed_but_semantic_mapping_is_gated(tmp_path):
 
 
 def test_approved_revision_pins_are_immutable(tmp_path):
-    from fairmorph_engine.core.project import initialize_project, import_resource
+    from fairmorph_engine.core.project import import_resource, initialize_project
 
     project = tmp_path / "p.fairmorph"
     initialize_project(project)
@@ -79,7 +83,7 @@ def test_approved_revision_pins_are_immutable(tmp_path):
 
 
 def test_mapping_rejects_other_resource_field_revision(tmp_path):
-    from fairmorph_engine.core.project import initialize_project, import_resource
+    from fairmorph_engine.core.project import import_resource, initialize_project
 
     project = tmp_path / "p.fairmorph"
     initialize_project(project)

@@ -14,7 +14,6 @@ from jsonschema import Draft202012Validator
 
 from fairmorph_engine.core.registry import _catalog, canonical_bytes, digest
 
-
 _ALLOWED_KINDS = frozenset({"core", "source", "export", "extension"})
 
 
