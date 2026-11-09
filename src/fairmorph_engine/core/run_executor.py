@@ -112,6 +112,10 @@ def _approved_mapping(project: Path, mapping_sha256: str, snapshot: dict) -> tup
             ):
                 raise ValueError("Mapping column has no corresponding approved field revision")
             definition = json.loads(field[0])
+            if mapping["operation"] == "wide-to-long-values/1" and binding.get(
+                "value_type"
+            ) not in ("integer", "decimal", "text"):
+                raise ValueError("Typed mapping requires an approved value type")
             if definition.get("semantic_status") != "defined":
                 raise ValueError("Mapping references undefined field semantics")
             unit = definition.get("counting_unit")
@@ -172,7 +176,9 @@ def execute_mapping_run(project: Path, mapping_sha256: str, emit=lambda *_a, **_
             observations = unpivot_typed_csv(
                 source,
                 identifier=mapping["identifier"],
-                value_types={b["source_column"]: b["value_type"] for b in mapping["bindings"]},
+                value_types={
+                    b["source_column"]: b["value_type"] for b in mapping["bindings"]
+                },
             )
         for item in observations:
             record_key = {
@@ -190,7 +196,11 @@ def execute_mapping_run(project: Path, mapping_sha256: str, emit=lambda *_a, **_
                     "source_column": item["source_column"],
                     "target_field": binding_by_column[item["source_column"]]["target_field"],
                     "value": item["value"],
-                    **({"value_type": item["value_type"]} if operation != TRANSFORM_VERSION else {}),
+                    **(
+                        {"value_type": item["value_type"]}
+                        if operation != TRANSFORM_VERSION
+                        else {}
+                    ),
                 }
             )
         if not rows:
@@ -199,9 +209,19 @@ def execute_mapping_run(project: Path, mapping_sha256: str, emit=lambda *_a, **_
         # Never embed dataset-specific reference values in the Engine.
         observed_metrics = {
             "output_rows": len(rows),
-            "explicit_zeros": sum(row["value"] == 0 for row in rows) if operation == TRANSFORM_VERSION else 0,
-            "value_sum": sum(row["value"] for row in rows) if operation == TRANSFORM_VERSION else 0,
+            "explicit_zeros": (
+                sum(row["value"] == 0 for row in rows)
+                if operation == TRANSFORM_VERSION
+                else 0
+            ),
+            "value_sum": (
+                sum(row["value"] for row in rows)
+                if operation == TRANSFORM_VERSION
+                else 0
+            ),
         }
+        if operation != TRANSFORM_VERSION:
+            observed_metrics = {"output_rows": len(rows)}
         for metric, expected in mapping.get("acceptance", {}).items():
             if metric not in observed_metrics:
                 raise ValueError(f"Unsupported mapping acceptance metric: {metric}")
