@@ -61,7 +61,6 @@ def validate_dwca_archive(archive: Path, schema_file: Path = DWCA_META_XSD) -> d
     }
 
 
-
 def export_eml(
     project: Path,
     run_id: str,
