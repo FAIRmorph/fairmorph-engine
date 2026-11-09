@@ -7,13 +7,13 @@ import pytest
 
 from fairmorph_engine.core import run_executor
 from fairmorph_engine.core.export import verify_project
-from fairmorph_engine.core.run_recovery import reconcile_runs
 from fairmorph_engine.core.registry import (
     approve_mapping,
     define_field,
     register_mapping,
     review_field,
 )
+from fairmorph_engine.core.run_recovery import reconcile_runs
 
 
 def _prepare(tmp_path):
