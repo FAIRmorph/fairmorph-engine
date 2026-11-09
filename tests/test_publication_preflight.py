@@ -78,3 +78,56 @@ def test_publication_preflight_pins_run_and_metadata(tmp_path, monkeypatch):
     profile_file.write_text(json.dumps(profile), encoding="utf-8")
     with pytest.raises(ValueError, match="must bind its identifier"):
         validate_publication_intent(tmp_path, "synthetic-run", profile_file, metadata)
+
+
+def test_occurrence_core_preflight_and_duplicate_bindings(tmp_path, monkeypatch):
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    manifest = run_dir / "manifest.json"
+    manifest.write_text('{"schema_version":"fairmorph.poc.run/2"}', encoding="utf-8")
+    metadata = tmp_path / "metadata.json"
+    metadata.write_text('{"title":"Survey"}', encoding="utf-8")
+    profile = {
+        "schema_version": "fairmorph.poc.publication-profile/1",
+        "profile_id": "survey",
+        "version": "1.0.0",
+        "run_manifest_sha256": hashlib.sha256(manifest.read_bytes()).hexdigest(),
+        "metadata_sha256": hashlib.sha256(metadata.read_bytes()).hexdigest(),
+        "formats": ["dwca/1"],
+        "dwca": {
+            "core": "Occurrence",
+            "core_id_field": "record_key",
+            "core_fields": [
+                {
+                    "source_field": "record_key",
+                    "term": "http://rs.tdwg.org/dwc/terms/occurrenceID",
+                }
+            ],
+        },
+    }
+    profile_file = tmp_path / "publication.json"
+    profile_file.write_text(json.dumps(profile), encoding="utf-8")
+
+    def fake_verified_run(_project, _run_id):
+        return run_dir, {"schema_version": "fairmorph.poc.run/2"}
+
+    monkeypatch.setattr("fairmorph_engine.core.publication.verified_run", fake_verified_run)
+    result = validate_publication_intent(tmp_path, "synthetic-run", profile_file, metadata)
+    assert result["status"] == "validated"
+    assert result["publication_ready"] is False
+
+    profile["dwca"]["core_fields"].append(
+        {
+            "source_field": "record_key",
+            "term": "http://rs.tdwg.org/dwc/terms/taxonID",
+        }
+    )
+    profile_file.write_text(json.dumps(profile), encoding="utf-8")
+    with pytest.raises(ValueError, match="Duplicate Occurrence source field"):
+        validate_publication_intent(tmp_path, "synthetic-run", profile_file, metadata)
+
+    profile["dwca"]["core_fields"][1]["source_field"] = "taxon_key"
+    profile["dwca"]["core_fields"][1]["term"] = "http://rs.tdwg.org/dwc/terms/occurrenceID"
+    profile_file.write_text(json.dumps(profile), encoding="utf-8")
+    with pytest.raises(ValueError, match="Duplicate Occurrence source field or Darwin Core term"):
+        validate_publication_intent(tmp_path, "synthetic-run", profile_file, metadata)
