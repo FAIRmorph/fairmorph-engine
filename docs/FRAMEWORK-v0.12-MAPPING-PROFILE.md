@@ -230,3 +230,15 @@ identifier mappings inconsistent with the declared Event or Occurrence
 row type. Neither core type nor any extension is chosen by the Engine. This is structural validation only: it does
 not establish that the named fields exist in a future Event/Occurrence
 projection, nor does it constitute a scientific approval or DwC-A export.
+
+### Publication preflight result boundary
+
+The publication preflight returns `field_bindings_verified: false` and
+`publication_ready: false`, even when the external profile and the RUN and
+metadata SHA-256 pins validate. The current generic RUN/2 observations are
+long-form mapping results, not necessarily Event or Occurrence publication
+tables. Consequently, no source-field existence, table projection,
+inter-table relationship, EML schema or DwC-A archive conformance is
+asserted. Such checks require explicit, externally configured projections
+and validation of their concrete artifacts; no project-specific
+projection defaults may be added to Engine core.
