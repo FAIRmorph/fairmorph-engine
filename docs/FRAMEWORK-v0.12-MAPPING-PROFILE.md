@@ -138,7 +138,7 @@ The legacy count operation is unchanged.
 
 ## PoC acceptance: real reference-data vertical slice
 
-`tests/test_cli_csphoc_reference_poc.py` runs the **generic** CLI workflow
+`examples/cs-phoc/tests/test_reference_workflow.py` runs the **generic** CLI workflow
 against the repository's CS-PHOC count and event CSV files. The test imports
 both immutable resources, extends the external reference profile with an
 explicit `many-to-one` event relationship, stages and approves the exact
@@ -150,3 +150,16 @@ an independent scientific sign-off. The reference profile's scientific
 correctness and any production publication mapping remain outside the
 technical test's claims. This is a PoC vertical slice, not a production
 DwC-A implementation or migration of the legacy CS-PHOC command.
+
+### v0.12 test ownership boundary
+
+- `tests/`: Engine-owned synthetic unit/integration tests; no reference-project
+  data or scientific acceptance numbers.
+- `examples/cs-phoc/tests/`: Project-owned reference-data acceptance test,
+  independently runnable with
+  `python -m pytest examples/cs-phoc/tests/test_reference_workflow.py`.
+- `.github/workflows/csphoc-reference-poc.yml`: Separate project acceptance
+  CI, distinct from the Engine's standard `tests/` suite.
+
+The reference project is an interchangeable consumer of the Engine. Its test
+must not become a dependency of the Engine's generic test suite.
