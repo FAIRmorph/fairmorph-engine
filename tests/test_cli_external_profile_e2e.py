@@ -29,8 +29,7 @@ def test_external_profile_cli_review_and_run(tmp_path, counting_unit):
     auxiliary = tmp_path / "stations.csv"
     auxiliary.write_text("station,region\nA,north\nB,south\n", encoding="utf-8")
     runner = CliRunner()
-    _result(runner.invoke(app, ["init-project", "--project",
-                str(project), "--name", "Survey"]))
+    _result(runner.invoke(app, ["init-project", "--project", str(project), "--name", "Survey"]))
     imported = _result(
         runner.invoke(
             app,
@@ -255,7 +254,8 @@ def test_generic_publication_integrity_against_real_verified_run(tmp_path):
         runner.invoke(
             app,
             [
-                "run-mapping", "--project",
+                "run-mapping",
+                "--project",
                 str(project),
                 "--mapping-sha256",
                 staged["mapping_sha256"],

@@ -10,9 +10,7 @@ from fairmorph_engine.core.eml_compiler import compile_eml_xml
 from fairmorph_engine.core.publication_adapters import export_eml
 from fairmorph_engine.models.eml import ProjectMetadata
 
-SCHEMA = (
-    Path(__file__).resolve().parents[1] / "vendor/schemas/eml/2.2.0/eml.xsd"
-)
+SCHEMA = Path(__file__).resolve().parents[1] / "vendor/schemas/eml/2.2.0/eml.xsd"
 
 
 def _metadata():

@@ -30,8 +30,7 @@ def materialize_publication_tables(
     dwca = profile["dwca"]
     declared = [(dwca["core"], dwca["core_fields"])]
     declared.extend(
-        (extension["row_type"], extension["fields"])
-        for extension in dwca.get("extensions", [])
+        (extension["row_type"], extension["fields"]) for extension in dwca.get("extensions", [])
     )
     source_tables = {table["row_type"]: table for table in plan["tables"]}
     identifiers = {item["row_type"]: item["column"] for item in rules["identifiers"]}

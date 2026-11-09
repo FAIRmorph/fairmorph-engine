@@ -41,7 +41,9 @@ def compile_eml_xml(meta: ProjectMetadata, publication_date: str | None = None) 
             user_id = etree.SubElement(creator_el, "userId", directory="https://orcid.org/")
             user_id.text = c.orcid
 
-    etree.SubElement(dataset, "pubDate").text = publication_date or datetime.now(UTC).strftime("%Y-%m-%d")
+    etree.SubElement(dataset, "pubDate").text = publication_date or datetime.now(UTC).strftime(
+        "%Y-%m-%d"
+    )
     etree.SubElement(dataset, "language").text = meta.language
 
     abstract_el = etree.SubElement(dataset, "abstract")

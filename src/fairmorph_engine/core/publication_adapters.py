@@ -16,9 +16,7 @@ from fairmorph_engine.models.eml import ProjectMetadata
 
 DWC = "http://rs.tdwg.org/dwc/terms/"
 DWC_TEXT = "http://rs.tdwg.org/dwc/text/"
-DWCA_META_XSD = (
-    Path(__file__).resolve().parents[3] / "vendor/schemas/dwca/tdwg_dwc_text.xsd"
-)
+DWCA_META_XSD = Path(__file__).resolve().parents[3] / "vendor/schemas/dwca/tdwg_dwc_text.xsd"
 
 
 def validate_dwca_archive(archive: Path, schema_file: Path = DWCA_META_XSD) -> dict:
@@ -133,9 +131,7 @@ def export_dwca(
     core_type = dwca["core"]
     core_field = f"{core_type.lower()}ID"
     declared = [(core_type, dwca["core_fields"])]
-    declared.extend(
-        (item["row_type"], item["fields"]) for item in dwca.get("extensions", [])
-    )
+    declared.extend((item["row_type"], item["fields"]) for item in dwca.get("extensions", []))
     root = etree.Element(f"{{{DWC_TEXT}}}archive", nsmap={None: DWC_TEXT})
     for index, (row_type, fields) in enumerate(declared):
         row_type_tag = "core" if index == 0 else "extension"
@@ -158,9 +154,9 @@ def export_dwca(
             etree.SubElement(element, f"{{{DWC_TEXT}}}id", index=str(core_index))
         else:
             relationships = [
-                rule for rule in rules["relationships"]
-                if rule["child_row_type"] == row_type
-                and rule["parent_row_type"] == core_type
+                rule
+                for rule in rules["relationships"]
+                if rule["child_row_type"] == row_type and rule["parent_row_type"] == core_type
             ]
             if len(relationships) != 1:
                 raise ValueError("Each extension needs one declared relationship to the core")
