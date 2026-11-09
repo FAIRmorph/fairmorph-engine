@@ -83,7 +83,11 @@ def _approved_mapping(project: Path, mapping_sha256: str, snapshot: dict) -> tup
         for auxiliary_id in expected_resources - {resource_id}:
             auxiliary_sha = resource_pins[auxiliary_id]
             auxiliary = project / "objects" / "sha256" / auxiliary_sha[:2] / auxiliary_sha
-            if not auxiliary.is_file() or auxiliary.is_symlink() or _sha256(auxiliary) != auxiliary_sha:
+            if (
+                not auxiliary.is_file()
+                or auxiliary.is_symlink()
+                or _sha256(auxiliary) != auxiliary_sha
+            ):
                 raise ValueError("Missing or modified auxiliary source object")
         source_columns = []
         for binding in bindings:
@@ -304,9 +308,7 @@ def verify_mapping_run(project: Path, run_dir: Path, manifest: dict) -> None:
         {
             "resource_id": item["resource_id"],
             "sha256": item["object_sha256"],
-            "object_path": (
-                f"objects/sha256/{item['object_sha256'][:2]}/{item['object_sha256']}"
-            ),
+            "object_path": (f"objects/sha256/{item['object_sha256'][:2]}/{item['object_sha256']}"),
         }
         for item in original["source_resources"]
     ]
