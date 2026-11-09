@@ -56,6 +56,7 @@ def unpivot_typed_csv(
     *,
     identifier: str,
     value_types: dict[str, str],
+    missing_tokens: dict[str, list[str]] | None = None,
 ) -> Iterator[dict]:
     """Stream reviewed integer, decimal and text values without semantic inference.
 
@@ -64,6 +65,9 @@ def unpivot_typed_csv(
     """
     from decimal import Decimal, InvalidOperation
 
+    missing_tokens = missing_tokens or {}
+    if set(missing_tokens) - set(value_types):
+        raise ValueError("Missing-value tokens reference an undeclared source column")
     if not value_types or identifier in value_types:
         raise ValueError("Invalid typed source column selection")
     if set(value_types.values()) - {"integer", "decimal", "text"}:
@@ -78,7 +82,7 @@ def unpivot_typed_csv(
                 raise ValueError(f"Malformed CSV row at line {line_no}")
             for column, value_type in value_types.items():
                 raw = record[column]
-                if raw == "":
+                if raw == "" or raw in missing_tokens.get(column, []):
                     continue
                 if value_type == "integer":
                     try:
