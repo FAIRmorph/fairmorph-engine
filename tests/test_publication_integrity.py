@@ -13,9 +13,9 @@ def test_integrity_checks_identifiers_and_foreign_keys(tmp_path, monkeypatch):
     run = tmp_path / "run"
     (run / "outputs").mkdir(parents=True)
     pl.DataFrame({"event_key": ["e1", "e2"]}).write_parquet(run / "outputs/events.parquet")
-    pl.DataFrame(
-        {"record_key": ["r1", "r2"], "event_ref": ["e1", "e2"]}
-    ).write_parquet(run / "outputs/records.parquet")
+    pl.DataFrame({"record_key": ["r1", "r2"], "event_ref": ["e1", "e2"]}).write_parquet(
+        run / "outputs/records.parquet"
+    )
     manifest_file = run / "manifest.json"
     manifest_file.write_text("{}", encoding="utf-8")
     pin = hashlib.sha256(manifest_file.read_bytes()).hexdigest()
@@ -98,17 +98,19 @@ def test_integrity_checks_identifiers_and_foreign_keys(tmp_path, monkeypatch):
     monkeypatch.setattr("fairmorph_engine.core.publication_integrity.verified_run", verified)
 
     def check():
-        return validate_publication_integrity(tmp_path, "synthetic-run", paths[0], metadata, paths[1], paths[2])
+        return validate_publication_integrity(
+            tmp_path, "synthetic-run", paths[0], metadata, paths[1], paths[2]
+        )
 
     assert check()["integrity_verified"] is True
     assert check()["publication_ready"] is False
-    pl.DataFrame(
-        {"record_key": ["r1", "r2"], "event_ref": ["e1", "missing"]}
-    ).write_parquet(run / "outputs/records.parquet")
+    pl.DataFrame({"record_key": ["r1", "r2"], "event_ref": ["e1", "missing"]}).write_parquet(
+        run / "outputs/records.parquet"
+    )
     with pytest.raises(ValueError, match="orphan foreign keys"):
         check()
-    pl.DataFrame(
-        {"record_key": ["r1", "r1"], "event_ref": ["e1", "e2"]}
-    ).write_parquet(run / "outputs/records.parquet")
+    pl.DataFrame({"record_key": ["r1", "r1"], "event_ref": ["e1", "e2"]}).write_parquet(
+        run / "outputs/records.parquet"
+    )
     with pytest.raises(ValueError, match="Invalid identifier values"):
         check()
