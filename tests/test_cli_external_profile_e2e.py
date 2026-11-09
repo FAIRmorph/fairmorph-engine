@@ -63,5 +63,11 @@ def test_external_profile_cli_review_and_run(tmp_path):
         "--mapping-sha256", staged["mapping_sha256"],
     ]))
     assert run["output_rows"] == 3
+    exported = _result(runner.invoke(app, [
+        "export-package", "--project", str(project), "--run-id", run["run_id"],
+    ]))
+    descriptor = json.loads((project / "exports" / exported["export_id"] / "package" / "datapackage.json").read_text(encoding="utf-8"))
+    assert descriptor["name"] == "fairmorph-run"
+    assert "CS-PHOC" not in descriptor["title"]
     verified = _result(runner.invoke(app, ["verify-project", "--project", str(project)]))
     assert verified["completed_runs"] == 1
