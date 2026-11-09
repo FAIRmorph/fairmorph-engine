@@ -155,6 +155,15 @@
                   "many-to-one",
                   "many-to-many"
                 ]
+              },
+              "require_match": {
+                "type": "boolean"
+              },
+              "missing_key_policy": {
+                "enum": [
+                  "reject",
+                  "ignore"
+                ]
               }
             }
           }
