@@ -112,6 +112,52 @@
               }
             }
           }
+        },
+        "relationships": {
+          "type": "array",
+          "description": "Approved inter-resource relationship declarations pinned by mapping configuration SHA-256.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "relationship_id",
+              "left_resource_id",
+              "left_column",
+              "right_resource_id",
+              "right_column",
+              "cardinality"
+            ],
+            "properties": {
+              "relationship_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "left_resource_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "left_column": {
+                "type": "string",
+                "minLength": 1
+              },
+              "right_resource_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "right_column": {
+                "type": "string",
+                "minLength": 1
+              },
+              "cardinality": {
+                "enum": [
+                  "one-to-one",
+                  "one-to-many",
+                  "many-to-one",
+                  "many-to-many"
+                ]
+              }
+            }
+          }
         }
       }
     },
