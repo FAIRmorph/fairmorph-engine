@@ -24,3 +24,22 @@ guarantee is implemented. A crash during reconciliation can require running
 the command again. The operation must not run concurrently with import,
 mapping execution, export, or another recovery process. The final acceptance
 must include fault-injection testing at publication boundaries.
+
+## Fault-injection acceptance matrix
+
+The mandatory generic Engine CI runs `tests/test_run_publication_fault_injection.py`
+with synthetic input, independently of the optional CS-PHOC reference workflow.
+
+| Injected boundary | Expected behavior |
+| --- | --- |
+| Staging-to-final directory rename fails | No published RUN or index entry; pending diagnostics retained |
+| `project.json` replacement fails | SQLite transaction rolls back; published directory moves back to pending |
+| Crash after completed directory, before either index | Explicit reconciliation reconstructs both indexes |
+| Crash with only one index durable | Explicit reconciliation repairs the missing index |
+| Recovery index replacement fails | SQLite changes roll back; a later retry succeeds |
+| Published manifest missing or artifacts corrupted | Fail closed without dropping catalog/index references |
+| Second reconciliation | Idempotent; no new RUN entries |
+
+These are deterministic exception and persisted-state simulations, **not**
+physical power-loss tests. Passing the matrix is necessary for PoC acceptance,
+but does not establish fsync-level durability or concurrent-writer safety.
