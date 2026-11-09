@@ -196,8 +196,7 @@ may be embedded in the generic adapter or Engine CI.
 
 `contracts/publication-profile.schema.json` defines a dataset-independent
 external publication **intent** with exact RUN-manifest and metadata SHA-256
-references, requested EML/DwC-A format versions and explicit Event/Occurrence
-link-field names. `tests/test_publication_profile_contract.py` exercises
+references, requested EML/DwC-A format versions and explicit Darwin Core row-type identifiers. `tests/test_publication_profile_contract.py` exercises
 the contract with synthetic identifiers; no `examples/` data is required.
 
 This initial contract is deliberately not wired into `run-mapping`,
@@ -222,10 +221,12 @@ command or an approval mechanism. The tests use synthetic data only.
 ### Explicit Darwin Core bindings
 
 When `dwca/1` is requested, the external publication profile now requires
-`dwca.event_fields` and `dwca.occurrence_fields`. Each binding declares
+`dwca.core`, `dwca.core_id_field` and `dwca.core_fields`; optional
+`dwca.extensions` declare their own row type, identifier and bindings.
+Each binding declares
 a source-field name and an explicit Darwin Core term URI. The generic
 preflight rejects duplicate source fields, duplicate target terms and
-`eventID` mappings inconsistent with the configured Event core and
-Occurrence link identifiers. This is structural validation only: it does
+identifier mappings inconsistent with the declared Event or Occurrence
+row type. Neither core type nor any extension is chosen by the Engine. This is structural validation only: it does
 not establish that the named fields exist in a future Event/Occurrence
 projection, nor does it constitute a scientific approval or DwC-A export.
