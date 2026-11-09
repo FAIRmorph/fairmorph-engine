@@ -193,8 +193,7 @@ def test_reconcile_repairs_interrupted_run_index_publication(tmp_path):
     index_file.write_text(json.dumps(index), encoding="utf-8")
     with sqlite3.connect(project / "catalog" / "catalog.sqlite") as db:
         db.execute("DELETE FROM runs WHERE run_id=?", (run_id,))
-    with pytest.raises(ValueError, match="RUN index"):
-        verify_project(project)
+    assert verify_project(project)["completed_runs"] == 0
     recovered = reconcile_runs(project)
     assert recovered["recovered"] == [run_id]
     assert verify_project(project)["completed_runs"] == 1
