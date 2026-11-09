@@ -22,6 +22,8 @@ def test_external_profile_cli_review_and_run(tmp_path):
     project = tmp_path / "survey-project"
     source = tmp_path / "survey.csv"
     source.write_text("station,juveniles,adults\nA,0,2\nB,,3\n", encoding="utf-8")
+    auxiliary = tmp_path / "stations.csv"
+    auxiliary.write_text("station,region\\nA,north\\nB,south\\n", encoding="utf-8")
     runner = CliRunner()
     _result(runner.invoke(app, ["init-project", "--project", str(project), "--name", "Survey"]))
     imported = _result(
@@ -38,8 +40,33 @@ def test_external_profile_cli_review_and_run(tmp_path):
             ],
         )
     )
+    auxiliary_import = _result(
+        runner.invoke(
+            app,
+            [
+                "import-resource",
+                "--project",
+                str(project),
+                "--source",
+                str(auxiliary),
+                "--role",
+                "stations",
+            ],
+        )
+    )
     profile = {
         "mapping_id": "survey",
+        "auxiliary_resource_ids": [auxiliary_import["resource_id"]],
+        "relationships": [
+            {
+                "relationship_id": "survey-station",
+                "left_resource_id": imported["resource_id"],
+                "left_column": "station",
+                "right_resource_id": auxiliary_import["resource_id"],
+                "right_column": "station",
+                "cardinality": "many-to-one",
+            }
+        ],
         "version": "1.0.0",
         "operation": "wide-to-long-counts/1",
         "source_sha256": hashlib.sha256(source.read_bytes()).hexdigest(),
@@ -105,6 +132,11 @@ def test_external_profile_cli_review_and_run(tmp_path):
         )
     )
     assert run["output_rows"] == 3
+    inputs = json.loads(
+        (project / "runs" / run["run_id"] / "inputs.snapshot.json").read_text(encoding="utf-8")
+    )
+    assert len(inputs["sources"]) == 2
+    assert inputs["mapping_snapshot"]["relationships"][0]["relationship_id"] == "survey-station"
     exported = _result(
         runner.invoke(
             app,
