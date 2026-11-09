@@ -15,7 +15,7 @@ from pathlib import Path
 from jsonschema import Draft202012Validator, FormatChecker
 
 from fairmorph_engine.core.registry import _catalog, canonical_bytes, mapping_snapshot
-from fairmorph_engine.processing.tabular import unpivot_csv
+from fairmorph_engine.processing.tabular import unpivot_csv, unpivot_typed_csv
 
 RUN_SCHEMA_VERSION = "fairmorph.poc.run/2"
 INPUT_SCHEMA_VERSION = "fairmorph.poc.inputs/2"
@@ -55,7 +55,7 @@ def _approved_mapping(project: Path, mapping_sha256: str, snapshot: dict) -> tup
         mapping = json.loads(row[0])
         if hashlib.sha256(canonical_bytes(mapping)).hexdigest() != mapping_sha256:
             raise ValueError("Mapping content differs from approved revision")
-        if mapping.get("operation") != TRANSFORM_VERSION:
+        if mapping.get("operation") not in (TRANSFORM_VERSION, "wide-to-long-values/1"):
             raise ValueError("Mapping must explicitly select supported transformation")
         identifier = mapping.get("identifier")
         if not isinstance(identifier, str) or not identifier:
@@ -115,9 +115,13 @@ def _approved_mapping(project: Path, mapping_sha256: str, snapshot: dict) -> tup
             if definition.get("semantic_status") != "defined":
                 raise ValueError("Mapping references undefined field semantics")
             unit = definition.get("counting_unit")
-            if not isinstance(unit, str) or not unit.strip():
+            if mapping["operation"] == TRANSFORM_VERSION and (
+                not isinstance(unit, str) or not unit.strip()
+            ):
                 raise ValueError("Approved count mapping requires an explicit counting unit")
-            if definition.get("value_semantics", {}).get("zero_meaning") not in (
+            if mapping["operation"] == TRANSFORM_VERSION and definition.get(
+                "value_semantics", {}
+            ).get("zero_meaning") not in (
                 "true_zero",
                 "absence",
             ):
@@ -155,18 +159,27 @@ def execute_mapping_run(project: Path, mapping_sha256: str, emit=lambda *_a, **_
         columns = [b["source_column"] for b in mapping["bindings"]]
         binding_by_column = {b["source_column"]: b for b in mapping["bindings"]}
         rows = []
-        for item in unpivot_csv(
-            source,
-            identifier=mapping["identifier"],
-            columns=columns,
-            empty_cell_policy=mapping["empty_cell_policy"],
-            zero_cell_policy=mapping["zero_cell_policy"],
-        ):
+        operation = mapping["operation"]
+        if operation == TRANSFORM_VERSION:
+            observations = unpivot_csv(
+                source,
+                identifier=mapping["identifier"],
+                columns=columns,
+                empty_cell_policy=mapping["empty_cell_policy"],
+                zero_cell_policy=mapping["zero_cell_policy"],
+            )
+        else:
+            observations = unpivot_typed_csv(
+                source,
+                identifier=mapping["identifier"],
+                value_types={b["source_column"]: b["value_type"] for b in mapping["bindings"]},
+            )
+        for item in observations:
             record_key = {
                 "source_sha256": source_hash,
                 "line": item["source_line"],
                 "column": item["source_column"],
-                "transformation_version": TRANSFORM_VERSION,
+                "transformation_version": operation,
                 "mapping_sha256": mapping_sha256,
             }
             rows.append(
@@ -177,6 +190,7 @@ def execute_mapping_run(project: Path, mapping_sha256: str, emit=lambda *_a, **_
                     "source_column": item["source_column"],
                     "target_field": binding_by_column[item["source_column"]]["target_field"],
                     "value": item["value"],
+                    **({"value_type": item["value_type"]} if operation != TRANSFORM_VERSION else {}),
                 }
             )
         if not rows:
@@ -185,8 +199,8 @@ def execute_mapping_run(project: Path, mapping_sha256: str, emit=lambda *_a, **_
         # Never embed dataset-specific reference values in the Engine.
         observed_metrics = {
             "output_rows": len(rows),
-            "explicit_zeros": sum(row["value"] == 0 for row in rows),
-            "value_sum": sum(row["value"] for row in rows),
+            "explicit_zeros": sum(row["value"] == 0 for row in rows) if operation == TRANSFORM_VERSION else 0,
+            "value_sum": sum(row["value"] for row in rows) if operation == TRANSFORM_VERSION else 0,
         }
         for metric, expected in mapping.get("acceptance", {}).items():
             if metric not in observed_metrics:
@@ -227,7 +241,7 @@ def execute_mapping_run(project: Path, mapping_sha256: str, emit=lambda *_a, **_
             "output_rows": len(rows),
             "explicit_zeros": sum(row["value"] == 0 for row in rows),
             "value_sum": sum(row["value"] for row in rows),
-            "transformation": TRANSFORM_VERSION,
+            "transformation": operation,
         }
         _write_json(staging / "reports" / "quality.json", quality)
         artifacts = []
@@ -248,7 +262,7 @@ def execute_mapping_run(project: Path, mapping_sha256: str, emit=lambda *_a, **_
             "status": "completed",
             "started_at": started,
             "engine_version": "0.1.0",
-            "transformation_version": TRANSFORM_VERSION,
+            "transformation_version": operation,
             "configuration_sha256": mapping_sha256,
             "input_snapshot_sha256": _sha256(staging / "inputs.snapshot.json"),
             "artifacts": artifacts,
