@@ -15,6 +15,7 @@ def test_publication_preflight_pins_run_and_metadata(tmp_path, monkeypatch):
     manifest_file.write_text('{"schema_version":"fairmorph.poc.run/2"}', encoding="utf-8")
     metadata = tmp_path / "metadata.json"
     metadata.write_text('{"title":"Survey"}', encoding="utf-8")
+
     def digest(path):
         return hashlib.sha256(path.read_bytes()).hexdigest()
 
