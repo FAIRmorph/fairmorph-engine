@@ -55,7 +55,9 @@ def test_generic_publication_profile_is_valid():
     _validator().validate(_profile())
 
 
-@pytest.mark.parametrize("invalid", ["missing_dwca", "unknown_format", "bad_hash", "missing_terms", "invalid_term"])
+@pytest.mark.parametrize(
+    "invalid", ["missing_dwca", "unknown_format", "bad_hash", "missing_terms", "invalid_term"]
+)
 def test_publication_profile_rejects_invalid_intent(invalid):
     profile = _profile()
     if invalid == "missing_dwca":
