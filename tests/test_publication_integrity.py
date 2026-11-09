@@ -114,3 +114,23 @@ def test_integrity_checks_identifiers_and_foreign_keys(tmp_path, monkeypatch):
     )
     with pytest.raises(ValueError, match="Invalid identifier values"):
         check()
+
+
+def test_integrity_contract_rejects_unpinned_rules(tmp_path):
+    from jsonschema import Draft202012Validator
+
+    schema_path = (
+        __import__("pathlib").Path(__file__).resolve().parents[1]
+        / "src/fairmorph_engine/contracts/publication-integrity.schema.json"
+    )
+    schema = json.loads(schema_path.read_text(encoding="utf-8"))
+    validator = Draft202012Validator(schema)
+    rules = {
+        "schema_version": "fairmorph.poc.publication-integrity/1",
+        "run_manifest_sha256": "a" * 64,
+        "identifiers": [{"row_type": "Occurrence", "column": "record_key"}],
+        "relationships": [],
+    }
+    assert validator.is_valid(rules)
+    rules["run_manifest_sha256"] = "invalid"
+    assert not validator.is_valid(rules)

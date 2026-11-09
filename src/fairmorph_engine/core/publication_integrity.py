@@ -50,6 +50,7 @@ def validate_publication_integrity(
             raise ValueError(f"Missing integrity artifact: {relative}")
         frames[row_type] = pl.read_parquet(artifact)
     seen_identifiers = set()
+    seen_relationships = set()
     for rule in rules["identifiers"]:
         row_type, column = rule["row_type"], rule["column"]
         if row_type not in frames or column not in tables[row_type]["columns"]:
@@ -58,7 +59,12 @@ def validate_publication_integrity(
             raise ValueError(f"Duplicate identifier rule for {row_type}")
         seen_identifiers.add(row_type)
         values = frames[row_type].get_column(column)
-        if values.null_count() or values.n_unique() != len(values):
+        if (
+            len(values) == 0
+            or values.null_count()
+            or values.n_unique() != len(values)
+            or (values.dtype == pl.String and values.str.strip_chars().eq("").any())
+        ):
             raise ValueError(f"Invalid identifier values: {row_type}.{column}")
     if seen_identifiers != set(tables):
         raise ValueError("Each projected row type requires an identifier rule")
@@ -72,11 +78,21 @@ def validate_publication_integrity(
             or parent_col not in tables[parent_type]["columns"]
         ):
             raise ValueError("Relationship references an undeclared table column")
+        relation = (child_type, child_col, parent_type, parent_col)
+        if relation in seen_relationships:
+            raise ValueError("Duplicate relationship rule")
+        seen_relationships.add(relation)
         child_values = frames[child_type].get_column(child_col)
         parent_values = frames[parent_type].get_column(parent_col)
+        if child_values.dtype != parent_values.dtype:
+            raise ValueError("Relationship key types differ")
         if child_values.null_count():
             raise ValueError("Relationship contains null foreign keys")
-        if parent_values.null_count() or parent_values.n_unique() != len(parent_values):
+        if (
+            parent_values.null_count()
+            or parent_values.n_unique() != len(parent_values)
+            or (parent_values.dtype == pl.String and parent_values.str.strip_chars().eq("").any())
+        ):
             raise ValueError("Relationship parent key must be unique and non-null")
         missing = set(child_values.to_list()) - set(parent_values.to_list())
         if missing:

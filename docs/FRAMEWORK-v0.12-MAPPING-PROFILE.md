@@ -293,3 +293,9 @@ The external plan alone chooses table names, keys and relationships;
 Engine code and Engine CI contain no reference-project assumptions.
 This PoC does not perform EML/DwC-A generation, scientific approval,
 or full archive conformance. `publication_ready` remains false.
+
+### Generic integrity hardening
+
+The integrity validator rejects empty identifier tables, blank string
+identifiers, duplicate relationship declarations and mismatched foreign-key
+column types. All constraints remain external and independent of examples.
