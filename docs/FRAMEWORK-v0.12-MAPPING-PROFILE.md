@@ -207,3 +207,14 @@ the complete column-to-Darwin-Core and EML metadata mappings. Those are
 required before a generic publication adapter can be implemented or claimed
 to produce valid scientific publications. The existing specialized DwC-A
 command remains legacy and must not be used as evidence of generic support.
+
+### Publication preflight (RUN/2, no publication side effects)
+
+`core.publication.validate_publication_intent(project, run_id, profile_file,
+metadata_file)` validates the external publication contract and verifies
+the immutable generic RUN via `verified_run`. It compares the exact
+RUN-manifest and metadata-file SHA-256 values with the external intent.
+The function returns `publication_ready: false` by design: the metadata
+has not yet been versioned into the RUN/2 snapshot or scientifically
+reviewed, and no EML/DwC-A adapter is invoked. It is not a CLI publication
+command or an approval mechanism. The tests use synthetic data only.
