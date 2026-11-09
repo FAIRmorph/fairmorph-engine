@@ -73,6 +73,43 @@ def stage_csv_mapping(project: Path, resource_id: str, profile_file: Path) -> di
                 is None
             ):
                 raise ValueError(f"Auxiliary resource is not imported: {auxiliary_id}")
+    relationships = profile.get("relationships", [])
+    relationship_ids = [item["relationship_id"] for item in relationships]
+    if len(relationship_ids) != len(set(relationship_ids)):
+        raise ValueError("Relationship identifiers must be unique")
+    declared_resources = {resource_id, *auxiliary_ids}
+    headers = {resource_id: set(header)}
+    for relationship in relationships:
+        left_id = relationship["left_resource_id"]
+        right_id = relationship["right_resource_id"]
+        if left_id not in declared_resources or right_id not in declared_resources:
+            raise ValueError("Relationship references an undeclared source resource")
+        if left_id == right_id:
+            raise ValueError("Inter-resource relationship must link distinct resources")
+        for linked_id, column in (
+            (left_id, relationship["left_column"]),
+            (right_id, relationship["right_column"]),
+        ):
+            if linked_id not in headers:
+                with _catalog(project) as db:
+                    linked_sha = db.execute(
+                        "SELECT object_sha256 FROM source_resources WHERE resource_id=?",
+                        (linked_id,),
+                    ).fetchone()[0]
+                linked_path = project / "objects" / "sha256" / linked_sha[:2] / linked_sha
+                if (
+                    not linked_path.is_file()
+                    or linked_path.is_symlink()
+                    or _file_digest(linked_path) != linked_sha
+                ):
+                    raise ValueError("Relationship source object is missing or modified")
+                with linked_path.open("r", encoding="utf-8-sig", newline="") as stream:
+                    linked_header = next(csv.reader(stream, strict=True), None)
+                if not linked_header or len(linked_header) != len(set(linked_header)):
+                    raise ValueError("Relationship source requires unique CSV headers")
+                headers[linked_id] = set(linked_header)
+            if column not in headers[linked_id]:
+                raise ValueError("Relationship references an unknown source column")
     bindings = []
     for item in profile["fields"]:
         definition = {
@@ -101,6 +138,7 @@ def stage_csv_mapping(project: Path, resource_id: str, profile_file: Path) -> di
         "operation": profile["operation"],
         "source_resource_id": resource_id,
         "auxiliary_resource_ids": sorted(auxiliary_ids),
+        "relationships": sorted(relationships, key=lambda item: item["relationship_id"]),
         "profile_sha256": _file_digest(profile_file),
         "identifier": profile["identifier"],
         "empty_cell_policy": profile["empty_cell_policy"],
