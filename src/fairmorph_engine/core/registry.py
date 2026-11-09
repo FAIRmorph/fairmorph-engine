@@ -87,7 +87,8 @@ def _catalog(project: Path) -> sqlite3.Connection:
 def _ensure_revision(db: sqlite3.Connection, revision_id: str) -> tuple[str, dict]:
     row = db.execute(
         "SELECT source_field_id, content_json, content_sha256 FROM field_definition_revisions "
-        "WHERE revision_id=?", (revision_id,)
+        "WHERE revision_id=?",
+        (revision_id,),
     ).fetchone()
     if row is None:
         raise ValueError("Unknown field definition revision")
@@ -102,8 +103,13 @@ def _field_schema() -> dict:
     return json.loads(source.read_text(encoding="utf-8"))
 
 
-def define_field(project: Path, resource_id: str, locator: str, definition: dict,
-                 parent_revision_id: str | None = None) -> dict:
+def define_field(
+    project: Path,
+    resource_id: str,
+    locator: str,
+    definition: dict,
+    parent_revision_id: str | None = None,
+) -> dict:
     """Persist an immutable, schema-validated v0.12 field semantic draft."""
     if not locator or not isinstance(definition, dict):
         raise ValueError("Field locator and definition are required")
@@ -135,23 +141,45 @@ def define_field(project: Path, resource_id: str, locator: str, definition: dict
     revision_id = "definition-" + checksum
     now = datetime.now(UTC).isoformat()
     with _catalog(project) as db:
-        if db.execute("SELECT 1 FROM source_resources WHERE resource_id=?", (resource_id,)).fetchone() is None:
+        if (
+            db.execute(
+                "SELECT 1 FROM source_resources WHERE resource_id=?", (resource_id,)
+            ).fetchone()
+            is None
+        ):
             raise ValueError("Field must belong to an imported resource")
-        previous = db.execute("SELECT revision_id FROM current_field_definitions WHERE source_field_id=?",
-                              (field_id,)).fetchone()
+        previous = db.execute(
+            "SELECT revision_id FROM current_field_definitions WHERE source_field_id=?", (field_id,)
+        ).fetchone()
         if previous and previous[0] != revision_id and parent_revision_id != previous[0]:
             raise ValueError("New definition must name current parent revision")
         if parent_revision_id and not previous:
             raise ValueError("Cannot specify a parent for the first revision")
-        db.execute("INSERT OR IGNORE INTO source_fields VALUES (?, ?, ?)", (field_id, resource_id, locator))
+        db.execute(
+            "INSERT OR IGNORE INTO source_fields VALUES (?, ?, ?)", (field_id, resource_id, locator)
+        )
         db.execute(
             "INSERT OR IGNORE INTO field_definition_revisions VALUES (?, ?, ?, ?, ?, ?)",
-            (revision_id, field_id, parent_revision_id, canonical_bytes(content).decode(), checksum, now),
+            (
+                revision_id,
+                field_id,
+                parent_revision_id,
+                canonical_bytes(content).decode(),
+                checksum,
+                now,
+            ),
         )
-        db.execute("INSERT INTO current_field_definitions VALUES (?, ?) ON CONFLICT(source_field_id) "
-                   "DO UPDATE SET revision_id=excluded.revision_id", (field_id, revision_id))
-    return {"source_field_id": field_id, "revision_id": revision_id,
-            "content_sha256": checksum, "status": content["semantic_status"]}
+        db.execute(
+            "INSERT INTO current_field_definitions VALUES (?, ?) ON CONFLICT(source_field_id) "
+            "DO UPDATE SET revision_id=excluded.revision_id",
+            (field_id, revision_id),
+        )
+    return {
+        "source_field_id": field_id,
+        "revision_id": revision_id,
+        "content_sha256": checksum,
+        "status": content["semantic_status"],
+    }
 
 
 def review_field(project: Path, revision_id: str, reviewer: str, decision: str) -> dict:
@@ -161,20 +189,34 @@ def review_field(project: Path, revision_id: str, reviewer: str, decision: str) 
     with _catalog(project) as db:
         _, definition = _ensure_revision(db, revision_id)
         if decision == "approved":
-            if not isinstance(definition.get("description"), str) or not definition["description"].strip():
+            if (
+                not isinstance(definition.get("description"), str)
+                or not definition["description"].strip()
+            ):
                 raise ValueError("A substantive description is required for approval")
             if definition["semantic_status"] != "defined":
                 raise ValueError("Unresolved value semantics cannot be approved")
-        prior = db.execute("SELECT decision FROM field_definition_reviews WHERE revision_id=? ORDER BY reviewed_at DESC",
-                           (revision_id,)).fetchone()
+        prior = db.execute(
+            "SELECT decision FROM field_definition_reviews WHERE revision_id=? ORDER BY reviewed_at DESC",
+            (revision_id,),
+        ).fetchone()
         if prior is not None:
-            raise ValueError("Revision already reviewed; create a new revision for a changed decision")
+            raise ValueError(
+                "Revision already reviewed; create a new revision for a changed decision"
+            )
         review_id = str(uuid.uuid4())
         timestamp = datetime.now(UTC).isoformat()
-        db.execute("INSERT INTO field_definition_reviews VALUES (?, ?, ?, ?, ?)",
-                   (review_id, revision_id, decision, reviewer, timestamp))
-    return {"review_id": review_id, "revision_id": revision_id, "decision": decision,
-            "reviewer": reviewer, "reviewed_at": timestamp}
+        db.execute(
+            "INSERT INTO field_definition_reviews VALUES (?, ?, ?, ?, ?)",
+            (review_id, revision_id, decision, reviewer, timestamp),
+        )
+    return {
+        "review_id": review_id,
+        "revision_id": revision_id,
+        "decision": decision,
+        "reviewer": reviewer,
+        "reviewed_at": timestamp,
+    }
 
 
 def register_mapping(project: Path, mapping: dict) -> dict:
@@ -197,16 +239,29 @@ def register_mapping(project: Path, mapping: dict) -> dict:
             field_id, _ = _ensure_revision(db, rid)
             if binding.get("source_field_id") != field_id:
                 raise ValueError("Binding points to another source field")
-        existing = db.execute("SELECT mapping_sha256 FROM mapping_versions WHERE mapping_id=? AND version=?",
-                              (mapping_id, version)).fetchone()
+        existing = db.execute(
+            "SELECT mapping_sha256 FROM mapping_versions WHERE mapping_id=? AND version=?",
+            (mapping_id, version),
+        ).fetchone()
         if existing and existing[0] != checksum:
             raise ValueError("Mapping version is immutable; publish a new version")
-        db.execute("INSERT OR IGNORE INTO mapping_versions VALUES (?, ?, ?, ?, ?, ?, ?)",
-                   (checksum, mapping_id, version, canonical_bytes(mapping).decode(), "draft",
-                    datetime.now(UTC).isoformat(), None))
+        db.execute(
+            "INSERT OR IGNORE INTO mapping_versions VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (
+                checksum,
+                mapping_id,
+                version,
+                canonical_bytes(mapping).decode(),
+                "draft",
+                datetime.now(UTC).isoformat(),
+                None,
+            ),
+        )
         for binding in bindings:
-            db.execute("INSERT OR IGNORE INTO mapping_field_bindings VALUES (?, ?, ?)",
-                       (checksum, binding["definition_revision_id"], binding["target_field"]))
+            db.execute(
+                "INSERT OR IGNORE INTO mapping_field_bindings VALUES (?, ?, ?)",
+                (checksum, binding["definition_revision_id"], binding["target_field"]),
+            )
     return {"mapping_id": mapping_id, "version": version, "sha256": checksum, "status": "draft"}
 
 
@@ -215,48 +270,69 @@ def approve_mapping(project: Path, mapping_sha256: str, reviewer: str) -> dict:
     if not reviewer.strip():
         raise ValueError("Mapping approval needs reviewer")
     with _catalog(project) as db:
-        row = db.execute("SELECT content_json FROM mapping_versions WHERE mapping_sha256=?",
-                         (mapping_sha256,)).fetchone()
+        row = db.execute(
+            "SELECT content_json FROM mapping_versions WHERE mapping_sha256=?", (mapping_sha256,)
+        ).fetchone()
         if row is None:
             raise ValueError("Unknown mapping version")
         mapping = json.loads(row[0])
         if digest(mapping) != mapping_sha256:
             raise ValueError("Corrupted mapping version")
-        if db.execute("SELECT 1 FROM mapping_reviews WHERE mapping_sha256=?", (mapping_sha256,)).fetchone():
+        if db.execute(
+            "SELECT 1 FROM mapping_reviews WHERE mapping_sha256=?", (mapping_sha256,)
+        ).fetchone():
             raise ValueError("Mapping version already reviewed; create a new version")
         for binding in mapping["bindings"]:
             rid = binding["definition_revision_id"]
             field_id, definition = _ensure_revision(db, rid)
             if field_id != binding["source_field_id"]:
                 raise ValueError("Mapping field binding mismatch")
-            reviews = db.execute("SELECT decision FROM field_definition_reviews WHERE revision_id=?",
-                                 (rid,)).fetchall()
+            reviews = db.execute(
+                "SELECT decision FROM field_definition_reviews WHERE revision_id=?", (rid,)
+            ).fetchall()
             if not reviews or reviews[-1][0] != "approved":
                 raise ValueError("Mapping requires approved field definition revisions")
-            current = db.execute("SELECT revision_id FROM current_field_definitions WHERE source_field_id=?",
-                                 (field_id,)).fetchone()
+            current = db.execute(
+                "SELECT revision_id FROM current_field_definitions WHERE source_field_id=?",
+                (field_id,),
+            ).fetchone()
             if current is None or current[0] != rid:
                 raise ValueError("Mapping approval requires current field definitions")
             if binding["target_field"] == "individualCount":
-                if definition.get("counting_unit") != "individual" or definition["value_semantics"]["zero_meaning"] == "unknown":
-                    raise ValueError("individualCount requires confirmed count unit and zero semantics")
+                if (
+                    definition.get("counting_unit") != "individual"
+                    or definition["value_semantics"]["zero_meaning"] == "unknown"
+                ):
+                    raise ValueError(
+                        "individualCount requires confirmed count unit and zero semantics"
+                    )
         review_id = str(uuid.uuid4())
         timestamp = datetime.now(UTC).isoformat()
-        db.execute("INSERT INTO mapping_reviews VALUES (?, ?, ?, ?, ?)",
-                   (review_id, mapping_sha256, "approved", reviewer, timestamp))
-    return {"mapping_sha256": mapping_sha256, "review_id": review_id,
-            "reviewer": reviewer, "reviewed_at": timestamp, "status": "approved"}
+        db.execute(
+            "INSERT INTO mapping_reviews VALUES (?, ?, ?, ?, ?)",
+            (review_id, mapping_sha256, "approved", reviewer, timestamp),
+        )
+    return {
+        "mapping_sha256": mapping_sha256,
+        "review_id": review_id,
+        "reviewer": reviewer,
+        "reviewed_at": timestamp,
+        "status": "approved",
+    }
 
 
 def mapping_snapshot(project: Path, mapping_sha256: str) -> dict:
     """Produce an immutable RUN input reference; reject draft mappings."""
     with _catalog(project) as db:
-        row = db.execute("SELECT content_json, status FROM mapping_versions WHERE mapping_sha256=?",
-                         (mapping_sha256,)).fetchone()
+        row = db.execute(
+            "SELECT content_json, status FROM mapping_versions WHERE mapping_sha256=?",
+            (mapping_sha256,),
+        ).fetchone()
         if row is None:
             raise ValueError("RUN requires an approved mapping version")
-        approved = db.execute("SELECT decision FROM mapping_reviews WHERE mapping_sha256=?",
-                              (mapping_sha256,)).fetchone()
+        approved = db.execute(
+            "SELECT decision FROM mapping_reviews WHERE mapping_sha256=?", (mapping_sha256,)
+        ).fetchone()
         if not approved or approved[0] != "approved":
             raise ValueError("RUN requires an approved mapping version")
         mapping = json.loads(row[0])
@@ -267,18 +343,27 @@ def mapping_snapshot(project: Path, mapping_sha256: str) -> dict:
         for binding in mapping["bindings"]:
             rid = binding["definition_revision_id"]
             _, definition = _ensure_revision(db, rid)
-            reviews = db.execute("SELECT decision FROM field_definition_reviews WHERE revision_id=?", (rid,)).fetchall()
+            reviews = db.execute(
+                "SELECT decision FROM field_definition_reviews WHERE revision_id=?", (rid,)
+            ).fetchall()
             if not reviews or reviews[-1][0] != "approved":
                 raise ValueError("RUN mapping depends on unapproved definitions")
             resource_id = definition["source_resource_id"]
-            source = db.execute("SELECT object_sha256 FROM source_resources WHERE resource_id=?",
-                                (resource_id,)).fetchone()
+            source = db.execute(
+                "SELECT object_sha256 FROM source_resources WHERE resource_id=?", (resource_id,)
+            ).fetchone()
             if source is None:
                 raise ValueError("Mapped source resource is missing")
             source_resources[resource_id] = source[0]
             revisions.append({"revision_id": rid, "sha256": digest(definition)})
-    return {"mapping_id": mapping["mapping_id"], "mapping_version": mapping["version"],
-            "mapping_sha256": mapping_sha256, "field_definition_schema_sha256": digest(_field_schema()),
-            "field_definition_revisions": revisions,
-            "source_resources": [{"resource_id": rid, "object_sha256": checksum}
-                                 for rid, checksum in sorted(source_resources.items())]}
+    return {
+        "mapping_id": mapping["mapping_id"],
+        "mapping_version": mapping["version"],
+        "mapping_sha256": mapping_sha256,
+        "field_definition_schema_sha256": digest(_field_schema()),
+        "field_definition_revisions": revisions,
+        "source_resources": [
+            {"resource_id": rid, "object_sha256": checksum}
+            for rid, checksum in sorted(source_resources.items())
+        ],
+    }

@@ -9,8 +9,14 @@ from collections.abc import Iterator
 from pathlib import Path
 
 
-def unpivot_csv(source: Path, *, identifier: str, columns: list[str],
-                empty_cell_policy: str, zero_cell_policy: str) -> Iterator[dict]:
+def unpivot_csv(
+    source: Path,
+    *,
+    identifier: str,
+    columns: list[str],
+    empty_cell_policy: str,
+    zero_cell_policy: str,
+) -> Iterator[dict]:
     """Stream original rows with lineage, preserving zeros and source positions."""
     if empty_cell_policy != "omit" or zero_cell_policy != "preserve":
         raise ValueError("Only explicitly reviewed omit-empty/preserve-zero policy is supported")
@@ -31,8 +37,15 @@ def unpivot_csv(source: Path, *, identifier: str, columns: list[str],
                 try:
                     value = int(raw)
                 except (ValueError, TypeError) as error:
-                    raise ValueError(f"Invalid integer at line {line_no}, column {column}") from error
+                    raise ValueError(
+                        f"Invalid integer at line {line_no}, column {column}"
+                    ) from error
                 if value < 0:
                     raise ValueError(f"Negative count at line {line_no}, column {column}")
-                yield {"source_identifier": record[identifier], "source_line": line_no,
-                       "source_column": column, "original_value": raw, "value": value}
+                yield {
+                    "source_identifier": record[identifier],
+                    "source_line": line_no,
+                    "source_column": column,
+                    "original_value": raw,
+                    "value": value,
+                }

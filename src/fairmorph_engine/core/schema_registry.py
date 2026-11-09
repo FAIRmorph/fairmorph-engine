@@ -17,9 +17,16 @@ from fairmorph_engine.core.registry import _catalog, canonical_bytes, digest
 _ALLOWED_KINDS = frozenset({"core", "source", "export", "extension"})
 
 
-def register_schema(project: Path, *, schema_id: str, schema_version: str,
-                    kind: str, schema: dict, status: str = "draft",
-                    reviewer: str | None = None) -> dict:
+def register_schema(
+    project: Path,
+    *,
+    schema_id: str,
+    schema_version: str,
+    kind: str,
+    schema: dict,
+    status: str = "draft",
+    reviewer: str | None = None,
+) -> dict:
     """Store immutable schema bytes under their canonical hash in the project."""
     if not isinstance(schema_id, str) or not schema_id.startswith("https://"):
         raise ValueError("Schema ID must be an explicit HTTPS URI")
@@ -48,10 +55,14 @@ def register_schema(project: Path, *, schema_id: str, schema_version: str,
             status TEXT NOT NULL, schema_path TEXT NOT NULL,
             reviewer TEXT, UNIQUE(schema_id, schema_version))"""
         )
-        existing = db.execute("SELECT schema_sha256, status FROM schema_versions WHERE schema_id=? AND schema_version=?",
-                              (schema_id, schema_version)).fetchone()
+        existing = db.execute(
+            "SELECT schema_sha256, status FROM schema_versions WHERE schema_id=? AND schema_version=?",
+            (schema_id, schema_version),
+        ).fetchone()
         if existing and (existing[0] != checksum or existing[1] != status):
-            raise ValueError("Schema identity/version is immutable: content or review status differs")
+            raise ValueError(
+                "Schema identity/version is immutable: content or review status differs"
+            )
         if target.exists():
             if target.is_symlink() or target.read_bytes() != payload:
                 raise ValueError("Stored registry schema bytes have changed")
@@ -64,10 +75,17 @@ def register_schema(project: Path, *, schema_id: str, schema_version: str,
                 os.replace(staging, target)
             finally:
                 staging.unlink(missing_ok=True)
-        db.execute("INSERT OR IGNORE INTO schema_versions VALUES (?, ?, ?, ?, ?, ?, ?)",
-                   (schema_id, schema_version, checksum, kind, status, relative, reviewer))
-    return {"schema_id": schema_id, "schema_version": schema_version,
-            "schema_sha256": checksum, "status": status, "schema_path": relative}
+        db.execute(
+            "INSERT OR IGNORE INTO schema_versions VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (schema_id, schema_version, checksum, kind, status, relative, reviewer),
+        )
+    return {
+        "schema_id": schema_id,
+        "schema_version": schema_version,
+        "schema_sha256": checksum,
+        "status": status,
+        "schema_path": relative,
+    }
 
 
 def _remote_refs(document):
@@ -100,7 +118,11 @@ def get_schema(project: Path, *, schema_id: str, schema_version: str) -> tuple[d
         raise ValueError("Requested schema version not found")
     checksum, relative = row
     path = project / relative
-    if not path.is_file() or path.is_symlink() or path.resolve().parent != (project / "registry" / "schemas").resolve():
+    if (
+        not path.is_file()
+        or path.is_symlink()
+        or path.resolve().parent != (project / "registry" / "schemas").resolve()
+    ):
         raise ValueError("Registry schema path invalid")
     payload = path.read_bytes()
     schema = json.loads(payload)
