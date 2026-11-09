@@ -356,6 +356,15 @@ def mapping_snapshot(project: Path, mapping_sha256: str) -> dict:
                 raise ValueError("Mapped source resource is missing")
             source_resources[resource_id] = source[0]
             revisions.append({"revision_id": rid, "sha256": digest(definition)})
+        for resource_id in mapping.get("auxiliary_resource_ids", []):
+            if resource_id == mapping["source_resource_id"]:
+                raise ValueError("Auxiliary resource duplicates primary mapping source")
+            source = db.execute(
+                "SELECT object_sha256 FROM source_resources WHERE resource_id=?", (resource_id,)
+            ).fetchone()
+            if source is None:
+                raise ValueError("Auxiliary source resource is missing")
+            source_resources[resource_id] = source[0]
     return {
         "mapping_id": mapping["mapping_id"],
         "mapping_version": mapping["version"],
