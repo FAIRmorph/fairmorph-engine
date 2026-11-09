@@ -5,9 +5,9 @@ import sqlite3
 
 import pytest
 
+from fairmorph_engine.core import run_executor
 from fairmorph_engine.core.export import verify_project
 from fairmorph_engine.core.run_recovery import reconcile_runs
-from fairmorph_engine.core import run_executor
 from test_generic_run_executor import _approve, _prepare
 
 
@@ -21,9 +21,7 @@ def _index_ids(project):
 
 
 @pytest.mark.parametrize("boundary", ["publish_directory", "publish_index"])
-def test_io_fault_rolls_back_publication_and_preserves_pending(
-    tmp_path, monkeypatch, boundary
-):
+def test_io_fault_rolls_back_publication_and_preserves_pending(tmp_path, monkeypatch, boundary):
     pytest.importorskip("polars")
     project, _, _, draft = _prepare(tmp_path)
     _approve(project, draft)
