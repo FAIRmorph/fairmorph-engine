@@ -107,10 +107,10 @@ def export_dwca(
         files = etree.SubElement(element, f"{{{DWC_TEXT}}}files")
         etree.SubElement(files, f"{{{DWC_TEXT}}}location").text = f"{row_type}.csv"
         if index == 0:
-            etree.SubElement(element, f"{{{DWC_TEXT}}}id", index=str(next(
-                i for i, field in enumerate(fields)
-                if field["term"] == DWC + core_field
-            )))
+            core_index = next(
+            i for i, field in enumerate(fields) if field["term"] == DWC + core_field
+        )
+        etree.SubElement(element, f"{{{DWC_TEXT}}}id", index=str(core_index))
         else:
             relationships = [
                 rule for rule in rules["relationships"]
