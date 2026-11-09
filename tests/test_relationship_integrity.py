@@ -12,10 +12,10 @@ from fairmorph_engine.core.project import import_resource, initialize_project
 @pytest.mark.parametrize(
     ("primary_csv", "auxiliary_csv", "cardinality", "error"),
     [
-        ("key,count\\nA,1\\nB,2\\n", "key,label\\nA,x\\n", "many-to-one", "unmatched"),
-        ("key,count\\nA,1\\nA,2\\n", "key,label\\nA,x\\n", "one-to-one", "left-side"),
-        ("key,count\\nA,1\\n", "key,label\\nA,x\\nA,y\\n", "many-to-one", "right-side"),
-        ("key,count\\n,1\\n", "key,label\\nA,x\\n", "many-to-one", "missing"),
+        ("key,count\nA,1\nB,2\n", "key,label\nA,x\n", "many-to-one", "unmatched"),
+        ("key,count\nA,1\nA,2\n", "key,label\nA,x\n", "one-to-one", "left-side"),
+        ("key,count\nA,1\n", "key,label\nA,x\nA,y\n", "many-to-one", "right-side"),
+        ("key,count\n,1\n", "key,label\nA,x\n", "many-to-one", "missing"),
     ],
 )
 def test_relationship_integrity_rejects_invalid_sources(
