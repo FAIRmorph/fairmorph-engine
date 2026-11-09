@@ -20,7 +20,7 @@ def validate_publication_intent(
     Draft202012Validator(schema).validate(profile)
     if "dwca/1" in profile["formats"]:
         dwca = profile["dwca"]
-        tables = [("core", dwca["core_id_field"], dwca["core_fields"])]
+        tables = [(dwca["core"], dwca["core_id_field"], dwca["core_fields"])]
         tables.extend(
             (extension["row_type"], extension["core_id_field"], extension["fields"])
             for extension in dwca.get("extensions", [])
