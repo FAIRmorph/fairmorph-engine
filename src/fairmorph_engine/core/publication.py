@@ -18,6 +18,25 @@ def validate_publication_intent(
     schema = json.loads(schema_path.read_text(encoding="utf-8"))
     profile = json.loads(profile_file.read_text(encoding="utf-8"))
     Draft202012Validator(schema).validate(profile)
+    if "dwca/1" in profile["formats"]:
+        dwca = profile["dwca"]
+        for table in ("event", "occurrence"):
+            bindings = dwca[f"{table}_fields"]
+            source_fields = [item["source_field"] for item in bindings]
+            terms = [item["term"] for item in bindings]
+            if len(source_fields) != len(set(source_fields)) or len(terms) != len(set(terms)):
+                raise ValueError(f"Duplicate {table} source field or Darwin Core term")
+        for fields, identifier in (
+            ("event_fields", "core_id_field"),
+            ("occurrence_fields", "occurrence_event_id_field"),
+        ):
+            matches = [
+                item
+                for item in dwca[fields]
+                if item["term"] == "http://rs.tdwg.org/dwc/terms/eventID"
+            ]
+            if len(matches) != 1 or matches[0]["source_field"] != dwca[identifier]:
+                raise ValueError(f"{fields} must bind its identifier to eventID")
     run_dir, manifest = verified_run(project, run_id)
     if manifest["schema_version"] != "fairmorph.poc.run/2":
         raise ValueError("Publication intent requires a generic RUN/2")
