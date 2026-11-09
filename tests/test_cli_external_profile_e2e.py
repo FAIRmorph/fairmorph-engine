@@ -1,5 +1,6 @@
 """Exercise the public configuration-only workflow with an unrelated survey."""
 
+import csv
 import hashlib
 import json
 
@@ -156,6 +157,19 @@ def test_external_profile_cli_review_and_run(tmp_path, counting_unit):
         )
     )
     assert descriptor["name"] == "fairmorph-run"
+    assert {item["path"] for item in descriptor["resources"]} == {
+        "observations.csv",
+        "lineage.csv",
+        "quality.json",
+    }
+    package = project / "exports" / exported["export_id"] / "package"
+    with (package / "observations.csv").open(encoding="utf-8", newline="") as stream:
+        observations = list(csv.DictReader(stream))
+    assert len(observations) == 3
+    assert {row["source_column"] for row in observations} == {"juveniles", "adults"}
+    assert sorted(int(row["value"]) for row in observations) == [0, 2, 3]
+    with (package / "lineage.csv").open(encoding="utf-8", newline="") as stream:
+        assert len(list(csv.DictReader(stream))) > 0
     assert "CS-PHOC" not in descriptor["title"]
     verified = _result(runner.invoke(app, ["verify-project", "--project", str(project)]))
     assert verified["completed_runs"] == 1
