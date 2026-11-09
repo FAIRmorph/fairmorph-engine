@@ -97,6 +97,44 @@ def import_resource_command(
         raise typer.Exit(code=1) from error
 
 
+@app.command(name="stage-csv-mapping")
+def stage_csv_mapping_command(
+    project: Annotated[Path, typer.Option("--project")],
+    resource_id: Annotated[str, typer.Option("--resource-id")],
+    profile: Annotated[Path, typer.Option("--profile")],
+) -> None:
+    """Register an external mapping and field definitions as unapproved drafts."""
+    from jsonschema.exceptions import ValidationError
+
+    from fairmorph_engine.core.profile import stage_csv_mapping
+
+    try:
+        emit_event("result", status="success", data=stage_csv_mapping(project, resource_id, profile))
+    except (ValueError, OSError, KeyError, ValidationError) as error:
+        emit_event("result", status="error", message=str(error))
+        raise typer.Exit(code=1) from error
+
+
+@app.command(name="approve-mapping")
+def approve_mapping_command(
+    project: Annotated[Path, typer.Option("--project")],
+    mapping_sha256: Annotated[str, typer.Option("--mapping-sha256")],
+    reviewer: Annotated[str, typer.Option("--reviewer")],
+) -> None:
+    """Explicitly approve a staged mapping and its field revisions."""
+    from fairmorph_engine.core.profile import approve_staged_mapping
+
+    try:
+        emit_event(
+            "result",
+            status="success",
+            data=approve_staged_mapping(project, mapping_sha256, reviewer),
+        )
+    except (ValueError, OSError, KeyError) as error:
+        emit_event("result", status="error", message=str(error))
+        raise typer.Exit(code=1) from error
+
+
 @app.command(name="run-mapping")
 def run_mapping_command(
     project: Annotated[Path, typer.Option("--project", help="Initialized FAIRmorph project")],
@@ -131,6 +169,8 @@ def handshake() -> None:
                 "poc",
                 "init-project",
                 "import-resource",
+                "stage-csv-mapping",
+                "approve-mapping",
                 "run-mapping",
                 "export-package",
                 "dwca-preflight",
