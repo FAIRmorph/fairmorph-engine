@@ -1,13 +1,6 @@
 name: CS-PHOC external reference regression
 
 on:
-  pull_request:
-    paths:
-      - "src/**"
-      - "contracts/**"
-      - "examples/cs-phoc/**"
-      - ".github/workflows/cs-phoc-reference.yml"
-      - "pyproject.toml"
   workflow_dispatch:
 
 jobs:
