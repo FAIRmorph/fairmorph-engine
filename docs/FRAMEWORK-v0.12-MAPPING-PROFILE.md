@@ -110,3 +110,19 @@ and reviewer approval.
 
 This does **not** yet provide a generic decimal-measurement or categorical
 observation transformer; those require separately versioned safe operations.
+
+## Typed observations (experimental)
+
+The additional reviewed operation `wide-to-long-values/1` supports
+`value_type` declarations on each mapped field: `integer`, `decimal`,
+or `text`. It does not require `counting_unit`. Decimal values use exact
+decimal parsing (no binary floating-point conversion); non-finite values are
+rejected. The output stores the canonical textual value and its explicit
+`value_type`, allowing mixed measurement and categorical columns in a
+single Parquet table. Empty cells are omitted; nonempty text is preserved.
+No scientific categories, units, ranges or sign restrictions are inferred.
+
+For typed mappings, the currently supported acceptance criterion is
+`output_rows`. The legacy count operation and its numeric quality metrics
+remain unchanged. The typed operation is an additive versioned contract,
+not a silent reinterpretation of previously approved count mappings.
