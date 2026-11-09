@@ -254,3 +254,16 @@ preflight: no artifact existence, column availability, projection
 execution, relationship integrity or publication readiness is asserted.
 A subsequent generic validator must compare the declared plan with
 the verified RUN artifacts before a publication adapter can use it.
+
+### Projection artifact preflight
+
+`core.publication_projection.validate_publication_projection(project, run_id, plan_file)`
+now verifies the external plan's manifest SHA-256 against a verified
+RUN/2, requires each declared Parquet path to be listed among the RUN
+artifacts, and checks the declared columns against the Parquet schema.
+It rejects duplicate row types. This is a read-only, generic artifact
+schema check, not a transformation or DwC-A/EML conformance test.
+The result sets `artifact_columns_verified: true` only after those
+checks, while `field_bindings_verified` and `publication_ready` remain
+false. Publication intent and projection validation are separate calls;
+no implicit approval or archive generation occurs.
