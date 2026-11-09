@@ -97,3 +97,16 @@ comparison is exact text comparison without coercion. Relationship declarations
 and their policies are reviewer-approved and SHA-256-pinned in the RUN input
 snapshot. No implicit join is performed. Existing profiles without these optional
 properties retain the prior strict behavior.
+
+## Project-defined counting units
+
+The currently supported `wide-to-long-counts/1` operation processes
+non-negative integer quantities. The scientific counting unit is supplied by
+each externally reviewed field definition (`counting_unit`) and may describe
+individuals, sampling events, or other counted entities. The Engine checks that
+a unit is explicitly defined, but does not prescribe `individual` or infer
+units from target field names. Changing a unit requires a new versioned mapping
+and reviewer approval.
+
+This does **not** yet provide a generic decimal-measurement or categorical
+observation transformer; those require separately versioned safe operations.
