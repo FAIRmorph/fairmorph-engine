@@ -1,92 +1,92 @@
-# CLI- und Python-API-Referenz
+# CLI and Python API Reference
 
-**Stand:** Draft-Branch `refactor/framework-v012-foundation`. Python-Funktionen sind derzeit Implementierungs-APIs, **kein zugesagtes stabiles SemVer-SDK**. Signaturen und Rückgaben können sich bis zur Abnahme ändern. Als Quelle gelten `src/fairmorph_engine/` und die zugehörigen Tests.
+**Scope:** Draft branch `refactor/framework-v012-foundation`. Python functions are implementation interfaces, **not yet a stable SemVer SDK**. Signatures and return structures may change before acceptance. The authoritative sources are `src/fairmorph_engine/` and the tests.
 
-## 1. CLI-Vertrag
+## 1. CLI contract
 
-Installiertes Kommando: `fairmorph-engine`. Die CLI basiert auf Typer. Erfolgs-/Fehlerereignisse werden als **newline-delimited JSON** auf stdout geschrieben. Ein `result`-Event enthält je nach Kommando `status`, `data` oder `message`. Bei behandelten Fehlern wird Exitcode 1 ausgegeben; nicht alle Python-Ausnahmen sind zwingend in strukturierte Fehlerereignisse übersetzt.
+Installed executable: `fairmorph-engine` (Typer). Success and error events are written as **newline-delimited JSON (NDJSON)** to stdout. A `result` event contains `status` and, depending on the command, `data` or `message`. Handled failures exit with code 1; not every possible Python exception is guaranteed to become a structured event.
 
-| Befehl | Parameter | Zweck |
+| Command | Arguments | Purpose |
 | --- | --- | --- |
-| `init-project` | `--project PATH`, optional `--name TEXT` | Projektstruktur und Katalog anlegen |
-| `import-resource` | `--project PATH --source FILE --role ROLE` | Bytes unverändert importieren, `resource_id` zurückgeben |
-| `stage-csv-mapping` | `--project PATH --resource-id ID --profile FILE` | Profil prüfen und Mapping/Felder als Draft registrieren |
-| `approve-mapping` | `--project PATH --mapping-sha256 HASH --reviewer TEXT` | Mapping und Felddefinitionen explizit freigeben |
-| `run-mapping` | `--project PATH --mapping-sha256 HASH` | Genehmigtes Mapping als RUN/2 ausführen |
-| `export-package` | `--project PATH --run-id ID` | Verifizierten RUN als Data Package exportieren |
-| `verify-project` | `--project PATH` | Integrität und Indexkonsistenz ohne Änderung prüfen |
-| `reconcile-runs` | `--project PATH` | Unterbrochene RUN-Publikation explizit reparieren |
-| `handshake` | keine | CLI-/Protokollinformationen ausgeben |
-| `poc` | siehe `fairmorph-engine poc --help` | Separater historischer PoC-Befehl; nicht mit generischem RUN/2 gleichsetzen |
+| `init-project` | `--project PATH`, optional `--name TEXT` | Initialize project directories and SQLite |
+| `import-resource` | `--project PATH --source FILE --role ROLE` | Import unchanged bytes; return `resource_id` |
+| `stage-csv-mapping` | `--project PATH --resource-id ID --profile FILE` | Validate profile and register draft mapping/fields |
+| `approve-mapping` | `--project PATH --mapping-sha256 HASH --reviewer TEXT` | Explicitly approve mapping and field revisions |
+| `run-mapping` | `--project PATH --mapping-sha256 HASH` | Execute approved mapping as RUN/2 |
+| `export-package` | `--project PATH --run-id ID` | Export verified RUN as a Data Package |
+| `verify-project` | `--project PATH` | Read-only integrity and index checks |
+| `reconcile-runs` | `--project PATH` | Explicitly repair interrupted RUN publication |
+| `handshake` | none | CLI/protocol capabilities |
+| `poc` | `fairmorph-engine poc --help` | Separate legacy PoC command, not the generic RUN/2 workflow |
 
-**Hinweis:** Die Publikationsadapter sind Python-APIs. Für sie ist in `cli.py` keine eigene vollständige CLI-Kommandofamilie definiert.
+The publication adapters are Python APIs; `cli.py` does not expose a complete publication command family.
 
-## 2. Projekt und Import — `core.project`
+## 2. Project and import — `core.project`
 
-- `initialize_project(project: Path, name: str = "FAIRmorph project") -> dict`: legt Standardverzeichnisse und SQLite-Grundschema an; gibt `project.json` zurück.
-- `import_resource(project: Path, source: Path, role: str) -> dict`: prüft Quelle/Rolle, speichert SHA-Objekt und Importmanifest, registriert Ressource. Ergebnis u. a. `resource_id`, `sha256`, `object_path`, `state`.
-- `register_package(project: Path, package_id: str, resources: dict[str, dict]) -> dict`: registriert eine virtuelle Paketbeschreibung mit Ressourcenreferenzen, ohne Originalbytes zu kopieren.
-- `digest(path: Path) -> str`: SHA-256 einer Datei.
-- `write_json(path: Path, data: dict) -> None`: JSON-Datei neu anlegen; vorhandene Datei wird nicht überschrieben.
-- `connection(project: Path)`: SQLite-Verbindung mit aktivierten Foreign Keys.
-- `update_index(project: Path, object_entry=None, package_id=None) -> None`: ersetzt `project.json` über temporäre Datei; nicht transaktional mit SQLite.
+- `initialize_project(project: Path, name: str = "FAIRmorph project") -> dict`: create directories and SQLite base schema; return project index.
+- `import_resource(project: Path, source: Path, role: str) -> dict`: validate file/role, store SHA object, write import manifest, register source; result includes `resource_id`, `sha256`, `object_path` and `state`.
+- `register_package(project: Path, package_id: str, resources: dict[str, dict]) -> dict`: register virtual package references without copying source bytes.
+- `digest(path: Path) -> str`: file SHA-256.
+- `write_json(path: Path, data: dict) -> None`: create a new JSON file; refuse overwrite.
+- `connection(project: Path)`: SQLite connection with foreign keys enabled.
+- `update_index(project: Path, object_entry=None, package_id=None) -> None`: replace `project.json` through a temporary file; not transactional with SQLite.
 
-## 3. Registry — `core.registry`
+## 3. Versioned registry — `core.registry`
 
-- `canonical_bytes(document: dict) -> bytes`: stabile, sortierte JSON-Serialisierung (kein formaler RFC-8785-Vertrag).
-- `digest(document: dict) -> str`: SHA-256 dieser Serialisierung.
-- `define_field(project, resource_id, locator, definition, parent_revision_id=None) -> dict`: legt eine unveränderliche, schema-validierte Felddefinition an; optionale Vorgängerrevision.
-- `review_field(project, revision_id, reviewer, decision) -> dict`: dokumentiert `approved` oder `rejected`; ohne Reviewer keine fachliche Freigabe.
-- `register_mapping(project, mapping: dict) -> dict`: speichert eine Mapping-Version als Draft, referenziert Feldrevisionen.
-- `approve_mapping(project, mapping_sha256, reviewer) -> dict`: genehmigt eine registrierte Mapping-Version unter Validierungsbedingungen.
-- `mapping_snapshot(project, mapping_sha256) -> dict`: liefert die versionierten Quellen-/Feld-/Mapping-Pins für die RUN-Ausführung.
+- `canonical_bytes(document: dict) -> bytes`: sorted, deterministic JSON encoding (not a formal RFC 8785 guarantee).
+- `digest(document: dict) -> str`: SHA-256 of the canonical bytes.
+- `define_field(project, resource_id, locator, definition, parent_revision_id=None) -> dict`: store an immutable schema-validated field revision.
+- `review_field(project, revision_id, reviewer, decision) -> dict`: record `approved` or `rejected`.
+- `register_mapping(project, mapping: dict) -> dict`: store a draft mapping version with revision bindings.
+- `approve_mapping(project, mapping_sha256, reviewer) -> dict`: approve a valid mapping version.
+- `mapping_snapshot(project, mapping_sha256) -> dict`: resolve source, field and mapping pins for execution.
 
-## 4. Externes Mapping — `core.profile`
+## 4. External profiles — `core.profile`
 
-- `stage_csv_mapping(project: Path, resource_id: str, profile_file: Path) -> dict`: validiert das externe CSV-Mapping-Profil gegen `csv-mapping-profile.schema.json`, Quellspalten und deklarierte Beziehungen; registriert Drafts.
-- `approve_staged_mapping(project: Path, mapping_sha256: str, reviewer: str) -> dict`: genehmigt die gestagten Feldrevisionen und das Mapping innerhalb einer SQLite-Transaktion.
+- `stage_csv_mapping(project: Path, resource_id: str, profile_file: Path) -> dict`: validate the external CSV mapping profile, source columns and declared relationships; register drafts.
+- `approve_staged_mapping(project: Path, mapping_sha256: str, reviewer: str) -> dict`: approve the staged field revisions and mapping in a SQLite transaction.
 
-Beziehungen prüfen referenzierte Ressourcen, Schlüssel, deklarierte Kardinalität und Missing-Key-Policy. Die Preflight-Implementierung lehnt unter anderem CSV-Zeilen mit zu vielen oder zu wenigen Feldern ab.
+Relationship preflight checks resources, keys, declared cardinality and missing-key policy. Malformed CSV records (including too many or too few fields) are rejected.
 
-## 5. Transformation — `processing.tabular`
+## 5. Tabular transformations — `processing.tabular`
 
-- `unpivot_csv(source: Path, *, identifier: str, columns: list[str], empty_cell_policy: str, zero_cell_policy: str)`: erzeugt Long-Format-Beobachtungen für Zählwerte.
-- `unpivot_typed_csv(source: Path, *, identifier: str, value_types: dict[str, str], missing_tokens: dict[str, list[str]] | None = None)`: erzeugt typisierte Beobachtungen gemäß externer Typ- und Missing-Deklaration.
+- `unpivot_csv(source: Path, *, identifier: str, columns: list[str], empty_cell_policy: str, zero_cell_policy: str)`: count-based wide-to-long conversion.
+- `unpivot_typed_csv(source: Path, *, identifier: str, value_types: dict[str, str], missing_tokens: dict[str, list[str]] | None = None)`: typed wide-to-long conversion.
 
-Die Funktionen transformieren deklarierte Daten, treffen aber keine fachlichen Annahmen über Messgrößen.
+Both operate on explicitly declared columns; neither infers scientific semantics.
 
-## 6. RUN, Export und Recovery
+## 6. RUNs, exports and recovery
 
-- `core.run_executor.execute_mapping_run(project: Path, mapping_sha256: str, emit=...) -> dict`: prüft Freigaben und Quellen, erzeugt Parquet, Lineage, Qualitätsreport, Snapshots und RUN/2-Manifest; meldet Fortschritt und Ergebnis.
-- `core.run_executor.verify_mapping_run(project: Path, run_dir: Path, manifest: dict) -> None`: prüft RUN/2-Mapping-Snapshot gegen genehmigte Registry-Revisionen.
-- `core.export.verified_run(project: Path, run_id: str) -> tuple[Path, dict]`: prüft Manifest, Artefakte, SHA-256, sichere Pfade und bei RUN/2 die Mapping-Pins.
-- `core.export.export_data_package(project: Path, run_id: str, emit)`: erzeugt CSV-Datenpaket und Exportmanifest aus einem verifizierten RUN.
-- `core.export.verify_project(project: Path) -> dict`: prüft Projektobjekte, Import-/Paketreferenzen, RUNs, SQLite-Konsistenz und Exporte; gibt u. a. `completed_runs`, `exports`, `status` zurück.
-- `core.run_recovery.reconcile_runs(project: Path) -> dict`: validiert veröffentlichte RUNs und ergänzt fehlende SQLite-/JSON-Indexeinträge; Ergebnis `recovered`, `pending`, `status`. **Nur ohne parallele Writer verwenden.**
+- `core.run_executor.execute_mapping_run(project: Path, mapping_sha256: str, emit=...) -> dict`: check approvals and sources; produce Parquet, lineage, quality report, snapshots and RUN/2 manifest.
+- `core.run_executor.verify_mapping_run(project: Path, run_dir: Path, manifest: dict) -> None`: check RUN/2 mapping pins against approved registry revisions.
+- `core.export.verified_run(project: Path, run_id: str) -> tuple[Path, dict]`: validate manifest, artifact bytes, paths and mapping pins.
+- `core.export.export_data_package(project: Path, run_id: str, emit)`: export a verified RUN to a CSV Data Package and manifest.
+- `core.export.verify_project(project: Path) -> dict`: validate sources, imports, packages, indexed RUNs, SQLite references and exports; includes `completed_runs`, `exports`, `status`.
+- `core.run_recovery.reconcile_runs(project: Path) -> dict`: validate completed RUN directories and repair missing SQLite/JSON index entries; includes `recovered`, `pending`, `status`. **Never run concurrently with writers.**
 
-## 7. Schema-Registry — `core.schema_registry`
+## 7. Local schema registry — `core.schema_registry`
 
-- `register_schema(project, *, schema_id, schema_version, kind, schema, status="draft", reviewer=None) -> dict`: prüft JSON Schema Draft 2020-12, verweigert Remote-Referenzen, legt unveränderliche Schema-Bytes unter SHA-256 ab. `kind`: `core`, `source`, `export`, `extension`.
-- `get_schema(project, *, schema_id, schema_version) -> tuple[dict, str]`: lädt ausschließlich die exakt angeforderte Version und verifiziert ihren Content-Pin.
+- `register_schema(project, *, schema_id, schema_version, kind, schema, status="draft", reviewer=None) -> dict`: validate Draft 2020-12, reject remote references and persist immutable content under SHA-256. Kinds: `core`, `source`, `export`, `extension`.
+- `get_schema(project, *, schema_id, schema_version) -> tuple[dict, str]`: load only an exact version and verify its content pin.
 
-## 8. Publikations-APIs
+## 8. Publication APIs
 
-Diese Funktionen erwarten **explizite** externe Profile/Metadaten; sie erzeugen keine automatische Darwin-Core-Semantik.
+These functions consume **explicit external** profiles and metadata; they do not infer Darwin Core semantics.
 
-| Modul/Funktion | Signatur bzw. Zweck |
+| Function | Parameters and responsibility |
 | --- | --- |
-| `publication.validate_publication_intent` | `(project, run_id, profile_file, metadata_file) -> dict`; RUN-Pin, Formate, Metadaten und Absicht validieren |
-| `publication_projection.validate_publication_projection` | `(project, run_id, plan_file) -> dict`; gepinnte Parquet-Spalten/Typen prüfen |
-| `publication_bindings.validate_publication_binding_columns` | `(project, run_id, profile_file, metadata_file, projection_file) -> dict`; deklarierte DwC-Quellspalten prüfen |
-| `publication_integrity.validate_publication_integrity` | `(project, run_id, profile_file, metadata_file, projection_file, integrity_file) -> dict`; Schlüssel/Beziehungen und Integritätsregeln prüfen |
-| `publication_materialize.materialize_publication_tables` | `(project, run_id, profile_file, metadata_file, projection_file, integrity_file, destination) -> dict`; sortierte CSV-Tabellen mit Manifest erzeugen |
-| `publication_adapters.export_eml` | `(project, run_id, profile_file, metadata_file, schema_file, destination) -> dict`; EML-XML mit lokalem XSD validieren |
-| `publication_adapters.export_dwca` | `(project, run_id, profile_file, metadata_file, projection_file, integrity_file, destination) -> dict`; Darwin-Core-Archive erzeugen |
-| `publication_adapters.validate_dwca_archive` | `(archive, schema_file=DWCA_META_XSD) -> dict`; DwC-A-ZIP und `meta.xml` prüfen |
-| `eml_compiler.compile_eml_xml` | `(meta: ProjectMetadata, publication_date: str | None = None)`; EML-XML aus validierten Projektmetadaten erzeugen |
+| `publication.validate_publication_intent` | `(project, run_id, profile_file, metadata_file) -> dict`; validate intent, metadata, format and RUN pin |
+| `publication_projection.validate_publication_projection` | `(project, run_id, plan_file) -> dict`; verify pinned Parquet columns/types |
+| `publication_bindings.validate_publication_binding_columns` | `(project, run_id, profile_file, metadata_file, projection_file) -> dict`; verify declared DwC source columns |
+| `publication_integrity.validate_publication_integrity` | `(project, run_id, profile_file, metadata_file, projection_file, integrity_file) -> dict`; verify identifiers/relationships |
+| `publication_materialize.materialize_publication_tables` | `(project, run_id, profile_file, metadata_file, projection_file, integrity_file, destination) -> dict`; write sorted CSV tables and manifest |
+| `publication_adapters.export_eml` | `(project, run_id, profile_file, metadata_file, schema_file, destination) -> dict`; compile EML and validate against local XSD |
+| `publication_adapters.export_dwca` | `(project, run_id, profile_file, metadata_file, projection_file, integrity_file, destination) -> dict`; create Darwin Core Archive |
+| `publication_adapters.validate_dwca_archive` | `(archive, schema_file=DWCA_META_XSD) -> dict`; validate DwC-A ZIP and `meta.xml` |
+| `eml_compiler.compile_eml_xml` | `(meta: ProjectMetadata, publication_date: str | None = None)`; compile EML XML |
 
-**Wichtige Unterscheidung:** `publication_ready: false` in einem Preflight- oder Materialisierungsresultat bedeutet, dass eine erfolgreiche Strukturprüfung noch keine abschließende Publikationsfreigabe ist.
+A preflight or materialization result with `publication_ready: false` is not a final publication approval.
 
-## 9. Fehler und Integration
+## 9. Error handling
 
-Typische Fehler: `ValueError` (ungültige Profile, nicht genehmigte Mappings, Integritätsfehler), `OSError` (Dateisystem), SQLite-Fehler (Katalog/Transaktion), JSON-Schema-`ValidationError`, fehlende Polars-Abhängigkeit. Integrationen sollten Rückgaben und `result`-Events prüfen, RUNs nicht manuell manipulieren und Recovery nur nach Stop aller Writer ausführen.
+Typical errors include `ValueError` (invalid profiles, unapproved mappings, integrity failures), `OSError` (filesystem), SQLite exceptions, JSON Schema `ValidationError` and missing optional processing dependencies. Integrations should inspect `result` events, avoid manual edits to RUNs, and use recovery only after stopping writers.
