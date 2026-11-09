@@ -24,7 +24,10 @@
       "pattern": "^\\d+\\.\\d+\\.\\d+$"
     },
     "operation": {
-      "const": "wide-to-long-counts/1"
+      "enum": [
+        "wide-to-long-counts/1",
+        "wide-to-long-values/1"
+      ]
     },
     "source_sha256": {
       "type": "string",
@@ -110,6 +113,14 @@
             "additionalProperties": {
               "type": "string"
             }
+          },
+          "value_type": {
+            "enum": [
+              "integer",
+              "decimal",
+              "text"
+            ],
+            "description": "Explicit technical parser for wide-to-long-values/1; omitted for legacy count mappings."
           }
         }
       }
@@ -200,5 +211,27 @@
         }
       }
     }
-  }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "wide-to-long-values/1"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "fields": {
+            "items": {
+              "required": [
+                "value_type"
+              ]
+            }
+          }
+        }
+      }
+    }
+  ]
 }
