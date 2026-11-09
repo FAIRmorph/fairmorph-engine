@@ -175,3 +175,19 @@ The generic Frictionless Data Package export is **not** an EML or DwC-A
 export, and successful package verification must not be presented as proof
 of either publication format. Project-specific expected scientific values
 and metadata belong outside `src/` and `tests/`.
+
+### Export architecture gap before v0.12 acceptance
+
+The current `export-dwca` implementation is a **legacy CS-PHOC-specific**
+publication path. It contains fixed source hashes, reference counts and
+publication semantics and must not be represented as the generic RUN/2
+publication adapter. The generic `export-package` command currently exports
+observations, lineage and quality as a Frictionless Data Package; it does not
+produce EML or DwC-A.
+
+Before claiming dataset-independent EML/DwC-A support, define an external,
+versioned, reviewed publication profile and a generic adapter that consumes
+the RUN/2 snapshot and its pinned metadata. Project-specific acceptance
+tests must inspect the resulting EML and DwC-A artifacts from a concrete
+project RUN. No CS-PHOC identifiers, expected counts or publication decisions
+may be embedded in the generic adapter or Engine CI.
