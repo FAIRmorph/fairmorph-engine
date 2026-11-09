@@ -178,8 +178,7 @@ def execute_mapping_run(project: Path, mapping_sha256: str, emit=lambda *_a, **_
                 identifier=mapping["identifier"],
                 value_types={b["source_column"]: b["value_type"] for b in mapping["bindings"]},
                 missing_tokens={
-                    b["source_column"]: b.get("missing_tokens", [])
-                    for b in mapping["bindings"]
+                    b["source_column"]: b.get("missing_tokens", []) for b in mapping["bindings"]
                 },
             )
         for item in observations:
