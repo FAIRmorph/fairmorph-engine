@@ -279,3 +279,17 @@ generic structural check has no dataset defaults, example imports or
 scientific acceptance values. `binding_columns_verified: true` does
 not establish correct row-level relationships, EML/DwC-A conformance,
 publication approval or actual export; `publication_ready` remains false.
+
+### External integrity constraints on projected RUN tables
+
+The optional `publication-integrity.schema.json` declares one identifier
+column per projected row type and zero or more child-to-parent foreign-key
+relationships. The generic
+`core.publication_integrity.validate_publication_integrity` composes
+publication intent, projection and binding-column validation, then reads
+the declared RUN Parquet tables to reject null/duplicate identifiers,
+null foreign keys, nonunique parent keys and orphan references.
+The external plan alone chooses table names, keys and relationships;
+Engine code and Engine CI contain no reference-project assumptions.
+This PoC does not perform EML/DwC-A generation, scientific approval,
+or full archive conformance. `publication_ready` remains false.
