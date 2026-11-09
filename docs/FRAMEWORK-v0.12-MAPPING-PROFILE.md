@@ -326,3 +326,23 @@ operation with the same inputs produces identical table bytes and manifest.
 This intentionally does not create `meta.xml`, EML or a DwC-A ZIP and
 does not assert publication readiness. Reference-project logic remains
 under `examples/`, which is not required for generic Engine tests.
+
+### Generic publication format adapters (PoC)
+
+`core.publication_adapters.export_eml` compiles externally supplied
+`ProjectMetadata` JSON into EML 2.2.0 and requires an explicit, locally
+available EML 2.2.0 XSD (including its referenced schema dependencies)
+for offline validation. Without that XSD, export fails rather than
+claiming schema validity. Its manifest pins metadata, publication intent,
+RUN and the validating XSD. The legacy EML compiler currently inserts
+the current date; byte-for-byte EML reproducibility is not yet guaranteed.
+
+`core.publication_adapters.export_dwca` materializes verified RUN/2
+tables and packages them as a Darwin Core text archive with a core
+selected by the external profile (Event or Occurrence), optional
+extensions, a namespaced `meta.xml` and deterministic ZIP timestamps.
+Extension coreid links require an explicit project-owned relationship
+and a mapped foreign-key column. ZIP structure and CSV widths are
+checked. This PoC is not yet an independent Darwin Core Archive
+conformance certification; a complete cross-format project acceptance
+run is still required. Neither adapter embeds reference-project rules.
