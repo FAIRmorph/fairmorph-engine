@@ -73,9 +73,7 @@ def test_relationship_integrity_rejects_invalid_sources(
         ("key,count\n,1\nA,2\n", "key,label\nA,x\n", {"missing_key_policy": "ignore"}),
     ],
 )
-def test_relationship_policies_are_project_configured(
-    tmp_path, primary_csv, auxiliary_csv, policy
-):
+def test_relationship_policies_are_project_configured(tmp_path, primary_csv, auxiliary_csv, policy):
     project = tmp_path / "project"
     initialize_project(project)
     primary = tmp_path / "primary.csv"
