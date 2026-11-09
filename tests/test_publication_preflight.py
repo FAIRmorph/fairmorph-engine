@@ -144,3 +144,51 @@ def test_publication_preflight_rejects_symlinked_profile(tmp_path):
         pytest.skip("Symlinks unavailable on this platform")
     with pytest.raises(ValueError, match="Publication profile must be an existing regular file"):
         validate_publication_intent(tmp_path, "unused", link, tmp_path / "metadata.json")
+
+
+def test_publication_preflight_rejects_duplicate_row_types(tmp_path, monkeypatch):
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    manifest = run_dir / "manifest.json"
+    manifest.write_text('{"schema_version":"fairmorph.poc.run/2"}', encoding="utf-8")
+    metadata = tmp_path / "metadata.json"
+    metadata.write_text("{}", encoding="utf-8")
+    profile = {
+        "schema_version": "fairmorph.poc.publication-profile/1",
+        "profile_id": "survey",
+        "version": "1.0.0",
+        "run_manifest_sha256": hashlib.sha256(manifest.read_bytes()).hexdigest(),
+        "metadata_sha256": hashlib.sha256(metadata.read_bytes()).hexdigest(),
+        "formats": ["dwca/1"],
+        "dwca": {
+            "core": "Occurrence",
+            "core_id_field": "record_key",
+            "core_fields": [
+                {
+                    "source_field": "record_key",
+                    "term": "http://rs.tdwg.org/dwc/terms/occurrenceID",
+                }
+            ],
+            "extensions": [
+                {
+                    "row_type": "Occurrence",
+                    "core_id_field": "other_key",
+                    "fields": [
+                        {
+                            "source_field": "other_key",
+                            "term": "http://rs.tdwg.org/dwc/terms/occurrenceID",
+                        }
+                    ],
+                }
+            ],
+        },
+    }
+    profile_file = tmp_path / "publication.json"
+    profile_file.write_text(json.dumps(profile), encoding="utf-8")
+
+    def fake_verified_run(_project, _run_id):
+        return run_dir, {"schema_version": "fairmorph.poc.run/2"}
+
+    monkeypatch.setattr("fairmorph_engine.core.publication.verified_run", fake_verified_run)
+    with pytest.raises(ValueError, match="Duplicate Darwin Core row type"):
+        validate_publication_intent(tmp_path, "synthetic-run", profile_file, metadata)
