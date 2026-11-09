@@ -267,3 +267,15 @@ The result sets `artifact_columns_verified: true` only after those
 checks, while `field_bindings_verified` and `publication_ready` remain
 false. Publication intent and projection validation are separate calls;
 no implicit approval or archive generation occurs.
+
+### External binding-column reconciliation
+
+`core.publication_bindings.validate_publication_binding_columns` composes
+the independent publication-intent and RUN-artifact projection preflights.
+It requires identical RUN manifest pins, matching declared row-type sets,
+and the presence of every publication `source_field` in its corresponding
+projection's explicitly declared and artifact-verified columns. This
+generic structural check has no dataset defaults, example imports or
+scientific acceptance values. `binding_columns_verified: true` does
+not establish correct row-level relationships, EML/DwC-A conformance,
+publication approval or actual export; `publication_ready` remains false.
