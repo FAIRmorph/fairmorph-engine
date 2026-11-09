@@ -16,6 +16,8 @@ def validate_publication_intent(
         Path(__file__).resolve().parents[1] / "contracts" / "publication-profile.schema.json"
     )
     schema = json.loads(schema_path.read_text(encoding="utf-8"))
+    if not profile_file.is_file() or profile_file.is_symlink():
+        raise ValueError("Publication profile must be an existing regular file")
     profile = json.loads(profile_file.read_text(encoding="utf-8"))
     Draft202012Validator(schema).validate(profile)
     if "dwca/1" in profile["formats"]:
@@ -50,5 +52,6 @@ def validate_publication_intent(
         "run_id": run_id,
         "profile_id": profile["profile_id"],
         "formats": profile["formats"],
+        "field_bindings_verified": False,
         "publication_ready": False,
     }
