@@ -346,3 +346,14 @@ and a mapped foreign-key column. ZIP structure and CSV widths are
 checked. This PoC is not yet an independent Darwin Core Archive
 conformance certification; a complete cross-format project acceptance
 run is still required. Neither adapter embeds reference-project rules.
+
+### Official EML 2.2.0 offline schema proof
+
+The unmodified official NCEAS EML 2.2.0 schema files, including their
+local transitive XSD dependencies, are vendored under
+`vendor/schemas/eml/2.2.0/` from upstream tag
+`RELEASE_EML_2_2_0`. Generic Engine tests load `eml.xsd`
+offline, validate a fully synthetic compiled document, reject a
+structurally invalid document, and assert byte-identical repeat exports
+with pinned publication dates. The EML adapter manifest records the
+entry-point schema hash and the resulting XML hash.
