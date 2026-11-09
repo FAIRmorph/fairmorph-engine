@@ -369,6 +369,7 @@ def mapping_snapshot(project: Path, mapping_sha256: str) -> dict:
         "mapping_id": mapping["mapping_id"],
         "mapping_version": mapping["version"],
         "mapping_sha256": mapping_sha256,
+        "relationships": mapping.get("relationships", []),
         "field_definition_schema_sha256": digest(_field_schema()),
         "field_definition_revisions": revisions,
         "source_resources": [
