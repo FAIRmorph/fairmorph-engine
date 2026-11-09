@@ -69,9 +69,7 @@ def test_eml_adapter_validates_and_pins_official_schema(tmp_path, monkeypatch):
     metadata_file = tmp_path / "metadata.json"
     metadata_file.write_text(json.dumps(_metadata()), encoding="utf-8")
     profile_file = tmp_path / "profile.json"
-    profile_file.write_text(
-        json.dumps({"run_manifest_sha256": "a" * 64}), encoding="utf-8"
-    )
+    profile_file.write_text(json.dumps({"run_manifest_sha256": "a" * 64}), encoding="utf-8")
     first = export_eml(
         tmp_path, "synthetic-run", profile_file, metadata_file, SCHEMA, tmp_path / "first"
     )
@@ -80,6 +78,4 @@ def test_eml_adapter_validates_and_pins_official_schema(tmp_path, monkeypatch):
     )
     assert first == second
     assert first["schema_validated"] is True
-    assert (tmp_path / "first/eml.xml").read_bytes() == (
-        tmp_path / "second/eml.xml"
-    ).read_bytes()
+    assert (tmp_path / "first/eml.xml").read_bytes() == (tmp_path / "second/eml.xml").read_bytes()

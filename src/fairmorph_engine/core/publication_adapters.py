@@ -16,6 +16,52 @@ from fairmorph_engine.models.eml import ProjectMetadata
 
 DWC = "http://rs.tdwg.org/dwc/terms/"
 DWC_TEXT = "http://rs.tdwg.org/dwc/text/"
+DWCA_META_XSD = (
+    Path(__file__).resolve().parents[3] / "vendor/schemas/dwca/tdwg_dwc_text.xsd"
+)
+
+
+def validate_dwca_archive(archive: Path, schema_file: Path = DWCA_META_XSD) -> dict:
+    """Validate the official TDWG metafile XSD and local archive references."""
+    schema = etree.XMLSchema(etree.parse(str(schema_file)))
+    with zipfile.ZipFile(archive) as package:
+        if package.testzip() is not None:
+            raise ValueError("DwC-A ZIP integrity check failed")
+        members = package.namelist()
+        if len(members) != len(set(members)) or "meta.xml" not in members:
+            raise ValueError("DwC-A has duplicate members or no meta.xml")
+        root = etree.fromstring(package.read("meta.xml"))
+        schema.assertValid(root)
+        ns = {"d": DWC_TEXT}
+        references = []
+        for table in root.xpath("./d:core | ./d:extension", namespaces=ns):
+            locations = table.xpath("./d:files/d:location/text()", namespaces=ns)
+            for location in locations:
+                if location.startswith("/") or ".." in Path(location).parts:
+                    raise ValueError("DwC-A contains unsafe file reference")
+                if location not in members:
+                    raise ValueError(f"DwC-A referenced file is missing: {location}")
+                references.append(location)
+                rows = list(csv.reader(package.read(location).decode("utf-8").splitlines()))
+                columns = table.xpath("./d:field/@index", namespaces=ns)
+                if not rows or len(rows[0]) != len(columns):
+                    raise ValueError(f"DwC-A table width differs from metadata: {location}")
+                indices = columns + table.xpath("./d:id/@index | ./d:coreid/@index", namespaces=ns)
+                if any(int(i) >= len(rows[0]) or int(i) < 0 for i in indices):
+                    raise ValueError(f"DwC-A field index exceeds table width: {location}")
+        metadata = root.get("metadata")
+        if metadata:
+            if metadata not in members:
+                raise ValueError(f"DwC-A referenced metadata is missing: {metadata}")
+            references.append(metadata)
+        if set(members) != {"meta.xml", *references}:
+            raise ValueError("DwC-A ZIP contains undeclared files")
+    return {
+        "schema_validated": True,
+        "references_verified": True,
+        "schema_sha256": sha256(schema_file),
+    }
+
 
 
 def export_eml(
@@ -139,16 +185,7 @@ def export_dwca(
         info = zipfile.ZipInfo("meta.xml", date_time=(1980, 1, 1, 0, 0, 0))
         info.compress_type = zipfile.ZIP_DEFLATED
         package.writestr(info, metadata_xml.read_bytes())
-    with zipfile.ZipFile(archive) as package:
-        if package.testzip() is not None:
-            raise ValueError("DwC-A ZIP integrity check failed")
-        if set(package.namelist()) != {"meta.xml", *(f"{row_type}.csv" for row_type, _ in declared)}:
-            raise ValueError("DwC-A archive structure differs from declared tables")
-        etree.fromstring(package.read("meta.xml"))
-        for row_type, fields in declared:
-            rows = list(csv.reader(package.read(f"{row_type}.csv").decode("utf-8").splitlines()))
-            if not rows or len(rows[0]) != len(fields):
-                raise ValueError("DwC-A table width differs from metadata")
+    validation = validate_dwca_archive(archive)
     result = {
         "format": "dwca/1",
         "source_run_id": run_id,
@@ -157,6 +194,9 @@ def export_dwca(
         "archive_sha256": sha256(archive),
         "tables": tables_manifest["artifacts"],
         "archive_structure_verified": True,
+        "meta_xml_schema_validated": validation["schema_validated"],
+        "archive_references_verified": validation["references_verified"],
+        "meta_xml_schema_sha256": validation["schema_sha256"],
     }
     (destination / "manifest.json").write_text(
         json.dumps(result, sort_keys=True, indent=2) + "\n", encoding="utf-8"

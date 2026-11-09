@@ -357,3 +357,11 @@ offline, validate a fully synthetic compiled document, reject a
 structurally invalid document, and assert byte-identical repeat exports
 with pinned publication dates. The EML adapter manifest records the
 entry-point schema hash and the resulting XML hash.
+
+### Official DwC-A meta.xml schema verification
+
+The official TDWG Darwin Core Text metafile XSD is vendored at
+`vendor/schemas/dwca/tdwg_dwc_text.xsd`. The adapter validates `meta.xml`
+offline, verifies every referenced CSV and metadata member in the ZIP,
+checks CSV column indices, and records the XSD checksum in its manifest.
+Positive and negative tests cover valid XML, invalid XML and missing files.

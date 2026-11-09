@@ -7,7 +7,12 @@ import zipfile
 import pytest
 from lxml import etree
 
-from fairmorph_engine.core.publication_adapters import DWC_TEXT, export_dwca, export_eml
+from fairmorph_engine.core.publication_adapters import (
+    DWC_TEXT,
+    export_dwca,
+    export_eml,
+    validate_dwca_archive,
+)
 
 
 def test_dwca_occurrence_core_and_extension(tmp_path, monkeypatch):
@@ -78,6 +83,8 @@ def test_dwca_occurrence_core_and_extension(tmp_path, monkeypatch):
         output,
     )
     assert result["archive_structure_verified"]
+    assert result["meta_xml_schema_validated"]
+    assert result["archive_references_verified"]
     with zipfile.ZipFile(output / "dwca.zip") as archive:
         assert set(archive.namelist()) == {"Event.csv", "Occurrence.csv", "meta.xml"}
         root = etree.fromstring(archive.read("meta.xml"))
@@ -100,3 +107,31 @@ def test_eml_requires_declared_intent_and_xsd(tmp_path, monkeypatch):
             tmp_path / "missing.xsd",
             tmp_path / "export",
         )
+
+
+def test_dwca_official_schema_rejects_invalid_metafile(tmp_path):
+    archive = tmp_path / "invalid.zip"
+    with zipfile.ZipFile(archive, "w") as package:
+        package.writestr("meta.xml", '<archive xmlns="http://rs.tdwg.org/dwc/text/"/>')
+    with pytest.raises(etree.DocumentInvalid):
+        validate_dwca_archive(archive)
+
+
+def test_dwca_rejects_missing_referenced_file(tmp_path):
+    archive = tmp_path / "missing.zip"
+    root = etree.Element(f"{{{DWC_TEXT}}}archive", nsmap={None: DWC_TEXT})
+    core = etree.SubElement(
+        root, f"{{{DWC_TEXT}}}core", rowType="http://rs.tdwg.org/dwc/terms/Occurrence"
+    )
+    files = etree.SubElement(core, f"{{{DWC_TEXT}}}files")
+    etree.SubElement(files, f"{{{DWC_TEXT}}}location").text = "absent.csv"
+    etree.SubElement(
+        core,
+        f"{{{DWC_TEXT}}}field",
+        index="0",
+        term="http://rs.tdwg.org/dwc/terms/occurrenceID",
+    )
+    with zipfile.ZipFile(archive, "w") as package:
+        package.writestr("meta.xml", etree.tostring(root))
+    with pytest.raises(ValueError, match="referenced file is missing"):
+        validate_dwca_archive(archive)
