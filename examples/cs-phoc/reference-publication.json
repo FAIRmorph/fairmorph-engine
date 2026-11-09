@@ -19,5 +19,6 @@
   },
   "source_doi": "https://doi.org/10.48361/gklk1u",
   "metadata_provenance": "FAIRmorph derivative; not original publisher EML",
-  "implementation": "example-only historical publisher-compatible mapping; NOT generic publication_adapters.export_dwca"
+  "implementation": "example-only historical publisher-compatible mapping; NOT generic publication_adapters.export_dwca",
+  "events_sha256": "4362ae650cb72cc74901f7719920db5c8bbcfdc2ee09842595d04bf5e587bddc"
 }
