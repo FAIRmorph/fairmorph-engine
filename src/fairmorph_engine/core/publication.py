@@ -8,9 +8,13 @@ from jsonschema import Draft202012Validator
 from fairmorph_engine.core.export import sha256, verified_run
 
 
-def validate_publication_intent(project: Path, run_id: str, profile_file: Path, metadata_file: Path) -> dict:
+def validate_publication_intent(
+    project: Path, run_id: str, profile_file: Path, metadata_file: Path
+) -> dict:
     """Preflight only: does not approve a profile or generate EML/DwC-A."""
-    schema_path = Path(__file__).resolve().parents[1] / "contracts" / "publication-profile.schema.json"
+    schema_path = (
+        Path(__file__).resolve().parents[1] / "contracts" / "publication-profile.schema.json"
+    )
     schema = json.loads(schema_path.read_text(encoding="utf-8"))
     profile = json.loads(profile_file.read_text(encoding="utf-8"))
     Draft202012Validator(schema).validate(profile)
