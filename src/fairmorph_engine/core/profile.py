@@ -132,19 +132,23 @@ def stage_csv_mapping(project: Path, resource_id: str, profile_file: Path) -> di
                 values = []
                 for record in reader:
                     value = record[column]
-                    if value is None or value == "":
-                        raise ValueError("Relationship key contains a missing value")
                     values.append(value)
             keys[key] = values
     for relationship in relationships:
         left = keys[(relationship["left_resource_id"], relationship["left_column"])]
         right = keys[(relationship["right_resource_id"], relationship["right_column"])]
+        if relationship.get("missing_key_policy", "reject") == "reject":
+            if any(value is None or value == "" for value in (*left, *right)):
+                raise ValueError("Relationship key contains a missing value")
+        else:
+            left = [value for value in left if value is not None and value != ""]
+            right = [value for value in right if value is not None and value != ""]
         cardinality = relationship["cardinality"]
         if cardinality in ("one-to-one", "one-to-many") and len(left) != len(set(left)):
             raise ValueError("Relationship violates left-side uniqueness")
         if cardinality in ("one-to-one", "many-to-one") and len(right) != len(set(right)):
             raise ValueError("Relationship violates right-side uniqueness")
-        if not set(left).issubset(set(right)):
+        if relationship.get("require_match", True) and not set(left).issubset(set(right)):
             raise ValueError("Relationship contains unmatched left-side keys")
     bindings = []
     for item in profile["fields"]:
