@@ -76,3 +76,24 @@ these bindings** and must not re-create a private copy of the mapping semantics.
   and import recovery/reconciliation remain future work.
 - Profile review does not assert that a provided profile is scientifically
   correct. Explicit reviewer responsibility is preserved.
+
+
+## Configurable inter-resource integrity
+
+A mapping profile may declare `auxiliary_resource_ids` and `relationships`. Each
+relationship names two imported resources, their CSV key columns, and an explicit
+cardinality (`one-to-one`, `one-to-many`, `many-to-one`, or `many-to-many`).
+
+Two optional policies are evaluated from the external JSON profile:
+
+- `require_match`: `true` (default) rejects left-side keys not found on the
+  right; `false` allows unmatched left-side keys.
+- `missing_key_policy`: `"reject"` (default) rejects empty/missing keys on
+  either side; `"ignore"` excludes such keys from matching and uniqueness
+  checks.
+
+These are technical validation rules, not inferred scientific meanings. Key
+comparison is exact text comparison without coercion. Relationship declarations
+and their policies are reviewer-approved and SHA-256-pinned in the RUN input
+snapshot. No implicit join is performed. Existing profiles without these optional
+properties retain the prior strict behavior.
