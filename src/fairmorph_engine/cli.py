@@ -118,7 +118,9 @@ def stage_csv_mapping_command(
     from fairmorph_engine.core.profile import stage_csv_mapping
 
     try:
-        emit_event("result", status="success", data=stage_csv_mapping(project, resource_id, profile))
+        emit_event(
+            "result", status="success", data=stage_csv_mapping(project, resource_id, profile)
+        )
     except (ValueError, OSError, KeyError, ValidationError) as error:
         emit_event("result", status="error", message=str(error))
         raise typer.Exit(code=1) from error
