@@ -170,6 +170,7 @@ def stage_csv_mapping(project: Path, resource_id: str, profile_file: Path) -> di
                 "source_column": item["source_column"],
                 "target_field": item["target_field"],
                 **({"value_type": item["value_type"]} if "value_type" in item else {}),
+                "missing_tokens": [entry["token"] for entry in item["missing_values"]],
                 "attributes": item.get("attributes", {}),
             }
         )
