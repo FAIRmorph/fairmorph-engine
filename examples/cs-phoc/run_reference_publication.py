@@ -40,6 +40,8 @@ def main():
     events_file = base / cfg["events_source"]
     if digest(counts_file) != mapping["source_sha256"]:
         raise ValueError("Count CSV differs from approved mapping SHA-256")
+    if digest(events_file) != cfg["events_sha256"]:
+        raise ValueError("Event CSV differs from approved reference SHA-256")
     if args.output.exists():
         raise ValueError("Output directory already exists; choose a new destination")
     args.output.mkdir(parents=True)
