@@ -20,23 +20,22 @@ def validate_publication_intent(
     Draft202012Validator(schema).validate(profile)
     if "dwca/1" in profile["formats"]:
         dwca = profile["dwca"]
-        for table in ("event", "occurrence"):
-            bindings = dwca[f"{table}_fields"]
+        tables = [("core", dwca["core_id_field"], dwca["core_fields"])]
+        tables.extend(
+            (extension["row_type"], extension["core_id_field"], extension["fields"])
+            for extension in dwca.get("extensions", [])
+        )
+        if len({name for name, _, _ in tables}) != len(tables):
+            raise ValueError("Duplicate Darwin Core row type")
+        for row_type, identifier, bindings in tables:
             source_fields = [item["source_field"] for item in bindings]
             terms = [item["term"] for item in bindings]
             if len(source_fields) != len(set(source_fields)) or len(terms) != len(set(terms)):
-                raise ValueError(f"Duplicate {table} source field or Darwin Core term")
-        for fields, identifier in (
-            ("event_fields", "core_id_field"),
-            ("occurrence_fields", "occurrence_event_id_field"),
-        ):
-            matches = [
-                item
-                for item in dwca[fields]
-                if item["term"] == "http://rs.tdwg.org/dwc/terms/eventID"
-            ]
-            if len(matches) != 1 or matches[0]["source_field"] != dwca[identifier]:
-                raise ValueError(f"{fields} must bind its identifier to eventID")
+                raise ValueError(f"Duplicate {row_type} source field or Darwin Core term")
+            id_term = f"http://rs.tdwg.org/dwc/terms/{row_type.lower()}ID"
+            matches = [item for item in bindings if item["term"] == id_term]
+            if len(matches) != 1 or matches[0]["source_field"] != identifier:
+                raise ValueError(f"{row_type} must bind its identifier to {id_term}")
     run_dir, manifest = verified_run(project, run_id)
     if manifest["schema_version"] != "fairmorph.poc.run/2":
         raise ValueError("Publication intent requires a generic RUN/2")
