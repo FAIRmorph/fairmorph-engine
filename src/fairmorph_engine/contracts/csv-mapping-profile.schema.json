@@ -76,7 +76,9 @@
             ]
           },
           "counting_unit": {
-            "const": "individual"
+            "type": "string",
+            "minLength": 1,
+            "description": "Project-defined unit of the counted entities; not inferred by the Engine."
           },
           "zero_meaning": {
             "enum": [
