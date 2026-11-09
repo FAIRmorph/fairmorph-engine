@@ -36,6 +36,7 @@ def test_publication_preflight_pins_run_and_metadata(tmp_path, monkeypatch):
     result = validate_publication_intent(tmp_path, "synthetic-run", profile_file, metadata)
     assert result["status"] == "validated"
     assert result["publication_ready"] is False
+    assert result["field_bindings_verified"] is False
 
     metadata.write_text('{"title":"Changed"}', encoding="utf-8")
     with pytest.raises(ValueError, match="metadata SHA-256 mismatch"):
@@ -131,3 +132,15 @@ def test_occurrence_core_preflight_and_duplicate_bindings(tmp_path, monkeypatch)
     profile_file.write_text(json.dumps(profile), encoding="utf-8")
     with pytest.raises(ValueError, match="Duplicate Occurrence source field or Darwin Core term"):
         validate_publication_intent(tmp_path, "synthetic-run", profile_file, metadata)
+
+
+def test_publication_preflight_rejects_symlinked_profile(tmp_path):
+    target = tmp_path / "intent.json"
+    target.write_text("{}", encoding="utf-8")
+    link = tmp_path / "intent-link.json"
+    try:
+        link.symlink_to(target)
+    except (OSError, NotImplementedError):
+        pytest.skip("Symlinks unavailable on this platform")
+    with pytest.raises(ValueError, match="Publication profile must be an existing regular file"):
+        validate_publication_intent(tmp_path, "unused", link, tmp_path / "metadata.json")
