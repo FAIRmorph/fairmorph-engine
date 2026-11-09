@@ -13,6 +13,7 @@ FAIRmorph Engine is an **offline-first, dataset-independent data transformation 
 | [CLI and Python API Reference](API-REFERENCE.md) | Commands, signatures, parameters, return values and integration contracts |
 | [Data Contracts and Publication](DATA-CONTRACTS.md) | JSON Schemas, mapping semantics, Parquet, Data Packages, EML and DwC-A |
 | [Operations and Quality Assurance](OPERATIONS.md) | Installation, operations, testing, recovery and acceptance criteria |
+| [PoC Acceptance Report](POC-ACCEPTANCE-REPORT.md) | Pinned CI baseline, expected/actual E2E evidence, fault-injection results and residual risks |
 | [RUN Recovery](RUN-RECOVERY.md) | Interrupted publication, repair and fault-injection matrix |
 
 Additional technical notes: [Foundation](FRAMEWORK-v0.12-FOUNDATION.md), [Generic RUN](FRAMEWORK-v0.12-GENERIC-RUN.md), [Mapping Profile](FRAMEWORK-v0.12-MAPPING-PROFILE.md), [CS-PHOC reference](CS-PHOC-POC.md). The source code on this branch is authoritative if documentation differs from implementation.
