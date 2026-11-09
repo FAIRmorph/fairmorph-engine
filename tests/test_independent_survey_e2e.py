@@ -49,19 +49,37 @@ def test_independent_survey_full_lifecycle(tmp_path):
     project = tmp_path / "survey-project"
     _cli("init-project", "--project", str(project), "--name", "Independent survey")
     imported = _cli(
-        "import-resource", "--project", str(project), "--source", str(source),
-        "--role", "measurements",
+        "import-resource",
+        "--project",
+        str(project),
+        "--source",
+        str(source),
+        "--role",
+        "measurements",
     )
     staged = _cli(
-        "stage-csv-mapping", "--project", str(project), "--resource-id",
-        imported["resource_id"], "--profile", str(profile_path),
+        "stage-csv-mapping",
+        "--project",
+        str(project),
+        "--resource-id",
+        imported["resource_id"],
+        "--profile",
+        str(profile_path),
     )
     _cli(
-        "approve-mapping", "--project", str(project), "--mapping-sha256",
-        staged["mapping_sha256"], "--reviewer", "survey-reviewer",
+        "approve-mapping",
+        "--project",
+        str(project),
+        "--mapping-sha256",
+        staged["mapping_sha256"],
+        "--reviewer",
+        "survey-reviewer",
     )
     run = _cli(
-        "run-mapping", "--project", str(project), "--mapping-sha256",
+        "run-mapping",
+        "--project",
+        str(project),
+        "--mapping-sha256",
         staged["mapping_sha256"],
     )
     run_dir = project / "runs" / run["run_id"]
@@ -73,7 +91,5 @@ def test_independent_survey_full_lifecycle(tmp_path):
     assert sorted(rows["value"].to_list()) == [0, 4, 7]
     assert pl.read_parquet(run_dir / "audit" / "lineage.parquet").height == 3
     exported = _cli("export-package", "--project", str(project), "--run-id", run["run_id"])
-    assert (
-        project / "exports" / exported["export_id"] / "package" / "datapackage.json"
-    ).is_file()
+    assert (project / "exports" / exported["export_id"] / "package" / "datapackage.json").is_file()
     assert _cli("verify-project", "--project", str(project))["completed_runs"] == 1
