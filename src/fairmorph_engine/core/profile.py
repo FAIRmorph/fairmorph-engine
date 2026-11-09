@@ -156,7 +156,7 @@ def stage_csv_mapping(project: Path, resource_id: str, profile_file: Path) -> di
             "description": item["description"],
             "semantic_status": "defined",
             "definition_source": item["definition_source"],
-            "counting_unit": item["counting_unit"],
+            **({"counting_unit": item["counting_unit"]} if "counting_unit" in item else {}),
             "value_semantics": {
                 "missing_values": item["missing_values"],
                 "zero_meaning": item["zero_meaning"],
@@ -169,6 +169,7 @@ def stage_csv_mapping(project: Path, resource_id: str, profile_file: Path) -> di
                 "definition_revision_id": revision["revision_id"],
                 "source_column": item["source_column"],
                 "target_field": item["target_field"],
+                **({"value_type": item["value_type"]} if "value_type" in item else {}),
                 "attributes": item.get("attributes", {}),
             }
         )
@@ -247,9 +248,10 @@ def approve_staged_mapping(project: Path, mapping_sha256: str, reviewer: str) ->
             ).fetchone()
             if current is None or current[0] != rid:
                 raise ValueError("Mapping must bind the current field revision")
-            unit = definition.get("counting_unit")
-            if not isinstance(unit, str) or not unit.strip():
-                raise ValueError("Approved count mapping requires an explicit counting unit")
+            if mapping["operation"] == "wide-to-long-counts/1":
+                unit = definition.get("counting_unit")
+                if not isinstance(unit, str) or not unit.strip():
+                    raise ValueError("Approved count mapping requires an explicit counting unit")
         for rid in revision_ids:
             db.execute(
                 "INSERT INTO field_definition_reviews VALUES (?, ?, ?, ?, ?)",
