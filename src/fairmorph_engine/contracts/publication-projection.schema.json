@@ -48,6 +48,17 @@
               "type": "string",
               "minLength": 1
             }
+          },
+          "column_types": {
+            "type": "object",
+            "additionalProperties": {
+              "enum": [
+                "String",
+                "Int64",
+                "Float64",
+                "Boolean"
+              ]
+            }
           }
         }
       }

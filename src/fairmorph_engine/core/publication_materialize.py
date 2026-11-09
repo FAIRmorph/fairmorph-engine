@@ -57,6 +57,7 @@ def materialize_publication_tables(
                 "path": target.name,
                 "rows": output.height,
                 "columns": output.columns,
+                "column_types": {name: str(dtype) for name, dtype in output.schema.items()},
                 "source_artifact": source["artifact_path"],
                 "sha256": sha256(target),
             }

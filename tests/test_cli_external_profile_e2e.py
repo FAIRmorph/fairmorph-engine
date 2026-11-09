@@ -292,6 +292,7 @@ def test_generic_publication_integrity_against_real_verified_run(tmp_path):
                 "row_type": "Occurrence",
                 "artifact_path": "outputs/observations.parquet",
                 "columns": ["record_id"],
+                "column_types": {"record_id": "String"},
             }
         ],
     }

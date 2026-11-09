@@ -43,6 +43,13 @@ def validate_publication_projection(project: Path, run_id: str, plan_file: Path)
         missing = set(table["columns"]) - available
         if missing:
             raise ValueError(f"Projection columns missing in {relative}: {sorted(missing)}")
+        declared_types = table.get("column_types", {})
+        if set(declared_types) - set(table["columns"]):
+            raise ValueError("Projection types reference undeclared columns")
+        actual_types = scan_parquet(artifact).collect_schema()
+        for column, expected in declared_types.items():
+            if str(actual_types[column]) != expected:
+                raise ValueError(f"Projection type mismatch: {row_type}.{column}")
     return {
         "status": "validated",
         "run_id": run_id,
