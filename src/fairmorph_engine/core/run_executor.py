@@ -204,10 +204,13 @@ def execute_mapping_run(project: Path, mapping_sha256: str, emit=lambda *_a, **_
             "schema_version": INPUT_SCHEMA_VERSION,
             "sources": [
                 {
-                    "resource_id": mapping["source_resource_id"],
-                    "sha256": source_hash,
-                    "object_path": f"objects/sha256/{source_hash[:2]}/{source_hash}",
+                    "resource_id": item["resource_id"],
+                    "sha256": item["object_sha256"],
+                    "object_path": (
+                        f"objects/sha256/{item['object_sha256'][:2]}/{item['object_sha256']}"
+                    ),
                 }
+                for item in snapshot["source_resources"]
             ],
             "mapping_snapshot": snapshot,
             "configuration_sha256": mapping_sha256,
