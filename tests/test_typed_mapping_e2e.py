@@ -55,9 +55,7 @@ def test_typed_decimal_and_text_observations(tmp_path):
     staged = stage_csv_mapping(project, resource_id, path)
     approve_staged_mapping(project, staged["mapping_sha256"], "reviewer")
     run = execute_mapping_run(project, staged["mapping_sha256"])
-    frame = pl.read_parquet(
-        project / "runs" / run["run_id"] / "outputs" / "observations.parquet"
-    )
+    frame = pl.read_parquet(project / "runs" / run["run_id"] / "outputs" / "observations.parquet")
     assert frame.height == 4
     values = {
         (row["source_identifier"], row["source_column"]): (
