@@ -114,8 +114,9 @@ def _approved_mapping(project: Path, mapping_sha256: str, snapshot: dict) -> tup
             definition = json.loads(field[0])
             if definition.get("semantic_status") != "defined":
                 raise ValueError("Mapping references undefined field semantics")
-            if definition.get("counting_unit") != "individual":
-                raise ValueError("Approved count mapping requires counting_unit=individual")
+            unit = definition.get("counting_unit")
+            if not isinstance(unit, str) or not unit.strip():
+                raise ValueError("Approved count mapping requires an explicit counting unit")
             if definition.get("value_semantics", {}).get("zero_meaning") not in (
                 "true_zero",
                 "absence",
