@@ -242,3 +242,15 @@ inter-table relationship, EML schema or DwC-A archive conformance is
 asserted. Such checks require explicit, externally configured projections
 and validation of their concrete artifacts; no project-specific
 projection defaults may be added to Engine core.
+
+### External publication projection plan (contract only)
+
+`publication-projection.schema.json` defines an optional, external,
+dataset-neutral plan referencing the SHA-256 of a RUN/2 manifest and
+explicit output Parquet artifact paths, row types and expected columns.
+It does not infer Event or Occurrence records from the Engine's
+long-form observations. The contract is not yet wired to the publication
+preflight: no artifact existence, column availability, projection
+execution, relationship integrity or publication readiness is asserted.
+A subsequent generic validator must compare the declared plan with
+the verified RUN artifacts before a publication adapter can use it.
