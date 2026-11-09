@@ -21,7 +21,7 @@ def test_external_profile_cli_review_and_run(tmp_path):
     pytest.importorskip("polars")
     project = tmp_path / "survey-project"
     source = tmp_path / "survey.csv"
-    source.write_text("station,juveniles,adults\\nA,0,2\\nB,,3\\n", encoding="utf-8")
+    source.write_text("station,juveniles,adults\nA,0,2\nB,,3\n", encoding="utf-8")
     runner = CliRunner()
     _result(runner.invoke(app, ["init-project", "--project", str(project), "--name", "Survey"]))
     imported = _result(
