@@ -35,7 +35,10 @@
       "minLength": 1
     },
     "transformation_version": {
-      "const": "wide-to-long-counts/1"
+      "enum": [
+        "wide-to-long-counts/1",
+        "wide-to-long-values/1"
+      ]
     },
     "configuration_sha256": {
       "type": "string",
