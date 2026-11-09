@@ -183,6 +183,17 @@
               "many-to-one",
               "many-to-many"
             ]
+          },
+          "require_match": {
+            "type": "boolean",
+            "description": "Require each non-missing left key to exist on the right. Defaults to true for earlier profiles."
+          },
+          "missing_key_policy": {
+            "enum": [
+              "reject",
+              "ignore"
+            ],
+            "description": "Reject missing keys or exclude them from integrity and cardinality checks. Defaults to reject."
           }
         }
       }
