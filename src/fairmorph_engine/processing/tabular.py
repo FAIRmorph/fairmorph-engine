@@ -71,10 +71,16 @@ def unpivot_typed_csv(
     with source.open("r", encoding="utf-8-sig", newline="") as stream:
         reader = csv.DictReader(stream, restkey="__extra__", strict=True)
         headers = reader.fieldnames or []
-        if len(headers) != len(set(headers)) or not {identifier, *value_types}.issubset(headers):
+        if len(headers) != len(set(headers)) or not {identifier, *value_types}.issubset(
+            headers
+        ):
             raise ValueError("Source header does not match approved mapping")
         for line_no, record in enumerate(reader, 2):
-            if None in record or "__extra__" in record or any(v is None for v in record.values()):
+            if (
+                None in record
+                or "__extra__" in record
+                or any(v is None for v in record.values())
+            ):
                 raise ValueError(f"Malformed CSV row at line {line_no}")
             for column, value_type in value_types.items():
                 raw = record[column]
@@ -95,7 +101,9 @@ def unpivot_typed_csv(
                             f"Invalid decimal at line {line_no}, column {column}"
                         ) from error
                     if not number.is_finite():
-                        raise ValueError(f"Non-finite decimal at line {line_no}, column {column}")
+                        raise ValueError(
+                            f"Non-finite decimal at line {line_no}, column {column}"
+                        )
                     value = str(number)
                 else:
                     value = raw
