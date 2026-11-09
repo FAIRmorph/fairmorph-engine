@@ -32,12 +32,20 @@ def _profile():
         "dwca": {
             "core": "Event",
             "core_id_field": "event_key",
-            "occurrence_event_id_field": "event_key",
-            "event_fields": [
+            "core_fields": [
                 {"source_field": "event_key", "term": "http://rs.tdwg.org/dwc/terms/eventID"}
             ],
-            "occurrence_fields": [
-                {"source_field": "taxon_key", "term": "http://rs.tdwg.org/dwc/terms/taxonID"}
+            "extensions": [
+                {
+                    "row_type": "Occurrence",
+                    "core_id_field": "occurrence_key",
+                    "fields": [
+                        {
+                            "source_field": "occurrence_key",
+                            "term": "http://rs.tdwg.org/dwc/terms/occurrenceID",
+                        }
+                    ],
+                }
             ],
         },
     }
@@ -55,9 +63,21 @@ def test_publication_profile_rejects_invalid_intent(invalid):
     elif invalid == "unknown_format":
         profile["formats"] = ["unreviewed/1"]
     elif invalid == "missing_terms":
-        del profile["dwca"]["event_fields"]
+        del profile["dwca"]["core_fields"]
     elif invalid == "invalid_term":
-        profile["dwca"]["event_fields"][0]["term"] = "custom:eventID"
+        profile["dwca"]["core_fields"][0]["term"] = "custom:eventID"
     else:
         profile["run_manifest_sha256"] = "not-a-sha256"
     assert not _validator().is_valid(profile)
+
+
+def test_occurrence_core_without_extensions_is_valid():
+    profile = _profile()
+    profile["dwca"] = {
+        "core": "Occurrence",
+        "core_id_field": "record_key",
+        "core_fields": [
+            {"source_field": "record_key", "term": "http://rs.tdwg.org/dwc/terms/occurrenceID"}
+        ],
+    }
+    _validator().validate(profile)
