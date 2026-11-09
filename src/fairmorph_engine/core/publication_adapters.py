@@ -85,7 +85,6 @@ def export_dwca(
     dwca = profile["dwca"]
     rules = json.loads(integrity_file.read_text(encoding="utf-8"))
     core_type = dwca["core"]
-    core_name = f"{core_type}.csv"
     core_field = f"{core_type.lower()}ID"
     declared = [(core_type, dwca["core_fields"])]
     declared.extend(
@@ -108,9 +107,9 @@ def export_dwca(
         etree.SubElement(files, f"{{{DWC_TEXT}}}location").text = f"{row_type}.csv"
         if index == 0:
             core_index = next(
-            i for i, field in enumerate(fields) if field["term"] == DWC + core_field
-        )
-        etree.SubElement(element, f"{{{DWC_TEXT}}}id", index=str(core_index))
+                i for i, field in enumerate(fields) if field["term"] == DWC + core_field
+            )
+            etree.SubElement(element, f"{{{DWC_TEXT}}}id", index=str(core_index))
         else:
             relationships = [
                 rule for rule in rules["relationships"]
