@@ -1,0 +1,196 @@
+{
+  "mapping_id": "cs-phoc-counts",
+  "version": "1.0.0",
+  "operation": "wide-to-long-counts/1",
+  "source_sha256": "be4a28aa5036dea103e9e6bbc6af5fef13d80354ef2750e0960bf78e320c3545",
+  "identifier": "count_id",
+  "empty_cell_policy": "omit",
+  "zero_cell_policy": "preserve",
+  "fields": [
+    {
+      "source_column": "ad_female_count",
+      "target_field": "ad_female_count",
+      "description": "Number of adult female individual seals counted in a CS-PHOC census entry.",
+      "definition_source": "source_documentation",
+      "counting_unit": "individual",
+      "zero_meaning": "true_zero",
+      "missing_values": [
+        {
+          "token": "",
+          "meaning": "not recorded; omit observation, never convert to zero"
+        }
+      ],
+      "attributes": {
+        "life_stage": "adult",
+        "sex": "female"
+      }
+    },
+    {
+      "source_column": "ad_male_count",
+      "target_field": "ad_male_count",
+      "description": "Number of adult male individual seals counted in a CS-PHOC census entry.",
+      "definition_source": "source_documentation",
+      "counting_unit": "individual",
+      "zero_meaning": "true_zero",
+      "missing_values": [
+        {
+          "token": "",
+          "meaning": "not recorded; omit observation, never convert to zero"
+        }
+      ],
+      "attributes": {
+        "life_stage": "adult",
+        "sex": "male"
+      }
+    },
+    {
+      "source_column": "ad_unk_count",
+      "target_field": "ad_unk_count",
+      "description": "Number of adult of unknown sex individual seals counted in a CS-PHOC census entry.",
+      "definition_source": "source_documentation",
+      "counting_unit": "individual",
+      "zero_meaning": "true_zero",
+      "missing_values": [
+        {
+          "token": "",
+          "meaning": "not recorded; omit observation, never convert to zero"
+        }
+      ],
+      "attributes": {
+        "life_stage": "adult",
+        "sex": "unknown"
+      }
+    },
+    {
+      "source_column": "juv_female_count",
+      "target_field": "juv_female_count",
+      "description": "Number of juvenile female individual seals counted in a CS-PHOC census entry.",
+      "definition_source": "source_documentation",
+      "counting_unit": "individual",
+      "zero_meaning": "true_zero",
+      "missing_values": [
+        {
+          "token": "",
+          "meaning": "not recorded; omit observation, never convert to zero"
+        }
+      ],
+      "attributes": {
+        "life_stage": "juvenile",
+        "sex": "female"
+      }
+    },
+    {
+      "source_column": "juv_male_count",
+      "target_field": "juv_male_count",
+      "description": "Number of juvenile male individual seals counted in a CS-PHOC census entry.",
+      "definition_source": "source_documentation",
+      "counting_unit": "individual",
+      "zero_meaning": "true_zero",
+      "missing_values": [
+        {
+          "token": "",
+          "meaning": "not recorded; omit observation, never convert to zero"
+        }
+      ],
+      "attributes": {
+        "life_stage": "juvenile",
+        "sex": "male"
+      }
+    },
+    {
+      "source_column": "juv_unk_count",
+      "target_field": "juv_unk_count",
+      "description": "Number of juvenile of unknown sex individual seals counted in a CS-PHOC census entry.",
+      "definition_source": "source_documentation",
+      "counting_unit": "individual",
+      "zero_meaning": "true_zero",
+      "missing_values": [
+        {
+          "token": "",
+          "meaning": "not recorded; omit observation, never convert to zero"
+        }
+      ],
+      "attributes": {
+        "life_stage": "juvenile",
+        "sex": "unknown"
+      }
+    },
+    {
+      "source_column": "pup_count",
+      "target_field": "pup_count",
+      "description": "Number of pup individual seals counted in a CS-PHOC census entry.",
+      "definition_source": "source_documentation",
+      "counting_unit": "individual",
+      "zero_meaning": "true_zero",
+      "missing_values": [
+        {
+          "token": "",
+          "meaning": "not recorded; omit observation, never convert to zero"
+        }
+      ],
+      "attributes": {
+        "life_stage": "pup",
+        "sex": "unspecified"
+      }
+    },
+    {
+      "source_column": "unk_female_count",
+      "target_field": "unk_female_count",
+      "description": "Number of unknown-age female individual seals counted in a CS-PHOC census entry.",
+      "definition_source": "source_documentation",
+      "counting_unit": "individual",
+      "zero_meaning": "true_zero",
+      "missing_values": [
+        {
+          "token": "",
+          "meaning": "not recorded; omit observation, never convert to zero"
+        }
+      ],
+      "attributes": {
+        "life_stage": "unknown",
+        "sex": "female"
+      }
+    },
+    {
+      "source_column": "unk_male_count",
+      "target_field": "unk_male_count",
+      "description": "Number of unknown-age male individual seals counted in a CS-PHOC census entry.",
+      "definition_source": "source_documentation",
+      "counting_unit": "individual",
+      "zero_meaning": "true_zero",
+      "missing_values": [
+        {
+          "token": "",
+          "meaning": "not recorded; omit observation, never convert to zero"
+        }
+      ],
+      "attributes": {
+        "life_stage": "unknown",
+        "sex": "male"
+      }
+    },
+    {
+      "source_column": "unk_unk_count",
+      "target_field": "unk_unk_count",
+      "description": "Number of unknown-age and unknown-sex individual seals counted in a CS-PHOC census entry.",
+      "definition_source": "source_documentation",
+      "counting_unit": "individual",
+      "zero_meaning": "true_zero",
+      "missing_values": [
+        {
+          "token": "",
+          "meaning": "not recorded; omit observation, never convert to zero"
+        }
+      ],
+      "attributes": {
+        "life_stage": "unknown",
+        "sex": "unknown"
+      }
+    }
+  ],
+  "acceptance": {
+    "output_rows": 16940,
+    "explicit_zeros": 11599,
+    "value_sum": 79232
+  }
+}

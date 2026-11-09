@@ -1,0 +1,135 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://www.fairmorph.org/contracts/poc/2/csv-mapping-profile.schema.json",
+  "title": "External versioned CSV transformation mapping profile",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "mapping_id",
+    "version",
+    "operation",
+    "source_sha256",
+    "identifier",
+    "empty_cell_policy",
+    "zero_cell_policy",
+    "fields"
+  ],
+  "properties": {
+    "mapping_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_.-]+$"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "operation": {
+      "const": "wide-to-long-counts/1"
+    },
+    "source_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "identifier": {
+      "type": "string",
+      "minLength": 1
+    },
+    "empty_cell_policy": {
+      "const": "omit"
+    },
+    "zero_cell_policy": {
+      "const": "preserve"
+    },
+    "fields": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "source_column",
+          "target_field",
+          "description",
+          "definition_source",
+          "counting_unit",
+          "zero_meaning",
+          "missing_values"
+        ],
+        "properties": {
+          "source_column": {
+            "type": "string",
+            "minLength": 1
+          },
+          "target_field": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": {
+            "type": "string",
+            "minLength": 12
+          },
+          "definition_source": {
+            "enum": [
+              "source_documentation",
+              "user_confirmed"
+            ]
+          },
+          "counting_unit": {
+            "const": "individual"
+          },
+          "zero_meaning": {
+            "enum": [
+              "true_zero",
+              "absence"
+            ]
+          },
+          "missing_values": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "token",
+                "meaning"
+              ],
+              "properties": {
+                "token": {
+                  "type": "string"
+                },
+                "meaning": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "attributes": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "acceptance": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "output_rows": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "explicit_zeros": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "value_sum": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    }
+  }
+}
