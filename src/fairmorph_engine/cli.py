@@ -14,7 +14,6 @@ from fairmorph_engine.commands.slice import (
     run_csphoc_export,
     run_dwca_export,
     run_dwca_preflight,
-    verify_csphoc_project,
 )
 
 app = typer.Typer(
@@ -55,9 +54,6 @@ app.command(name="dwca-preflight", help="Describe the approved DwC-A target prof
 )
 app.command(name="export-dwca", help="Export validated CS-PHOC Event/Occurrence archive")(
     run_dwca_export
-)
-app.command(name="verify-project", help="Verify project sources, RUNs and exports")(
-    verify_csphoc_project
 )
 
 
@@ -150,6 +146,22 @@ def run_mapping_command(
     try:
         execute_mapping_run(project, mapping_sha256, emit_event)
     except (ValueError, RuntimeError, OSError, KeyError, ImportError, ValidationError) as error:
+        emit_event("result", status="error", message=str(error))
+        raise typer.Exit(code=1) from error
+
+
+@app.command(name="verify-project")
+def verify_project_command(
+    project: Annotated[Path, typer.Option("--project", help="Existing FAIRmorph project")],
+) -> None:
+    """Verify source objects, immutable RUN artifacts and exports."""
+    from jsonschema.exceptions import ValidationError
+
+    from fairmorph_engine.core.export import verify_project
+
+    try:
+        emit_event("result", status="success", data=verify_project(project))
+    except (ValueError, RuntimeError, OSError, KeyError, ValidationError) as error:
         emit_event("result", status="error", message=str(error))
         raise typer.Exit(code=1) from error
 
