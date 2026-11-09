@@ -299,16 +299,19 @@ def verify_mapping_run(project: Path, run_dir: Path, manifest: dict) -> None:
     original = mapping_snapshot(project, snapshot["configuration_sha256"])
     if original != snapshot["mapping_snapshot"]:
         raise ValueError("RUN mapping snapshot differs from approved revisions")
-    mapping, source, source_sha = _approved_mapping(
-        project, snapshot["configuration_sha256"], original
-    )
-    sources = snapshot["sources"]
-    if len(sources) != 1 or sources[0]["sha256"] != source_sha:
-        raise ValueError("RUN source snapshot mismatch")
-    if sources[0]["resource_id"] != mapping["source_resource_id"]:
-        raise ValueError("RUN source identity mismatch")
-    if sources[0]["object_path"] != source.relative_to(project).as_posix():
-        raise ValueError("RUN source object path mismatch")
+    mapping, _, _ = _approved_mapping(project, snapshot["configuration_sha256"], original)
+    expected_sources = [
+        {
+            "resource_id": item["resource_id"],
+            "sha256": item["object_sha256"],
+            "object_path": (
+                f"objects/sha256/{item['object_sha256'][:2]}/{item['object_sha256']}"
+            ),
+        }
+        for item in original["source_resources"]
+    ]
+    if snapshot["sources"] != expected_sources:
+        raise ValueError("RUN source snapshot differs from approved resource pins")
     saved = json.loads((run_dir / "configuration.snapshot.json").read_text(encoding="utf-8"))
     if saved != mapping:
         raise ValueError("RUN mapping configuration was modified")
