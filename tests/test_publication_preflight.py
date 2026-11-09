@@ -69,9 +69,10 @@ def test_publication_preflight_pins_run_and_metadata(tmp_path, monkeypatch):
         ],
     }
     profile_file.write_text(json.dumps(profile), encoding="utf-8")
-    assert validate_publication_intent(tmp_path, "synthetic-run", profile_file, metadata)[
-        "status"
-    ] == "validated"
+    assert (
+        validate_publication_intent(tmp_path, "synthetic-run", profile_file, metadata)["status"]
+        == "validated"
+    )
 
     profile["dwca"]["extensions"][0]["fields"][0]["source_field"] = "wrong_key"
     profile_file.write_text(json.dumps(profile), encoding="utf-8")
