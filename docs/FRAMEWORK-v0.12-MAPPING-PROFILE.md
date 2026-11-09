@@ -135,3 +135,18 @@ empty cells. The Engine compares literal tokens; it does not guess aliases,
 normalize categories, or interpret the token's scientific meaning. This is a
 minimal vertical-slice demonstration, not a production missing-data model.
 The legacy count operation is unchanged.
+
+## PoC acceptance: real reference-data vertical slice
+
+`tests/test_cli_csphoc_reference_poc.py` runs the **generic** CLI workflow
+against the repository's CS-PHOC count and event CSV files. The test imports
+both immutable resources, extends the external reference profile with an
+explicit `many-to-one` event relationship, stages and approves the exact
+mapping, executes RUN/2, checks the configured 16,940 observation rows,
+exports a generic Frictionless Data Package, and verifies the project.
+
+The test's reviewer identity is a simulated acceptance-test actor, **not**
+an independent scientific sign-off. The reference profile's scientific
+correctness and any production publication mapping remain outside the
+technical test's claims. This is a PoC vertical slice, not a production
+DwC-A implementation or migration of the legacy CS-PHOC command.
