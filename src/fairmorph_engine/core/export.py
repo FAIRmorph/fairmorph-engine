@@ -59,7 +59,7 @@ def verified_run(project: Path, run_id: str) -> tuple[Path, dict]:
 
 def export_data_package(project: Path, run_id: str, emit):
     """Export CSV resources and checksums without modifying the source RUN."""
-    run_dir, _ = verified_run(project, run_id)
+    run_dir, run_manifest = verified_run(project, run_id)
     emit("progress", stage="EXPORTING", percentage=10, message="Verifying immutable RUN")
     from polars import read_parquet
 
@@ -89,11 +89,13 @@ def export_data_package(project: Path, run_id: str, emit):
                 "mediatype": "application/json",
             },
         ]
+        is_generic_run = run_manifest["schema_version"] == "fairmorph.poc.run/2"
         descriptor = {
             "profile": "data-package",
-            "name": "cs-phoc-poc",
-            "title": "FAIRmorph CS-PHOC PoC",
-            "description": "Approved wide-to-long output; not a Darwin Core Archive.",
+            "name": "fairmorph-run" if is_generic_run else "cs-phoc-poc",
+            "title": "FAIRmorph verified RUN" if is_generic_run else "FAIRmorph CS-PHOC PoC",
+            "description": "Verified immutable RUN observations and lineage; not a Darwin Core Archive."
+            if is_generic_run else "Approved wide-to-long output; not a Darwin Core Archive.",
             "resources": resources,
         }
         write_json(package / "datapackage.json", descriptor)
