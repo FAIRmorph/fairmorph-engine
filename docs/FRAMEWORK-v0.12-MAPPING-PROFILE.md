@@ -126,3 +126,12 @@ For typed mappings, the currently supported acceptance criterion is
 `output_rows`. The legacy count operation and its numeric quality metrics
 remain unchanged. The typed operation is an additive versioned contract,
 not a silent reinterpretation of previously approved count mappings.
+
+### PoC scope: explicit missing tokens
+
+For `wide-to-long-values/1`, each field's reviewed `missing_values`
+tokens are pinned in the mapping and omitted during transformation, just like
+empty cells. The Engine compares literal tokens; it does not guess aliases,
+normalize categories, or interpret the token's scientific meaning. This is a
+minimal vertical-slice demonstration, not a production missing-data model.
+The legacy count operation is unchanged.
