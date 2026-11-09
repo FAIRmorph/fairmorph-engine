@@ -8,7 +8,62 @@ import pytest
 from fairmorph_engine.core import run_executor
 from fairmorph_engine.core.export import verify_project
 from fairmorph_engine.core.run_recovery import reconcile_runs
-from test_generic_run_executor import _approve, _prepare
+from fairmorph_engine.core.registry import (
+    approve_mapping,
+    define_field,
+    register_mapping,
+    review_field,
+)
+
+
+def _prepare(tmp_path):
+    # Use the public project and import API, not a CS-PHOC fixture or test shim.
+    from fairmorph_engine.core.project import import_resource, initialize_project
+
+    project = tmp_path / "generic.fairmorph"
+    initialize_project(project, "Independent survey")
+    source = tmp_path / "observations.csv"
+    source.write_bytes(b"station,juvenile,adult\na,0,2\nb,,3\n")
+    resource = import_resource(project, source, "measurements")
+    bindings = []
+    for col in ("juvenile", "adult"):
+        revision = define_field(
+            project,
+            resource["resource_id"],
+            f"csv:{col}",
+            {
+                "description": f"Number of counted individuals in {col} category",
+                "semantic_status": "defined",
+                "definition_source": "source_documentation",
+                "counting_unit": "individual",
+                "value_semantics": {"missing_values": [], "zero_meaning": "true_zero"},
+            },
+        )
+        review_field(project, revision["revision_id"], "scientific-reviewer", "approved")
+        bindings.append(
+            {
+                "source_field_id": revision["source_field_id"],
+                "definition_revision_id": revision["revision_id"],
+                "source_column": col,
+                "target_field": col,
+            }
+        )
+    mapping = {
+        "mapping_id": "survey-counts",
+        "version": "1.0.0",
+        "operation": "wide-to-long-counts/1",
+        "source_resource_id": resource["resource_id"],
+        "identifier": "station",
+        "empty_cell_policy": "omit",
+        "zero_cell_policy": "preserve",
+        "bindings": bindings,
+    }
+    approved = register_mapping(project, mapping)
+    return project, resource, mapping, approved
+
+
+def _approve(project, approved):
+    approve_mapping(project, approved["sha256"], "scientific-reviewer")
 
 
 def _catalog_ids(project):
