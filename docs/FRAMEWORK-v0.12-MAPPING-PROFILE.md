@@ -158,8 +158,20 @@ DwC-A implementation or migration of the legacy CS-PHOC command.
 - `examples/cs-phoc/tests/`: Project-owned reference-data acceptance test,
   independently runnable with
   `python -m pytest examples/cs-phoc/tests/test_reference_workflow.py`.
-- `.github/workflows/csphoc-reference-poc.yml`: Separate project acceptance
-  CI, distinct from the Engine's standard `tests/` suite.
+- The Engine repository has no project-specific CI workflow. Project-owned
+  acceptance checks run separately against concrete project RUN artifacts.
 
 The reference project is an interchangeable consumer of the Engine. Its test
 must not become a dependency of the Engine's generic test suite.
+
+### Project RUN acceptance boundary
+
+The Engine CI must remain runnable when `examples/` is absent. A project
+acceptance test is not a second Engine workflow: it reads the project's
+actual, immutable RUN inputs and outputs and validates them against
+project-owned, reviewer-approved expectations. This includes the input
+snapshot and, when produced by a supported adapter, EML and DwC-A artifacts.
+The generic Frictionless Data Package export is **not** an EML or DwC-A
+export, and successful package verification must not be presented as proof
+of either publication format. Project-specific expected scientific values
+and metadata belong outside `src/` and `tests/`.
