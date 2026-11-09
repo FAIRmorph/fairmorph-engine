@@ -2,6 +2,7 @@
 
 import csv
 import json
+from datetime import date
 import zipfile
 from pathlib import Path
 
@@ -31,8 +32,12 @@ def export_eml(
         raise ValueError("EML is not declared in publication intent")
     if not schema_file.is_file():
         raise ValueError("EML 2.2.0 XSD must be provided")
-    metadata = ProjectMetadata.model_validate_json(metadata_file.read_text(encoding="utf-8"))
-    xml = compile_eml_xml(metadata)
+    raw_metadata = json.loads(metadata_file.read_text(encoding="utf-8"))
+    if "publication_date" not in raw_metadata:
+        raise ValueError("EML metadata requires explicit publication_date for reproducibility")
+    publication_date = date.fromisoformat(raw_metadata["publication_date"]).isoformat()
+    metadata = ProjectMetadata.model_validate(raw_metadata)
+    xml = compile_eml_xml(metadata, publication_date=publication_date)
     schema = etree.XMLSchema(etree.parse(str(schema_file)))
     schema.assertValid(etree.fromstring(xml))
     if destination.exists():
