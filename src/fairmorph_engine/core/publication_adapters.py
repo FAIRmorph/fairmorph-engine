@@ -2,8 +2,8 @@
 
 import csv
 import json
-from datetime import date
 import zipfile
+from datetime import date
 from pathlib import Path
 
 from lxml import etree
