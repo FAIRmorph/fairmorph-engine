@@ -13,7 +13,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from xml.etree import ElementTree as ET
 
-from fairmorph_engine.core.csphoc import COUNT_FIELDS, EXPECTED_COUNTS, EXPECTED_EVENTS, read_rows
+from csphoc import COUNT_FIELDS, EXPECTED_COUNTS, EXPECTED_EVENTS, read_rows
 
 DWC = "http://rs.tdwg.org/dwc/terms/"
 DWC_TEXT = "http://rs.tdwg.org/dwc/text/"

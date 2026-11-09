@@ -6,7 +6,7 @@ from typing import Annotated
 import typer
 from jsonschema.exceptions import ValidationError
 
-from fairmorph_engine.core.csphoc import run_slice
+from csphoc import run_slice
 
 
 def run_csphoc(
