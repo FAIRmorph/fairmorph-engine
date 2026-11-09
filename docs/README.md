@@ -1,24 +1,25 @@
-# FAIRmorph Engine — technische Projektdokumentation
+# FAIRmorph Engine — Technical Project Documentation
 
-**Dokumentationsstand:** Framework-v0.12-Entwicklungszweig `refactor/framework-v012-foundation` (Draft PR #10). **Implementierte Paketversion:** `0.1.0` laut `pyproject.toml`; v0.12 bezeichnet hier den Framework-Ausbaustand, nicht eine bereits veröffentlichte Paketversion.
+**Documentation scope:** Framework v0.12 development branch `refactor/framework-v012-foundation` (Draft PR #10). The Python package version is currently `0.1.0` in `pyproject.toml`; “v0.12” describes the framework development milestone, **not** a released package version.
 
-FAIRmorph Engine ist eine **offline-orientierte, projekt- und datensatzunabhängige Transformations- und Kuratierungsengine**. Sie übernimmt Originaldaten unverändert, verwaltet explizit geprüfte Feldsemantik und Mapping-Versionen, erzeugt nachvollziehbare RUN-Artefakte und unterstützt validierte Exporte. Sie ist weder ein wissenschaftliches Datenrepository noch ein Dienst, der aus Spaltennamen automatisch fachliche Bedeutung ableitet.
+FAIRmorph Engine is an **offline-first, dataset-independent data transformation and curation engine**. It preserves source bytes, records reviewed field semantics and versioned mappings, generates auditable RUN artifacts, and supports verified exports. It is neither a scientific data repository nor a system that infers scientific meaning from column names.
 
-## Dokumentationslandkarte
+## Documentation index
 
-| Dokument | Inhalt |
+| Document | Coverage |
 | --- | --- |
-| [Architektur und Konzepte](ARCHITECTURE.md) | Module, Projektmodell, Datenfluss, Hash-Pins, Semantik, RUN/2, Sicherheitsgrenzen |
-| [CLI und Python-APIs](API-REFERENCE.md) | Befehle, Signaturen, Parameter, Rückgaben, Integrationsverträge |
-| [Datenverträge und Publikation](DATA-CONTRACTS.md) | JSON-Schemas, CSV-Mappings, Parquet, Metadaten, DwC-A und EML |
-| [Betrieb, Recovery und Qualität](OPERATIONS.md) | Installation, Betrieb, Verifikation, Fehlerfälle, Tests, PoC-Abnahme |
-| [RUN-Recovery](RUN-RECOVERY.md) | Recovery-Verfahren, Fehlergrenzen und Fault-Injection-Matrix |
+| [User Guide](USER-GUIDE.md) | Input configuration, example CSV and mapping JSON, contracts, project structure, processing and verification |
+| [Architecture and Concepts](ARCHITECTURE.md) | Components, storage, execution flow, immutable pins, RUN/2, security boundaries |
+| [CLI and Python API Reference](API-REFERENCE.md) | Commands, signatures, parameters, return values and integration contracts |
+| [Data Contracts and Publication](DATA-CONTRACTS.md) | JSON Schemas, mapping semantics, Parquet, Data Packages, EML and DwC-A |
+| [Operations and Quality Assurance](OPERATIONS.md) | Installation, operations, testing, recovery and acceptance criteria |
+| [RUN Recovery](RUN-RECOVERY.md) | Interrupted publication, repair and fault-injection matrix |
 
-Vorhandene vertiefende Entwicklungsdokumente: [Foundation](FRAMEWORK-v0.12-FOUNDATION.md), [Generic RUN](FRAMEWORK-v0.12-GENERIC-RUN.md), [Mapping-Profil](FRAMEWORK-v0.12-MAPPING-PROFILE.md), [CS-PHOC-Referenz](CS-PHOC-POC.md). Bei Abweichungen ist die Implementierung im genannten Branch maßgeblich.
+Additional technical notes: [Foundation](FRAMEWORK-v0.12-FOUNDATION.md), [Generic RUN](FRAMEWORK-v0.12-GENERIC-RUN.md), [Mapping Profile](FRAMEWORK-v0.12-MAPPING-PROFILE.md), [CS-PHOC reference](CS-PHOC-POC.md). The source code on this branch is authoritative if documentation differs from implementation.
 
-## Schnellstart
+## Quick start
 
-Voraussetzungen: Python **3.11+**, Git und lokale Schreibrechte. Aus dem Repository:
+Python **3.11+** and local write permissions are required. From the repository root:
 
 ```bash
 python -m pip install -e ".[dev]"
@@ -27,7 +28,7 @@ fairmorph-engine init-project --project ./demo.fairmorph --name "Demo"
 fairmorph-engine import-resource --project ./demo.fairmorph --source ./measurements.csv --role measurements
 ```
 
-Der Import meldet eine `resource_id` und einen SHA-256-Pin. Die weiteren Schritte benötigen **ein ausdrücklich bereitgestelltes Mapping-Profil** und eine fachliche Freigabe:
+The import returns a `resource_id` and SHA-256 digest. An **explicit external mapping profile** and a named reviewer are required before execution:
 
 ```bash
 fairmorph-engine stage-csv-mapping --project ./demo.fairmorph --resource-id RESOURCE_ID --profile ./mapping.json
@@ -37,17 +38,17 @@ fairmorph-engine export-package --project ./demo.fairmorph --run-id RUN_ID
 fairmorph-engine verify-project --project ./demo.fairmorph
 ```
 
-Platzhalter sind durch die tatsächlich ausgegebenen IDs zu ersetzen. Das Mapping-Profil muss dem versionierten JSON-Schema entsprechen. Die CLI schreibt **NDJSON-Ereignisse** nach stdout; Aufrufer sollten die `result`-Ereignisse auswerten, statt IDs aus Dateinamen zu erraten.
+Replace placeholders with IDs returned by previous commands. The profile must conform to its versioned JSON Schema. CLI output is **NDJSON**; consumers should parse `result` events instead of guessing IDs from filenames. See the [User Guide](USER-GUIDE.md) for a complete configuration example.
 
-## Leitprinzipien
+## Design principles
 
-1. **Keine implizite wissenschaftliche Interpretation.** Felddefinitionen, Null-/Missing-Semantik und Publikationszuordnungen sind externe, überprüfbare Entscheidungen.
-2. **Originalbytes bleiben erhalten.** Importierte Objekte werden nach SHA-256 adressiert und beim Lesen auf Integrität geprüft.
-3. **Freigabe vor Ausführung.** Mapping und referenzierte Felddefinitionen benötigen explizite Review-Entscheidungen.
-4. **Reproduzierbare Belege.** RUN-Manifeste referenzieren Konfiguration, Quellen und erzeugte Artefakte über Prüfsummen.
-5. **Verifikation ist getrennt von Recovery.** Die Prüfung verändert keine Daten; die Wiederherstellung ist ein expliziter Wartungsvorgang.
-6. **Projektunabhängigkeit.** CS-PHOC ist ausschließlich eine externe Referenz unter `examples/cs-phoc/`, kein automatischer Engine-Standard und kein regulärer CI-Zwang.
+1. **No implicit scientific interpretation.** Field definitions, missing/zero semantics and publication bindings are explicit, reviewable inputs.
+2. **Immutable source bytes.** Imported files are SHA-256-addressed and checked for integrity.
+3. **Approval before execution.** Mappings and referenced field definitions require explicit review.
+4. **Auditable evidence.** RUN manifests pin source data, configuration and output artifacts.
+5. **Verification is separate from recovery.** Verification is read-only; reconciliation is an explicit maintenance operation.
+6. **Dataset independence.** CS-PHOC is an optional external reference under `examples/cs-phoc/`, not a built-in engine default or required regular CI step.
 
-## Reifegrad
+## Maturity and limitations
 
-Die Funktionen sind Teil eines **PoC-/Draft-Branches**. Ein grüner CI-Lauf und ein dokumentiertes E2E-Abnahmeprotokoll sind vor einer formalen PoC-Freigabe erforderlich. SQLite und `project.json` bilden keine gemeinsame atomare Transaktion; Cross-Process-Locking, vollständige Power-Loss-Durability, Backup/Restore und ein stabiler Remote-API-Vertrag sind nicht als produktionsreif nachgewiesen. Siehe [Operations](OPERATIONS.md).
+This is a **PoC/Draft branch**. Formal PoC acceptance requires green CI and a documented end-to-end acceptance record. SQLite and `project.json` do not share an atomic transaction. Cross-process locking, complete power-loss durability, backup/restore and a stable remote API have not been established as production guarantees. See [Operations](OPERATIONS.md).
