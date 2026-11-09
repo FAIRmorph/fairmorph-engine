@@ -1,63 +1,65 @@
-# Datenverträge, Mapping-Semantik und Publikationsformate
+# Data Contracts, Mapping Semantics and Publication Formats
 
-## 1. Vertragsprinzip
+## 1. Contract model
 
-FAIRmorph trennt **technische Datenform** (CSV, JSON, Parquet), **fachliche Semantik** (Felddefinitionen), **Transformationsentscheidung** (Mapping), **Ausführungsbeleg** (RUN) und **Publikationsentscheidung** (Profil/Metadaten/Projektion). Jeder Schritt hat eigene Prüfbedingungen. Ein syntaktisch gültiges Profil ist nicht automatisch wissenschaftlich richtig oder genehmigt.
+FAIRmorph separates **physical input representation** (CSV/JSON/Parquet), **scientific semantics** (field definitions), **transformation decisions** (mapping), **execution evidence** (RUN) and **publication decisions** (profiles, metadata, projections). Each layer is validated separately. Schema validity does not imply scientific correctness or review approval.
 
-## 2. Versionierte JSON-Schemas
+## 2. Versioned JSON Schemas
 
-Die Engine führt ausführbare Verträge unter `src/fairmorph_engine/contracts/`; zusätzliche Projekt-/PoC-Verträge liegen in `contracts/`. Relevante Dateien:
+Executable contracts are located in `src/fairmorph_engine/contracts/`; additional PoC/project contracts live in `contracts/`.
 
-| Schema | Verwendung |
+| Contract | Purpose |
 | --- | --- |
-| `SourceFieldDefinition.schema.json` | Explizite Feldsemantik und Revisionsinhalt |
-| `csv-mapping-profile.schema.json` | Externe CSV-Mapping-Definition einschließlich Policies und Beziehungen |
-| `import.schema.json` | Nachweis eines unveränderten Quellenimports |
-| `virtual-package.schema.json` | Ressourcenreferenzen eines virtuellen Pakets |
-| `inputs.snapshot-v2.schema.json` | Im RUN eingefrorene Quellen- und Registry-Pins |
-| `run-v2.schema.json` | RUN/2-Manifest mit Status und Artefakten |
-| `publication-profile.schema.json` | Publikationsabsicht und Formate |
-| `publication-projection.schema.json` | Tabellen-/Spaltenplan für Publikation |
-| `publication-integrity.schema.json` | Integritätsregeln der Publikation |
+| `SourceFieldDefinition.schema.json` | Field semantics and revision content |
+| `csv-mapping-profile.schema.json` | External CSV mapping, policies and relationships |
+| `import.schema.json` | Immutable source import evidence |
+| `virtual-package.schema.json` | Virtual package resource references |
+| `inputs.snapshot-v2.schema.json` | Source and registry pins captured in a RUN |
+| `run-v2.schema.json` | RUN/2 manifest, status and artifact declarations |
+| `publication-profile.schema.json` | Publication intent and output formats |
+| `publication-projection.schema.json` | Publication table and column projection |
+| `publication-integrity.schema.json` | Publication identifiers and integrity rules |
 
-Ältere PoC-Verträge wie `run.schema.json`, `export.schema.json` und `project.schema.json` werden von `core.export.validate_contract` verwendet. **Für exakte Pflichtfelder, Enum-Werte und zusätzliche Eigenschaften ist immer das konkrete Schema maßgeblich**, nicht ein verkürztes Beispiel in dieser Dokumentation.
+Legacy PoC contracts, including `run.schema.json`, `export.schema.json` and `project.schema.json`, are used by `core.export.validate_contract`. **The actual schema is authoritative for required fields, enumerations and additional-properties rules.**
 
-## 3. Externes CSV-Mapping
+## 3. External CSV mapping profiles
 
-Ein Profil benennt `mapping_id`, `version`, `operation`, `source_sha256`, `identifier`, `fields` und Policies. Pro Feld sind Quellspalte, Zielname, Beschreibung, Definitionsquelle und gegebenenfalls Zähleinheit, Zero-Semantik und Missing-Tokens anzugeben. Beziehungen können zusätzliche Ressourcen, Schlüsselspalten, Kardinalität und Missing-Key-Verhalten deklarieren.
+A mapping profile declares `mapping_id`, `version`, `operation`, `source_sha256`, `identifier`, `fields` and explicit policies. Each field specifies its source column, target name, meaningful description, definition provenance, zero semantics and missing-value tokens; count mappings additionally require `counting_unit`, and typed mappings require `value_type`.
 
-Die zwei unterstützten generischen Operationen sind:
+Supported operations:
 
-- `wide-to-long-counts/1`: Integer-Zählwerte mit expliziten `empty_cell_policy`- und `zero_cell_policy`-Entscheidungen; Nullwerte dürfen nicht unbemerkt zu Missing-Werten werden.
-- `wide-to-long-values/1`: Werte mit deklariertem `value_type` (`integer`, `decimal`, `text`) und `missing_tokens`.
+- `wide-to-long-counts/1`: integer counts, `empty_cell_policy: "omit"` and `zero_cell_policy: "preserve"`; count zero meaning must be `true_zero` or `absence`.
+- `wide-to-long-values/1`: typed values with `value_type` equal to `integer`, `decimal` or `text` and declared missing tokens.
 
-**Freigabeprozess:** Profil validieren und als Draft stagen → Feldrevisionen prüfen → Mapping explizit genehmigen → erst danach RUN ausführen. Beziehungen werden im Preflight geprüft; eine deklarierte Beziehung ist nicht automatisch eine universelle Join-Operation im RUN-Executor.
+The process is **validate and stage draft → review field revisions → approve mapping → execute RUN**. Optional `auxiliary_resource_ids` and `relationships` pin and validate linked resources, but **do not execute implicit joins**.
 
-## 4. RUN/2-Artefakte
+See the [User Guide](USER-GUIDE.md) for exact profile fields, constraints and a working-shaped synthetic example.
 
-`runs/<run_id>/manifest.json` enthält unter anderem `schema_version = fairmorph.poc.run/2`, `run_id`, `status = completed`, Zeit-/Engine-/Transformationsinformationen, `configuration_sha256`, `input_snapshot_sha256` und eine Liste von `artifacts` mit Pfad, Bytezahl und SHA-256.
+## 4. RUN/2 artifacts
 
-`inputs.snapshot.json` friert Quellobjekt-Pins und den genehmigten Mapping-Snapshot ein. `configuration.snapshot.json` speichert die verwendete Konfiguration. `outputs/observations.parquet` enthält normalisierte Beobachtungen (z. B. `record_id`, `source_identifier`, `source_line`, `source_column`, `target_field`, `value`, optional `value_type`). `audit/lineage.parquet` hält Quellbezüge fest. `reports/quality.json` enthält Ausführungsmetriken.
+`runs/<run_id>/manifest.json` records `schema_version = fairmorph.poc.run/2`, `run_id`, `status = completed`, execution metadata, `configuration_sha256`, `input_snapshot_sha256` and artifact paths/sizes/SHA-256 hashes.
 
-RUN/2-Verifikation prüft sowohl die Bytes als auch die Registry- und Quellreferenzen. Eine Hash-Übereinstimmung allein beweist keine fachliche Korrektheit.
+`inputs.snapshot.json` captures approved source and registry pins; `configuration.snapshot.json` captures the mapping configuration. `outputs/observations.parquet` stores normalized rows (including `record_id`, `source_identifier`, `source_line`, `source_column`, `target_field`, `value` and, for typed mappings, `value_type`). `audit/lineage.parquet` preserves provenance. `reports/quality.json` reports observed metrics.
 
-## 5. Data-Package-Export
+RUN/2 verification checks source and registry references in addition to artifact bytes. Checksums alone cannot establish scientific validity.
 
-`export_data_package` prüft zuerst den RUN, erzeugt danach ein Exportverzeichnis mit `package/datapackage.json`, `observations.csv`, `lineage.csv` und `quality.json`. Das `export-manifest.json` pinnt den Quell-RUN und alle Exportartefakte. Dieses generische CSV-Datenpaket ist **kein Darwin Core Archive**.
+## 5. Generic Data Package
 
-## 6. Publikationspipeline
+`export_data_package` first verifies the RUN, then creates `package/datapackage.json`, `observations.csv`, `lineage.csv` and `quality.json` in a versioned export directory. An `export-manifest.json` pins the source RUN and exported artifacts. **This generic Data Package is not a Darwin Core Archive.**
 
-Die optionale Publikationsschicht trennt vier Dokumente:
+## 6. Optional publication pipeline
 
-1. **Publication Profile:** Welche Formate (`eml/2.2.0`, `dwca/1`) sollen entstehen, mit welchen externen Feldbindungen?
-2. **Publication Metadata:** Inhaltliche Metadaten; EML verlangt ein explizites `publication_date` für reproduzierbare Ausgaben.
-3. **Projection Plan:** Welche im RUN gepinnten Parquet-Artefakte, Zeilentypen, Spalten und gegebenenfalls Datentypen sollen verwendet werden?
-4. **Integrity Rules:** Welche Identifikatoren, Beziehungen und Schlüsselbedingungen müssen erfüllt sein?
+Four externally supplied documents are kept separate:
 
-Der Ablauf ist **Intent-Validierung → Projektion → Bindings → Integrität → Materialisierung → Adapter**. `materialize_publication_tables` schreibt deterministisch sortierte CSV-Tabellen und ein eigenes Manifest. Der EML-Adapter erzeugt XML und prüft es gegen ein lokales offizielles EML-2.2.0-XSD. Der DwC-A-Adapter erzeugt ein ZIP mit `meta.xml` und den deklarierten Core-/Extension-Tabellen; die Validierung prüft Struktur und Referenzen. Vendored Schemas befinden sich unter `vendor/schemas/eml/2.2.0/` und `vendor/schemas/dwca/`.
+1. **Publication profile:** requested formats (`eml/2.2.0`, `dwca/1`) and explicit Darwin Core bindings.
+2. **Publication metadata:** descriptive metadata; EML requires an explicit `publication_date`.
+3. **Projection plan:** RUN-pinned Parquet artifacts, row types, selected columns and optional expected types.
+4. **Integrity rules:** identifiers, relationships and required key conditions.
 
-Die Adapter machen **keine** automatische taxonomische Interpretation, keine implizite DwC-Feldzuordnung und keine externe Veröffentlichung.
+The workflow is **intent validation → projection → bindings → integrity → materialization → adapter**. Materialization writes deterministically ordered CSV tables and a manifest. The EML adapter compiles XML and validates it against an official local EML 2.2.0 XSD. The DwC-A adapter creates a ZIP with `meta.xml` and declared core/extension tables; validation checks schema and archive references. Vendored schemas are located under `vendor/schemas/eml/2.2.0/` and `vendor/schemas/dwca/`.
 
-## 7. Kompatibilität und Migration
+Adapters neither infer scientific taxonomy nor publish to an external service.
 
-Schema- und Transformationsversionen sind getrennt von der Paketversion. RUN/1 und RUN/2 werden bei der Exportverifikation unterschieden; Projektionen verlangen ausdrücklich RUN/2. Das lokale Schema-Register ermöglicht neue Profiltypen ohne automatische SQLite-Kernmigration. Eine allgemeine Projektmigration oder garantierte Rückwärtskompatibilität aller Draft-APIs ist nicht implementiert.
+## 7. Versioning and compatibility
+
+Schema versions, mapping versions and transformation versions are independent of the Python package version. Export verification distinguishes RUN/1 and RUN/2; publication projections require RUN/2. The local schema registry supports new profile kinds without an automatic SQLite core migration. General project migration and guaranteed backward compatibility of Draft APIs are not yet provided.
