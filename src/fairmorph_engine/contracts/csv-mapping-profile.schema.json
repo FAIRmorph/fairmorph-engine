@@ -55,7 +55,6 @@
           "target_field",
           "description",
           "definition_source",
-          "counting_unit",
           "zero_meaning",
           "missing_values"
         ],
@@ -227,6 +226,26 @@
             "items": {
               "required": [
                 "value_type"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "wide-to-long-counts/1"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "fields": {
+            "items": {
+              "required": [
+                "counting_unit"
               ]
             }
           }
