@@ -170,6 +170,21 @@ def execute_mapping_run(project: Path, mapping_sha256: str, emit=lambda *_a, **_
             )
         if not rows:
             raise ValueError("Approved mapping produced no observation rows")
+        # Acceptance criteria belong to the explicitly approved project mapping.
+        # Never embed dataset-specific reference values in the Engine.
+        observed_metrics = {
+            "output_rows": len(rows),
+            "explicit_zeros": sum(row["value"] == 0 for row in rows),
+            "value_sum": sum(row["value"] for row in rows),
+        }
+        for metric, expected in mapping.get("acceptance", {}).items():
+            if metric not in observed_metrics:
+                raise ValueError(f"Unsupported mapping acceptance metric: {metric}")
+            if observed_metrics[metric] != expected:
+                raise ValueError(
+                    f"Mapping acceptance failed for {metric}: "
+                    f"expected {expected}, observed {observed_metrics[metric]}"
+                )
         output = staging / "outputs" / "observations.parquet"
         lineage = staging / "audit" / "lineage.parquet"
         output.parent.mkdir()
