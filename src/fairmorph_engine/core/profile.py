@@ -110,6 +110,42 @@ def stage_csv_mapping(project: Path, resource_id: str, profile_file: Path) -> di
                 headers[linked_id] = set(linked_header)
             if column not in headers[linked_id]:
                 raise ValueError("Relationship references an unknown source column")
+    # Validate declared relationships against the immutable CSV bytes before review.
+    # No implicit coercion, null matching, joins, or scientific interpretation.
+    keys = {}
+    for relationship in relationships:
+        for linked_id, column in (
+            (relationship["left_resource_id"], relationship["left_column"]),
+            (relationship["right_resource_id"], relationship["right_column"]),
+        ):
+            key = (linked_id, column)
+            if key in keys:
+                continue
+            with _catalog(project) as db:
+                linked_sha = db.execute(
+                    "SELECT object_sha256 FROM source_resources WHERE resource_id=?",
+                    (linked_id,),
+                ).fetchone()[0]
+            linked_path = project / "objects" / "sha256" / linked_sha[:2] / linked_sha
+            with linked_path.open("r", encoding="utf-8-sig", newline="") as stream:
+                reader = csv.DictReader(stream, strict=True)
+                values = []
+                for record in reader:
+                    value = record[column]
+                    if value is None or value == "":
+                        raise ValueError("Relationship key contains a missing value")
+                    values.append(value)
+            keys[key] = values
+    for relationship in relationships:
+        left = keys[(relationship["left_resource_id"], relationship["left_column"])]
+        right = keys[(relationship["right_resource_id"], relationship["right_column"])]
+        cardinality = relationship["cardinality"]
+        if cardinality in ("one-to-one", "one-to-many") and len(left) != len(set(left)):
+            raise ValueError("Relationship violates left-side uniqueness")
+        if cardinality in ("one-to-one", "many-to-one") and len(right) != len(set(right)):
+            raise ValueError("Relationship violates right-side uniqueness")
+        if not set(left).issubset(set(right)):
+            raise ValueError("Relationship contains unmatched left-side keys")
     bindings = []
     for item in profile["fields"]:
         definition = {
