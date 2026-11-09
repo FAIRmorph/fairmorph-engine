@@ -247,11 +247,9 @@ def approve_staged_mapping(project: Path, mapping_sha256: str, reviewer: str) ->
             ).fetchone()
             if current is None or current[0] != rid:
                 raise ValueError("Mapping must bind the current field revision")
-            if binding["target_field"] == "individualCount" and (
-                definition.get("counting_unit") != "individual"
-                or definition["value_semantics"].get("zero_meaning") == "unknown"
-            ):
-                raise ValueError("individualCount needs explicit count semantics")
+            unit = definition.get("counting_unit")
+            if not isinstance(unit, str) or not unit.strip():
+                raise ValueError("Approved count mapping requires an explicit counting unit")
         for rid in revision_ids:
             db.execute(
                 "INSERT INTO field_definition_reviews VALUES (?, ?, ?, ?, ?)",
