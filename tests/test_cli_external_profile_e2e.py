@@ -17,7 +17,8 @@ def _result(response):
     return result["data"]
 
 
-def test_external_profile_cli_review_and_run(tmp_path):
+@pytest.mark.parametrize("counting_unit", ["individual", "sampling_event"])
+def test_external_profile_cli_review_and_run(tmp_path, counting_unit):
     pytest.importorskip("polars")
     project = tmp_path / "survey-project"
     source = tmp_path / "survey.csv"
@@ -79,7 +80,7 @@ def test_external_profile_cli_review_and_run(tmp_path):
                 "target_field": column,
                 "description": f"Counted individuals in {column} category",
                 "definition_source": "source_documentation",
-                "counting_unit": "individual",
+                "counting_unit": counting_unit,
                 "zero_meaning": "true_zero",
                 "missing_values": [],
             }
