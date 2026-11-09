@@ -171,6 +171,20 @@ def verify_project_command(
         raise typer.Exit(code=1) from error
 
 
+@app.command(name="reconcile-runs")
+def reconcile_runs_command(
+    project: Annotated[Path, typer.Option("--project", help="Existing FAIRmorph project")],
+) -> None:
+    """Explicitly recover interrupted RUN publication while no writer is active."""
+    from fairmorph_engine.core.run_recovery import reconcile_runs
+
+    try:
+        emit_event("result", status="success", data=reconcile_runs(project))
+    except (ValueError, OSError, KeyError) as error:
+        emit_event("result", status="error", message=str(error))
+        raise typer.Exit(code=1) from error
+
+
 @app.command(name="handshake")
 def handshake() -> None:
     """Advertise the supported PoC contract without changing any project data."""
@@ -191,6 +205,7 @@ def handshake() -> None:
                 "run-mapping",
                 "export-package",
                 "verify-project",
+                "reconcile-runs",
             ],
         },
     )
