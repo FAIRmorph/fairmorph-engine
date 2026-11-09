@@ -130,6 +130,15 @@
           "minimum": 0
         }
       }
+    },
+    "auxiliary_resource_ids": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "description": "Additional imported source resources pinned to the RUN without implicit joins or transformations."
     }
   }
 }
