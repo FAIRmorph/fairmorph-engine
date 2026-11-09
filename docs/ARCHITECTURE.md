@@ -1,61 +1,61 @@
-# Architektur, Komponenten und Konzepte
+# Architecture, Components and Concepts
 
-## 1. Systemgrenze
+## 1. System boundary
 
-Die Engine besteht aus einer Typer-CLI (`src/fairmorph_engine/cli.py`), einem Python-Kern (`core/`), tabellarischen Transformationen (`processing/`), versionierten JSON-Schema-Verträgen (`contracts/`) und explizit getrennten Referenzbeispielen (`examples/`). Sie arbeitet lokal; eine HTTP- oder gRPC-API ist im untersuchten Kern nicht implementiert.
+The engine comprises a Typer CLI (`src/fairmorph_engine/cli.py`), Python core modules (`core/`), tabular transformations (`processing/`), versioned JSON Schema contracts (`contracts/`) and separate reference examples (`examples/`). Processing is local; the inspected core does not expose an HTTP or gRPC API.
 
 ```text
-CSV / externe Profile / Metadaten
-            |
-      CLI (NDJSON)
-            |
-   Projekt + SHA-256-Objektspeicher
-            |
-   SQLite: Ressourcen, Feldrevisionen, Reviews, Mappings
-            |
-   Freigabeprüfung -> generischer RUN/2-Executor
-            |
-   runs/<RUN_ID>/ (Parquet, Lineage, Snapshots, Manifest)
-            |
-   Verifikation -> Data Package / optionale Publikationsadapter
-            |
-   explizite Recovery für unterbrochene RUN-Publikation
+CSV / external mapping profiles / publication metadata
+                       |
+                 CLI (NDJSON)
+                       |
+             Project + SHA-256 object store
+                       |
+     SQLite: resources, field revisions, reviews, mappings
+                       |
+             Approval -> generic RUN/2 executor
+                       |
+       runs/<RUN_ID>/ (Parquet, lineage, snapshots, manifest)
+                       |
+       Verification -> Data Package / optional publication adapters
+                       |
+         Explicit interrupted-RUN reconciliation
 ```
 
-## 2. Modulübersicht
+## 2. Component inventory
 
-| Modul | Verantwortung |
+| Module | Responsibility |
 | --- | --- |
-| `cli.py` | CLI-Kommandos, strukturierte NDJSON-Ausgabe, Fehler-Exitcodes |
-| `core/project.py` | Projektanlage, SQLite-Grundtabellen, Import, SHA-Objekte, virtuelle Pakete |
-| `core/registry.py` | Append-only Felddefinitionen, Review-Entscheidungen, Mapping-Versionen, Snapshots |
-| `core/schema_registry.py` | Lokales, versioniertes Schema-Register ohne Remote-`$ref` |
-| `core/profile.py` | Externes CSV-Mapping einlesen, Preflight, Draft und gebündelte Freigabe |
-| `processing/tabular.py` | Generisches Wide-to-Long für Counts und typisierte Werte |
-| `core/run_executor.py` | Freigabe- und Pin-Prüfung, Polars/Parquet, Qualität, RUN/2-Publikation |
-| `core/export.py` | RUN-Integritätsprüfung, Frictionless-artiges Data Package, Projektprüfung |
-| `core/run_recovery.py` | Explizite Wiederherstellung von RUN-Indizes aus validierten Verzeichnissen |
-| `core/publication.py` | Externe Publikationsabsicht und Metadaten validieren |
-| `core/publication_projection.py` | Geplante Tabellen/Spalten gegen gepinnte Parquet-Artefakte prüfen |
-| `core/publication_bindings.py` | DwC-Feldbindungen gegen Projektionsspalten prüfen |
-| `core/publication_integrity.py` | Publikationsweite Integritätsbedingungen prüfen |
-| `core/publication_materialize.py` | Deklarierte Publikationstabellen als CSV materialisieren |
-| `core/publication_adapters.py` | EML- und Darwin-Core-Archive-Erzeugung/-Validierung |
-| `core/eml_compiler.py` | Projektmetadaten in EML-XML übersetzen |
+| `cli.py` | CLI commands, structured NDJSON events, error exit codes |
+| `core/project.py` | Project initialization, SQLite base catalog, import, SHA objects, virtual packages |
+| `core/registry.py` | Append-only field revisions, review decisions, mapping versions and snapshots |
+| `core/schema_registry.py` | Local versioned schema registry; rejects remote `$ref` |
+| `core/profile.py` | External CSV profile validation, preflight, staging and grouped approval |
+| `processing/tabular.py` | Generic wide-to-long count and typed-value transformations |
+| `core/run_executor.py` | Approval and pin verification, Polars/Parquet, quality metrics, RUN/2 publication |
+| `core/export.py` | RUN verification, Frictionless-style Data Package and project verification |
+| `core/run_recovery.py` | Explicit index reconciliation from verified completed RUN directories |
+| `core/publication.py` | Publication intent and metadata validation |
+| `core/publication_projection.py` | Declared publication tables/columns versus pinned Parquet artifacts |
+| `core/publication_bindings.py` | Darwin Core bindings versus projection columns |
+| `core/publication_integrity.py` | Publication-level identifier and relationship checks |
+| `core/publication_materialize.py` | Materialization of declared publication CSV tables |
+| `core/publication_adapters.py` | EML and Darwin Core Archive creation/validation |
+| `core/eml_compiler.py` | EML XML compilation from project metadata |
 
-## 3. Projektverzeichnis
+## 3. On-disk project structure
 
 ```text
-<projekt>/
-  project.json                  # lesbarer Projektindex
-  catalog/catalog.sqlite       # relationale Identitäten, Reviews, Mappingzustände
-  objects/sha256/ab/<sha256>    # unveränderte Originalbytes
+<project>/
+  project.json                  # readable project index
+  catalog/catalog.sqlite       # identities, reviews and mapping states
+  objects/sha256/ab/<sha256>    # original immutable source bytes
   imports/<import_id>/manifest.json
   packages/<package_id>/virtual-descriptor.json
-  configurations/              # projektbezogene Konfigurationen
-  registry/schemas/            # bei Bedarf versionierte Schemas
+  configurations/
+  registry/schemas/            # versioned local schemas, when registered
   runs/
-    .pending-<run_id>/         # noch nicht veröffentlichter Versuch
+    .pending-<run_id>/         # incomplete or failed execution
     <run_id>/
       manifest.json
       inputs.snapshot.json
@@ -71,30 +71,30 @@ CSV / externe Profile / Metadaten
     package/quality.json
 ```
 
-`project.json` enthält `project_id`, `name`, `schema_version`, `catalog_schema_version`, `input_objects`, `package_ids` und `run_ids`. Die SQLite-Tabellen umfassen `project_meta`, `source_objects`, `source_resources`, `packages`, `package_resources`, `runs` sowie bei Registry-Nutzung `source_fields`, `field_definition_revisions`, `field_definition_reviews`, `current_field_definitions`, `mapping_versions`, `mapping_reviews` und `mapping_field_bindings`. Das Schema-Register ergänzt `schema_versions`.
+The project index records `project_id`, `name`, `schema_version`, `catalog_schema_version`, `input_objects`, `package_ids` and `run_ids`. SQLite base tables include `project_meta`, `source_objects`, `source_resources`, `packages`, `package_resources` and `runs`. Registry operations add `source_fields`, `field_definition_revisions`, `field_definition_reviews`, `current_field_definitions`, `mapping_versions`, `mapping_reviews` and `mapping_field_bindings`; the schema registry adds `schema_versions`.
 
-## 4. Identität, Unveränderlichkeit und Freigabe
+## 4. Identity, immutability and approval
 
-**Objektidentität:** Originaldateien erhalten einen SHA-256-Digest. Identische Bytes können im Objektspeicher dedupliziert werden. Der Importzustand `imported_unmapped` weist ausdrücklich darauf hin, dass noch keine wissenschaftliche Zuordnung erfolgt ist.
+**Source identity:** Every imported source is identified by its SHA-256 digest. Identical bytes can be deduplicated. The `imported_unmapped` state explicitly means that no scientific interpretation has been approved.
 
-**Feldsemantik:** Ein `source_field_id` identifiziert ein Quellfeld; seine `field_definition_revisions` sind versionierte Definitionen. Die `field_definition_reviews` dokumentieren die explizite Entscheidung. Definitionen enthalten u. a. Beschreibung, Definitionsquelle, Zähleinheit und Missing-/Null-Semantik. Eine technische Spaltenbezeichnung ist keine fachliche Definition.
+**Field semantics:** A `source_field_id` identifies a source field; immutable `field_definition_revisions` capture its semantic definitions. `field_definition_reviews` record explicit decisions. Descriptions, definition provenance, counting units and missing/zero semantics must be supplied rather than inferred.
 
-**Mapping:** `mapping_id` und `version` bezeichnen die fachliche Mapping-Version, `mapping_sha256` pinnt den Inhalt. `draft` und `approved` sind verschiedene Zustände. Die Ausführung akzeptiert nur genehmigte, in sich konsistente Snapshots; ein späteres Mapping-Update verändert bestehende RUNs nicht.
+**Mapping versions:** `mapping_id` and `version` express mapping identity; `mapping_sha256` pins its exact content. `draft` and `approved` are distinct states. Execution resolves approved, internally consistent snapshots; later mapping changes do not rewrite an existing RUN.
 
-**Schema-Registry:** `schema_id` ist eine HTTPS-URI, `schema_version` eine SemVer-Version, `schema_sha256` pinnt den Inhalt. Schemas werden lokal validiert; Remote-`$ref`-Auflösung ist untersagt. `draft`, `approved` und `deprecated` sind registrierte Zustände, nicht automatische Migrationsmechanismen.
+**Schema registry:** `schema_id` is an HTTPS URI, `schema_version` is SemVer, and `schema_sha256` pins content. Schemas are validated locally; remote `$ref` is rejected. Statuses `draft`, `approved` and `deprecated` are registry states, not automatic migrations.
 
-## 5. Transformation und RUN/2
+## 5. Transformations and RUN/2
 
-Die Operationen `wide-to-long-counts/1` und `wide-to-long-values/1` transformieren deklarierte CSV-Spalten in Beobachtungszeilen. Counts benötigen explizite Regeln für leere Zellen und Nullen. Typisierte Werte verlangen eine deklarierte Typzuordnung (`integer`, `decimal`, `text`) und Missing-Tokens. Der Engine-Kern leitet keine wissenschaftlichen Schwellenwerte oder Taxonomien ab.
+`wide-to-long-counts/1` and `wide-to-long-values/1` convert declared CSV columns into observation rows. Counts require explicit empty-cell and zero policies. Typed values require `integer`, `decimal` or `text` types and missing-token declarations. The engine does not infer scientific thresholds or taxonomies.
 
-Ein RUN erzeugt `record_id` aus Quellhash, Zeile, Spalte, Transformation und Mapping-Pin. Die `lineage.parquet` bewahrt den Bezug zur Quelle. `inputs.snapshot.json` hält Ressourcen- und Registry-Pins fest; `configuration.snapshot.json` speichert die verwendete Mapping-Konfiguration. `manifest.json` enthält Prüfsummen der Artefakte. Qualitätsmetriken wie `output_rows`, `explicit_zeros` und `value_sum` sind Beobachtungen; projektbezogene Sollwerte müssen explizit im Mapping stehen.
+A RUN derives `record_id` from the source hash, source row/column, transformation version and mapping hash. `lineage.parquet` retains source provenance. `inputs.snapshot.json` pins source and registry state; `configuration.snapshot.json` captures the mapping configuration. The manifest checksums generated artifacts. Quality metrics such as `output_rows`, `explicit_zeros` and `value_sum` describe observed output; any expected values must be declared by the project.
 
-Die Publikation läuft über ein `.pending-*`-Verzeichnis und anschließendes Umbenennen in `runs/<run_id>`. Danach werden `project.json` und SQLite aktualisiert. Da diese Speicher keine gemeinsame Transaktion haben, kann ein Prozessabbruch zu einem bereits vorhandenen RUN mit unvollständigen Indizes führen. [Recovery](RUN-RECOVERY.md) gleicht diese Zustände ausdrücklich ab.
+Publication starts in `runs/.pending-*`, then renames the directory to `runs/<run_id>` and updates `project.json` and SQLite. These stores do not share a transaction: a crash can leave a completed directory absent from one or both indexes. Explicit [RUN recovery](RUN-RECOVERY.md) addresses these cases.
 
-## 6. Sicherheits- und Vertrauensgrenzen
+## 6. Trust and security boundaries
 
-Prüfsummen entdecken nachträgliche Byteänderungen; sie ersetzen keine Signaturen oder Zugriffskontrolle. RUN- und Exportverifikation lehnen unsichere Pfade und modifizierte Artefakte ab. Die Datenverarbeitung setzt fachlich korrekte, extern genehmigte Profile voraus. Recovery benötigt exklusiven Schreibzugriff. Offline-XSDs werden aus `vendor/schemas/` bzw. expliziten lokalen Pfaden verwendet. Ein Publikationsprofil oder validierter Export bedeutet nicht automatisch wissenschaftliche oder organisatorische Publikationsfreigabe.
+Checksums detect byte modifications but do not replace digital signatures or access control. Verification rejects modified artifacts and unsafe paths. Scientific correctness depends on externally reviewed definitions and mappings. Recovery requires exclusive writer access. EML/DwC-A validation uses local XSDs from `vendor/schemas/` or explicitly supplied paths. A structurally valid publication artifact does not imply scientific or organizational publication approval.
 
-## 7. Externe Referenz
+## 7. External reference
 
-`examples/cs-phoc/` ist ein **optionales** Projektbeispiel mit eigener Mapping- und Publikationslogik. Der Referenzworkflow wird ausschließlich manuell (`workflow_dispatch`) gestartet. Die reguläre Engine-CI testet die generische Implementierung mit synthetischen Daten.
+`examples/cs-phoc/` is an **optional** reference implementation. Its regression workflow is manual (`workflow_dispatch`); ordinary engine CI uses generic synthetic datasets.
