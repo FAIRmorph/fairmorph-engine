@@ -12,7 +12,6 @@ from typer.testing import CliRunner
 
 from fairmorph_engine.cli import app
 from fairmorph_engine.core.export import verified_run
-from fairmorph_engine.core.publication_adapters import validate_dwca_archive
 
 
 def digest(path):
