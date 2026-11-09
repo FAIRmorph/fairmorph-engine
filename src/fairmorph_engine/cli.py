@@ -99,6 +99,25 @@ def import_resource_command(
         raise typer.Exit(code=1) from error
 
 
+@app.command(name="run-mapping")
+def run_mapping_command(
+    project: Annotated[Path, typer.Option("--project", help="Initialized FAIRmorph project")],
+    mapping_sha256: Annotated[
+        str, typer.Option("--mapping-sha256", help="Approved mapping SHA-256")
+    ],
+) -> None:
+    """Execute a reviewed mapping and publish a checksummed RUN."""
+    from jsonschema.exceptions import ValidationError
+
+    from fairmorph_engine.core.run_executor import execute_mapping_run
+
+    try:
+        execute_mapping_run(project, mapping_sha256, emit_event)
+    except (ValueError, RuntimeError, OSError, KeyError, ImportError, ValidationError) as error:
+        emit_event("result", status="error", message=str(error))
+        raise typer.Exit(code=1) from error
+
+
 @app.command(name="handshake")
 def handshake() -> None:
     """Advertise the supported PoC contract without changing any project data."""
@@ -108,12 +127,13 @@ def handshake() -> None:
         data={
             "protocol_version": "fairmorph.poc.ndjson/1",
             "project_schema_version": "fairmorph.poc.project/1",
-            "run_schema_version": "fairmorph.poc.run/1",
+            "run_schema_version": "fairmorph.poc.run/2",
             "engine_version": "0.1.0",
             "commands": [
                 "poc",
                 "init-project",
                 "import-resource",
+                "run-mapping",
                 "csphoc",
                 "export-package",
                 "dwca-preflight",

@@ -27,8 +27,15 @@ def verified_run(project: Path, run_id: str) -> tuple[Path, dict]:
     if not run_dir.is_dir() or run_dir.is_symlink():
         raise ValueError("Completed RUN not found")
     manifest = json.loads((run_dir / "manifest.json").read_text(encoding="utf-8"))
-    validate_contract("run", manifest)
-    if manifest["schema_version"] != RUN_VERSION or manifest["run_id"] != run_id:
+    if manifest.get("schema_version") == "fairmorph.poc.run/2":
+        from fairmorph_engine.core.run_executor import _validate_contract
+
+        _validate_contract("run-v2", manifest)
+    else:
+        validate_contract("run", manifest)
+        if manifest["schema_version"] != RUN_VERSION:
+            raise ValueError("RUN manifest mismatch")
+    if manifest["run_id"] != run_id:
         raise ValueError("RUN manifest mismatch")
     for item in manifest["artifacts"]:
         relative = Path(item["path"])
@@ -43,6 +50,10 @@ def verified_run(project: Path, run_id: str) -> tuple[Path, dict]:
             raise ValueError(f"Checksum mismatch for RUN artifact: {relative}")
     if sha256(run_dir / "inputs.snapshot.json") != manifest["input_snapshot_sha256"]:
         raise ValueError("RUN input snapshot mismatch")
+    if manifest["schema_version"] == "fairmorph.poc.run/2":
+        from fairmorph_engine.core.run_executor import verify_mapping_run
+
+        verify_mapping_run(project, run_dir, manifest)
     return run_dir, manifest
 
 
