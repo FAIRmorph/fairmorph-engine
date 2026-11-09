@@ -50,23 +50,20 @@
       "required": [
         "core",
         "core_id_field",
-        "occurrence_event_id_field",
-        "event_fields",
-        "occurrence_fields"
+        "core_fields"
       ],
       "properties": {
         "core": {
-          "const": "Event"
+          "enum": [
+            "Event",
+            "Occurrence"
+          ]
         },
         "core_id_field": {
           "type": "string",
           "minLength": 1
         },
-        "occurrence_event_id_field": {
-          "type": "string",
-          "minLength": 1
-        },
-        "event_fields": {
+        "core_fields": {
           "type": "array",
           "minItems": 1,
           "items": {
@@ -88,24 +85,48 @@
             }
           }
         },
-        "occurrence_fields": {
+        "extensions": {
           "type": "array",
-          "minItems": 1,
           "items": {
             "type": "object",
             "additionalProperties": false,
             "required": [
-              "source_field",
-              "term"
+              "row_type",
+              "core_id_field",
+              "fields"
             ],
             "properties": {
-              "source_field": {
+              "row_type": {
+                "enum": [
+                  "Event",
+                  "Occurrence"
+                ]
+              },
+              "core_id_field": {
                 "type": "string",
                 "minLength": 1
               },
-              "term": {
-                "type": "string",
-                "pattern": "^http://rs.tdwg.org/dwc/terms/[A-Za-z][A-Za-z0-9]*$"
+              "fields": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "source_field",
+                    "term"
+                  ],
+                  "properties": {
+                    "source_field": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "term": {
+                      "type": "string",
+                      "pattern": "^http://rs.tdwg.org/dwc/terms/[A-Za-z][A-Za-z0-9]*$"
+                    }
+                  }
+                }
               }
             }
           }
