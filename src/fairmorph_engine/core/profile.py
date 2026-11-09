@@ -130,7 +130,11 @@ def stage_csv_mapping(project: Path, resource_id: str, profile_file: Path) -> di
             with linked_path.open("r", encoding="utf-8-sig", newline="") as stream:
                 reader = csv.DictReader(stream, strict=True)
                 values = []
-                for record in reader:
+                for line_no, record in enumerate(reader, start=2):
+                    if None in record or any(value is None for value in record.values()):
+                        raise ValueError(
+                            f"Malformed relationship CSV row at line {line_no}"
+                        )
                     value = record[column]
                     values.append(value)
             keys[key] = values
