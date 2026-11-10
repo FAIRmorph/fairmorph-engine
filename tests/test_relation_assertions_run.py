@@ -255,3 +255,37 @@ def test_cli_assert_and_show_explicit_user_relation(tmp_path):
     assert (
         len(json.loads(response.output.strip().splitlines()[-1])["data"]["active_assertions"]) == 1
     )
+
+
+
+def test_valid_time_offsets_and_source_class_do_not_replace_user_confirmation(tmp_path):
+    project, sha = _project(tmp_path)
+    approved = assert_relation(
+        project,
+        sha,
+        "parent_event",
+        "e2",
+        "e1",
+        "same-user",
+        "track-suggestion-1",
+        source_kind="suggested",
+        valid_from="2026-11-07T23:00:00+02:00",
+        valid_to="2026-11-07T22:00:00Z",
+    )
+    assert approved["source"]["kind"] == "suggested"
+    assert approved["review"]["status"] == "approved"
+    assert approved["review"]["confirmed_by"] == "same-user"
+    assert approved["recorded_at"] != approved["valid_time"]["valid_from"]
+    with pytest.raises(ValueError, match="valid_from must precede valid_to"):
+        assert_relation(
+            project,
+            sha,
+            "parent_event",
+            "e3",
+            "e1",
+            "same-user",
+            "bad-interval",
+            valid_from="2026-11-07T22:00:00Z",
+            valid_to="2026-11-07T23:00:00+02:00",
+        )
+    assert len(relation_snapshot(project, sha)["active_assertions"]) == 1
