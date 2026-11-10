@@ -15,6 +15,10 @@ Installed executable: `fairmorph-engine` (Typer). Success and error events are w
 | `run-mapping` | `--project PATH --mapping-sha256 HASH` | Execute approved mapping as RUN/2 |
 | `register-pipeline` | `--project PATH --definition FILE` | Register a versioned declarative DAG and optional entity mappings |
 | `confirm-projection` | `--project PATH --pipeline-sha256 HASH --confirmed-by USER` | Confirm exact field-revision pins and entity projection as the responsible user |
+| `assert-relation` | `--project PATH --pipeline-sha256 HASH --predicate NAME --subject-id ID --object-id ID --confirmed-by USER --source-reference TEXT` | Register a user-confirmed append-only typed relation |
+| `replace-relation` | `--project PATH --pipeline-sha256 HASH --relation-id ID --object-id ID --confirmed-by USER --source-reference TEXT` | Replace the target via a new assertion |
+| `retract-relation` | `--project PATH --pipeline-sha256 HASH --relation-id ID --confirmed-by USER --source-reference TEXT` | Revoke current relation without erasing history |
+| `show-relations` | `--project PATH --pipeline-sha256 HASH` | Inspect current confirmed relation snapshot and profile pins |
 | `select-pipeline` | `--project PATH --pipeline-sha256 HASH` | Select a confirmed project DAG revision |
 | `run-pipeline` | `--project PATH` | Run the selected mapping/DAG and publish RUN/2 |
 | `export-package` | `--project PATH --run-id ID` | Export verified RUN as a Data Package |
@@ -89,12 +93,22 @@ For combined/constant derived values without a single comparison baseline, `fiel
 
 The original profile-mapping RUN/2 path (`core.run_executor`) continues to use its own established lineage artifacts for the CS-PHOC reference demonstration. The sparse audit is the **generic DAG** P0.3 contract; harmonizing both paths is a separate planned task.
 
-## 9. Local schema registry — `core.schema_registry`
+## 9. P0.4 versioned domain relations
+
+- `core.relation_assertions.relation_profile() -> dict`: load the installed, versioned `fairmorph.ecology.core/0.12-poc.1` predicate contract and content hash.
+- `assert_relation(project, pipeline_sha256, predicate, subject_entity_id, object_entity_id, confirmed_by, source_reference, *, source_kind="user_confirmed", valid_from=None, valid_to=None) -> dict`: append one user-confirmed typed relation.
+- `replace_relation(project, pipeline_sha256, relation_id, new_object_entity_id, confirmed_by, source_reference, *, source_kind="user_confirmed") -> dict`: append an assertion that supersedes the current assertion; the predicate and subject remain stable.
+- `retract_relation(project, pipeline_sha256, relation_id, confirmed_by, source_reference) -> dict`: append a revocation and remove the active pointer.
+- `relation_snapshot(project, pipeline_sha256, *, through_sequence=None, entity_frames=None) -> dict`: return a canonical, hash-pinned active assertion set as of the selected log sequence. The default is the current state.
+
+SQLite stores the append-only assertion log and a transactionally maintained current projection. `execute_pipeline_run` embeds the relation snapshot in `inputs.snapshot.json`; `verify_pipeline_run` reconstructs the **historical** assertion state even after subsequent corrections. Only the declared entity kinds/predicates are supported in the vertical PoC; there is no mandatory reviewer separate from the user who confirms the relation. See `docs/P0.4-CHECKPOINT.md`.
+
+## 10. Local schema registry — `core.schema_registry`
 
 - `register_schema(project, *, schema_id, schema_version, kind, schema, status="draft", reviewer=None) -> dict`: validate Draft 2020-12, reject remote references and persist immutable content under SHA-256. Kinds: `core`, `source`, `export`, `extension`.
 - `get_schema(project, *, schema_id, schema_version) -> tuple[dict, str]`: load only an exact version and verify its content pin.
 
-## 10. Publication APIs
+## 11. Publication APIs
 
 These functions consume **explicit external** profiles and metadata; they do not infer Darwin Core semantics.
 
@@ -112,6 +126,6 @@ These functions consume **explicit external** profiles and metadata; they do not
 
 A preflight or materialization result with `publication_ready: false` is not a final publication approval.
 
-## 11. Error handling
+## 12. Error handling
 
 Typical errors include `ValueError` (invalid profiles, unapproved mappings, integrity failures), `OSError` (filesystem), SQLite exceptions, JSON Schema `ValidationError` and missing optional processing dependencies. Integrations should inspect `result` events, avoid manual edits to RUNs, and use recovery only after stopping writers.
