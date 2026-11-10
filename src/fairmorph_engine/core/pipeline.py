@@ -22,9 +22,15 @@ def _expression(spec):
         return pl.lit(value)
     if name == "concat" and isinstance(value, list) and value:
         return pl.concat_str([_expression(item).cast(pl.String) for item in value], separator="")
-    if name == "when" and isinstance(value, dict) and set(value) == {"condition", "then", "otherwise"}:
-        return pl.when(_predicate(value["condition"])).then(_expression(value["then"])).otherwise(
-            _expression(value["otherwise"])
+    if (
+        name == "when"
+        and isinstance(value, dict)
+        and set(value) == {"condition", "then", "otherwise"}
+    ):
+        return (
+            pl.when(_predicate(value["condition"]))
+            .then(_expression(value["then"]))
+            .otherwise(_expression(value["otherwise"]))
         )
     raise ValueError(f"Unsupported expression: {name}")
 
@@ -32,7 +38,16 @@ def _expression(spec):
 def _predicate(spec):
     if not isinstance(spec, dict) or set(spec) != {"column", "op", "value"}:
         raise ValueError("Predicate must specify column, op and literal value")
-    if not isinstance(spec["column"], str) or spec["op"] not in {"eq", "ne", "gt", "ge", "lt", "le", "is_null", "is_not_null"}:
+    if not isinstance(spec["column"], str) or spec["op"] not in {
+        "eq",
+        "ne",
+        "gt",
+        "ge",
+        "lt",
+        "le",
+        "is_null",
+        "is_not_null",
+    }:
         raise ValueError("Unsupported predicate")
     col = pl.col(spec["column"])
     op = spec["op"]
@@ -41,15 +56,24 @@ def _predicate(spec):
     if op == "is_not_null":
         return col.is_not_null()
     value = pl.lit(spec["value"])
-    return {"eq": lambda: col == value, "ne": lambda: col != value,
-            "gt": lambda: col > value, "ge": lambda: col >= value,
-            "lt": lambda: col < value, "le": lambda: col <= value}[op]()
+    return {
+        "eq": lambda: col == value,
+        "ne": lambda: col != value,
+        "gt": lambda: col > value,
+        "ge": lambda: col >= value,
+        "lt": lambda: col < value,
+        "le": lambda: col <= value,
+    }[op]()
 
 
 def _apply(operator, frames, params):
     if operator == "table.select/1":
         columns = params["columns"]
-        if not isinstance(columns, list) or not columns or not all(isinstance(c, str) for c in columns):
+        if (
+            not isinstance(columns, list)
+            or not columns
+            or not all(isinstance(c, str) for c in columns)
+        ):
             raise ValueError("select requires a nonempty list of columns")
         return frames[0].select(columns)
     if operator == "table.filter/1":
@@ -71,7 +95,10 @@ def _apply(operator, frames, params):
         if not isinstance(keys, list) or not keys:
             raise ValueError("join requires keys")
         left, right = frames
-        if left.select(keys).null_count().sum_horizontal().sum() or right.select(keys).null_count().sum_horizontal().sum():
+        if (
+            left.select(keys).null_count().sum_horizontal().sum()
+            or right.select(keys).null_count().sum_horizontal().sum()
+        ):
             raise ValueError("Join keys must not contain nulls")
         cardinality = params["cardinality"]
         if cardinality not in {"1:1", "1:m", "m:1", "m:m"}:
@@ -80,7 +107,12 @@ def _apply(operator, frames, params):
             raise ValueError("Duplicate right-hand join key")
         if cardinality in {"1:1", "1:m"} and left.select(keys).is_duplicated().any():
             raise ValueError("Duplicate left-hand join key")
-        result = left.join(right, on=keys, how="left", validate={"1:1":"1:1","1:m":"1:m","m:1":"m:1","m:m":"m:m"}[cardinality])
+        result = left.join(
+            right,
+            on=keys,
+            how="left",
+            validate={"1:1": "1:1", "1:m": "1:m", "m:1": "m:1", "m:m": "m:m"}[cardinality],
+        )
         if result.height != left.height and params.get("preserve_left_rows", True):
             raise ValueError("Join changes left row count")
         if params.get("require_match", True):
@@ -113,7 +145,11 @@ def execute_pipeline(config: dict, resources: dict[str, pl.DataFrame]) -> dict[s
     pending = {step["id"]: step for step in steps}
     while pending:
         ready = sorted(
-            (step for step in pending.values() if all(source in tables for source in step["inputs"])),
+            (
+                step
+                for step in pending.values()
+                if all(source in tables for source in step["inputs"])
+            ),
             key=lambda step: step["id"],
         )
         if not ready:
