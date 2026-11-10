@@ -50,6 +50,10 @@
     "active_mapping_sha256": {
       "$ref": "#/$defs/sha256",
       "description": "Explicit project-selected approved mapping revision; never inferred from catalog"
+    },
+    "active_pipeline_sha256": {
+      "$ref": "#/$defs/sha256",
+      "description": "SHA-256 of configurations/pipelines/<sha256>.json; explicit selection"
     }
   },
   "$defs": {
