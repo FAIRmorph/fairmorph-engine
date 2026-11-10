@@ -190,3 +190,47 @@ Manifest. `verify-project` verifiziert Ergebnisse, Mengenaudit und vorhandene
 Wertänderungen erneut anhand der unveränderten Originalquellen und DAG-Regeln.
 Der PoC verlangt keine unabhängige zweite bestätigende Person. Details und
 Grenzen: [P0.3-Checkpoint](P0.3-CHECKPOINT.md).
+
+
+## P0.4 – append-only fachliche Relationen und RUN-feste Historie
+
+Eine bestätigte fachliche Beziehung wird separat von den Entitäts-Parquets als
+versionierte SQLite-Assertion registriert, nicht als veränderliche Liste im
+`SamplingEvent` oder `Occurrence`. Ein strikt versioniertes Profil
+(`fairmorph.ecology.core/0.12-poc.1`) erlaubt im PoC die Prädikate
+`parent_event`, `event_occurrence`, `event_measurement` und
+`occurrence_measurement`. Aussagen müssen auf vorhandene technische
+`entity_id`-Werte zeigen; Typen, 0..1-Kardinalitäten und zyklusfreie
+Event-Hierarchien werden geprüft. Kein Transekt, GPS oder biologischer
+Occurrence-Nachweis wird automatisch vorausgesetzt.
+
+Nach einer bestätigten Entity-Projektion:
+
+```sh
+fairmorph-engine assert-relation --project ./survey.fairmorph \
+  --pipeline-sha256 <sha> --predicate parent_event \
+  --subject-id e2 --object-id e1 --confirmed-by researcher \
+  --source-reference field-note-42
+
+fairmorph-engine show-relations --project ./survey.fairmorph --pipeline-sha256 <sha>
+fairmorph-engine run-pipeline --project ./survey.fairmorph
+```
+
+Korrekturen werden **nicht** durch UPDATE/DELETE einer Assertion umgesetzt.
+`replace-relation` verknüpft eine neue Assertion mit der vorherigen
+`assertion_id`, `retract-relation` widerruft eine aktuelle Beziehung, behält
+aber das Ereignis im unveränderlichen Log. Alle Operationen erfordern die
+Identität des bestätigenden Nutzers und eine Quellenreferenz; es besteht
+**kein Vier-Augen-Zwang**.
+
+Ein semantischer RUN/2 speichert `relations_snapshot` in
+`inputs.snapshot.json`, einschließlich Relationsprofil-ID und -Hash,
+`through_sequence`, aktiver Assertions und Snapshot-Hash. Die Verifikation
+rekonstruiert den Zustand **zum eingefrorenen Log-Stand**. Spätere
+Widerrufe/Ersetzungen verändern weder die gespeicherte Aussage noch die
+Prüfbarkeit früherer RUNs.
+
+Der PoC verwendet lediglich die bereits ausführbaren Entity-Typen
+`SamplingEvent`, `Occurrence` und `MeasurementOrFact`. Medien-, Sample-,
+Spatial-, Dive- und Transect-Profile sowie eine vollständige Relations-Workbench
+sind spätere Arbeitspakete. Siehe [P0.4-Checkpoint](P0.4-CHECKPOINT.md).
