@@ -1,4 +1,4 @@
-# Framework v0.12 – external CSV mapping profile and explicit review
+> **Historischer Mapping-Profilentwurf; bitte nicht mit dem neuen generischen P0.5-Entity-Profilvertrag verwechseln.** Stand P0.1–P0.5 und v0.13-PoC-Leitlinien siehe [v0.13 Scope](FRAMEWORK-v0.13-POC-SCOPE.md) und [Project-driven RUN](project-driven-run.md). Fachliche Entity-Pipelines benötigen nun exakte, freigegebene `profile_bindings`; keine experimentelle Rückwärtskompatibilität vor Framework-Version 1.0.\n\n# Framework v0.12 – external CSV mapping profile and explicit review
 
 **Scope:** This increment connects the previously introduced generic project,
 import, field-definition registry and RUN executor through public CLI operations.
