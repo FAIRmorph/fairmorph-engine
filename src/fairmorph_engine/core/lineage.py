@@ -144,9 +144,7 @@ def _step_trace(
         left, right = frames
         left_trace, right_trace = inputs
         left_marker = _marker(frames, "left_row")
-        right_marker = _marker(
-            [left.with_columns(pl.lit(None).alias(left_marker)), right], "right_row"
-        )
+        right_marker = _marker(frames, "right_row")
         tagged = left.with_row_index(left_marker).join(
             right.with_row_index(right_marker),
             on=params["keys"],
