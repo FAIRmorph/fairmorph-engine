@@ -1,0 +1,149 @@
+name: CS-PHOC Phase A - existing Engine / immutable project
+
+on:
+  push:
+    branches: [feature/cs-phoc-v013-reference-configs]
+  pull_request:
+    paths:
+      - "reference-projects/cs-phoc/**"
+      - ".github/workflows/cs-phoc-phase-a.yml"
+  workflow_dispatch:
+
+jobs:
+  reference-run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout unchanged FAIRmorph Engine and reference configs
+        uses: actions/checkout@v4
+      - name: Checkout unchanged CS-PHOC upstream at fixed commit
+        uses: actions/checkout@v4
+        with:
+          repository: us-amlr/cs-phoc
+          ref: 64f0b77e631c711c681306bbb56a7636ae91a471
+          path: upstream/cs-phoc
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install existing Engine without modifications
+        run: python -m pip install -e .
+      - name: Engine-only Phase A - import, virtual package, register, RUN/2, verification
+        shell: bash
+        run: |
+          python - <<'PY'
+          import hashlib
+          import json
+          import shutil
+          import subprocess
+          from pathlib import Path
+
+          import polars as pl
+          from fairmorph_engine.core.project import initialize_project, import_resource, register_package
+          from fairmorph_engine.core.pipeline_run import register_pipeline
+          from fairmorph_engine.core.project_execution import select_project_pipeline, execute_project_run
+          from fairmorph_engine.core.export import verify_project
+
+          reference = Path("reference-projects/cs-phoc")
+          upstream = Path("upstream/cs-phoc/data/manuscript")
+          project = Path("phase-a-output/cs-phoc.fairmorph")
+          source_blobs = {
+              "events": ("cs-phoc-events.csv", "d129fa00d10fa11caf5f2f0481681ea5c22cb8a6"),
+              "counts": ("cs-phoc-counts.csv", "d81e36792cad4de0108f7d0bcd0cef4e89d103a0"),
+          }
+          sources = {}
+          for role, (filename, expected_blob) in source_blobs.items():
+              source = upstream / filename
+              actual_blob = subprocess.check_output(
+                  ["git", "hash-object", str(source)], text=True
+              ).strip()
+              assert actual_blob == expected_blob, (filename, actual_blob)
+              sources[role] = source
+
+          # The Engine itself creates project.json, catalog.sqlite, manifests,
+          # immutable source-object copies and registered package identity.
+          initialize_project(project, "CS-PHOC reference (v0.13)")
+          imported = {role: import_resource(project, source, role)
+                      for role, source in sources.items()}
+          virtual = register_package(project, "cs-phoc-manuscript-sources", imported)
+
+          # Drafts are project-specific JSON; no Python or other executable files
+          # are written into the FAIRmorph project directory.
+          drafts = project / "configurations/drafts"
+          drafts.mkdir(parents=True, exist_ok=True)
+          template = json.loads(
+              (reference / "configurations/drafts/pipeline-technical.json").read_text()
+          )
+          for role, result in imported.items():
+              template["resources"][role]["resource_id"] = result["resource_id"]
+          (drafts / "pipeline-technical.json").write_text(
+              json.dumps(template, ensure_ascii=False, indent=2) + "\n"
+          )
+          shutil.copyfile(
+              reference / "configurations/drafts/dataset-metadata.json",
+              drafts / "dataset-metadata.json",
+          )
+          sha = register_pipeline(project, template)["pipeline_sha256"]
+          select_project_pipeline(project, sha)
+          run = execute_project_run(project)
+          verified = verify_project(project)
+
+          output = project / "runs" / run["run_id"] / "outputs/counts_with_events.parquet"
+          table = pl.read_parquet(output)
+          count_zero = table.filter(pl.col("count_value") == 0).height
+          assert table.height == 16940, ("long rows", table.height)
+          assert count_zero == 11599, ("explicit zero values", count_zero)
+          assert table["count_value"].null_count() == 0
+          assert table["count_id"].n_unique() == 2144
+          assert table["event_id"].n_unique() <= 322
+          assert table["count_value"].sum() == 79232
+          assert verified["status"] == "verified"
+          assert verified["completed_runs"] == 1
+          assert verified["source_objects"] == 2
+          assert len(virtual["resources"]) == 2
+
+          evidence = {
+              "phase": "A",
+              "status": "passed",
+              "upstream_commit": "64f0b77e631c711c681306bbb56a7636ae91a471",
+              "source_sha256": {role: item["sha256"] for role, item in imported.items()},
+              "source_resource_ids": {role: item["resource_id"] for role, item in imported.items()},
+              "package_id": virtual["package_id"],
+              "pipeline_sha256": sha,
+              "run_id": run["run_id"],
+              "long_rows": table.height,
+              "explicit_zero_values": count_zero,
+              "count_sum": table["count_value"].sum(),
+              "verified": verified["status"],
+              "scientific_approval": False,
+          }
+          (project / "validation").mkdir()
+          shutil.copyfile(
+              reference / "validation/source-baseline.json",
+              project / "validation/source-baseline.json",
+          )
+          (project / "validation/phase-a-result.json").write_text(
+              json.dumps(evidence, ensure_ascii=False, indent=2) + "\n"
+          )
+          (project / "curation").mkdir()
+          shutil.copyfile(
+              reference / "curation/FIELD-REVIEW.md",
+              project / "curation/FIELD-REVIEW.md",
+          )
+          print(json.dumps(evidence, indent=2))
+          PY
+      - name: Ensure the resulting FAIRmorph project package contains no scripts
+        run: |
+          if find phase-a-output/cs-phoc.fairmorph -type f \( -name '*.py' -o -name '*.sh' -o -name '*.ps1' -o -name '*.js' -o -name '*.ts' \) | grep -q .; then
+            echo "::error::Project contains executable script files"
+            exit 1
+          fi
+      - name: Publish the full project package for inspection
+        uses: actions/upload-artifact@v4
+        with:
+          name: cs-phoc-phase-a-project
+          path: phase-a-output/cs-phoc.fairmorph/
+          include-hidden-files: true
+          retention-days: 14
