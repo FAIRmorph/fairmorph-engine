@@ -11,7 +11,7 @@ Installed executable: `fairmorph-engine` (Typer). Success and error events are w
 | `init-project` | `--project PATH`, optional `--name TEXT` | Initialize project directories and SQLite |
 | `import-resource` | `--project PATH --source FILE --role ROLE` | Import unchanged bytes; return `resource_id` |
 | `stage-csv-mapping` | `--project PATH --resource-id ID --profile FILE` | Validate profile and register draft mapping/fields |
-| `approve-mapping` | `--project PATH --mapping-sha256 HASH --reviewer TEXT` | Explicitly approve mapping and field revisions |
+| `approve-mapping` | `--project PATH --mapping-sha256 HASH --confirmed-by TEXT` | Explicitly approve mapping and field revisions |
 | `run-mapping` | `--project PATH --mapping-sha256 HASH` | Execute approved mapping as RUN/2 |
 | `export-package` | `--project PATH --run-id ID` | Export verified RUN as a Data Package |
 | `verify-project` | `--project PATH` | Read-only integrity and index checks |
