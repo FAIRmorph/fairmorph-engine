@@ -1,0 +1,31 @@
+{
+  "kind": "reference-baseline-not-engine-contract",
+  "source_repository": "https://github.com/us-amlr/cs-phoc",
+  "upstream_commit": "64f0b77e631c711c681306bbb56a7636ae91a471",
+  "source_files": [
+    {
+      "path": "data/manuscript/cs-phoc-events.csv",
+      "git_blob_sha1": "d129fa00d10fa11caf5f2f0481681ea5c22cb8a6",
+      "rows": 322,
+      "unique_event_ids": 322
+    },
+    {
+      "path": "data/manuscript/cs-phoc-counts.csv",
+      "git_blob_sha1": "d81e36792cad4de0108f7d0bcd0cef4e89d103a0",
+      "rows": 2144,
+      "unique_count_ids": 2144
+    }
+  ],
+  "checks": {
+    "join_key": "event_id",
+    "unmatched_count_event_ids": 0,
+    "count_columns_except_total_count": 10,
+    "nonempty_count_cells": 16940,
+    "explicit_zero_count_cells": 11599,
+    "empty_count_cells": 4500,
+    "rows_where_total_count_differs_from_component_sum": 0,
+    "source_total_count_sum": 79232
+  },
+  "status": "source-derived-observations-not-a-Fairmorph-RUN",
+  "note": "Git blob SHA-1 values are repository object identities, NOT SHA-256 of raw source bytes; Engine must independently import and hash raw bytes."
+}
