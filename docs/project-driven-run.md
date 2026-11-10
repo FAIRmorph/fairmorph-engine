@@ -161,3 +161,24 @@ decision evidence. It intentionally does **not** claim a production Workbench,
 complete v0.12 envelope/profile JSON-Schema validation, every event profile,
 full relation-assertion history, record-/cell-level provenance, generic
 export adapters or DwC-A/EML conformance. See `docs/P0.2-CHECKPOINT.md`.
+
+
+## P0.3 – physical row and cell lineage in RUN/2
+
+The generic declarative pipeline emits `audit/lineage.parquet` alongside
+the published output Parquet tables. It traces physical source rows and cells
+through `table.select/1`, `table.filter/1`, `table.distinct/1`,
+`table.derive/1` (including conditional selection), `table.join/1`
+and `table.unpivot/1`. Explicit semantic projections copy those references
+to the `SamplingEvent`, `Occurrence` or `MeasurementOrFact` targets.
+Every referenced import is identified by `resource_id`, original-object
+SHA-256, zero-based source data-row offset and original column name.
+Row and cell lineage are separately identifiable using `lineage_type`.
+
+The evidence is a checksummed RUN/2 artifact. `verify-project` reconstructs
+the lineage from the pinned source and DAG and compares it with the stored
+Parquet. Output rows without physical source values (constants or unmatched
+joins) are marked `source_kind=derived`. Data-row offsets are technical
+provenance, **not** stable biological identifiers. Missing and zero values
+remain distinct. For schema, invariants, tests and deliberate PoC boundaries,
+see [P0.3 checkpoint](P0.3-CHECKPOINT.md).
