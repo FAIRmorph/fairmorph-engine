@@ -8,6 +8,7 @@ import pytest
 from typer.testing import CliRunner
 
 from fairmorph_engine.cli import app
+from fairmorph_engine.core.domain_profiles import install_builtin_profiles, profile_bindings_for
 from fairmorph_engine.core.entity_projection import confirm_projection
 from fairmorph_engine.core.export import verified_run, verify_project
 from fairmorph_engine.core.pipeline_run import register_pipeline
@@ -26,6 +27,7 @@ from fairmorph_engine.core.relation_assertions import (
 def _project(tmp_path, *, include_foreign_key=False):
     project = tmp_path / "survey.fairmorph"
     initialize_project(project)
+    install_builtin_profiles(project, "same-user")
     source = tmp_path / "survey.csv"
     source.write_text(
         "event,event_type,occurrence,measurement,measurement_type,count\n"
@@ -82,6 +84,7 @@ def _project(tmp_path, *, include_foreign_key=False):
             }
         ],
         "outputs": ["selected"],
+        "profile_bindings": profile_bindings_for(project, ["SamplingEvent", "Occurrence", "MeasurementOrFact"]),
         "entities": {
             "SamplingEvent": {
                 "source_table": "selected",
