@@ -1,4 +1,5 @@
 """P0.6 dataset metadata revision contract – project files, no scientific CLI arguments."""
+
 import json
 
 import pytest
@@ -17,22 +18,30 @@ def draft(project, title, parent=None):
     path = project / "configurations" / "drafts" / "dataset-metadata.json"
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(
-        json.dumps({
-            "schema_version": "fairmorph.dataset-metadata/1",
-            "title": title,
-            "parent_revision_sha256": parent,
-        }), encoding="utf-8",
+        json.dumps(
+            {
+                "schema_version": "fairmorph.dataset-metadata/1",
+                "title": title,
+                "parent_revision_sha256": parent,
+            }
+        ),
+        encoding="utf-8",
     )
 
 
 def approval(project, sha, reviewer="researcher"):
     path = project / "configurations" / "drafts" / "dataset-metadata-approval.json"
-    path.write_text(json.dumps({
-        "schema_version": "fairmorph.dataset-metadata-approval/1",
-        "decision": "approve",
-        "revision_sha256": sha,
-        "confirmed_by": reviewer,
-    }), encoding="utf-8")
+    path.write_text(
+        json.dumps(
+            {
+                "schema_version": "fairmorph.dataset-metadata-approval/1",
+                "decision": "approve",
+                "revision_sha256": sha,
+                "confirmed_by": reviewer,
+            }
+        ),
+        encoding="utf-8",
+    )
 
 
 def test_draft_stage_approve_and_historical_revision(tmp_path):
@@ -148,11 +157,15 @@ def test_generic_run_pins_approved_title_and_preserves_older_run(tmp_path):
         "resources": {
             "survey": {"resource_id": resource["resource_id"], "format": "csv"},
         },
-        "steps": [{
-            "id": "choose", "operator": "table.select/1",
-            "inputs": ["survey"], "output": "selected",
-            "parameters": {"columns": ["sample", "count"]},
-        }],
+        "steps": [
+            {
+                "id": "choose",
+                "operator": "table.select/1",
+                "inputs": ["survey"],
+                "output": "selected",
+                "parameters": {"columns": ["sample", "count"]},
+            }
+        ],
         "outputs": ["selected"],
     }
     sha = register_pipeline(project, pipeline)["pipeline_sha256"]
@@ -173,7 +186,9 @@ def test_generic_run_pins_approved_title_and_preserves_older_run(tmp_path):
     second_snapshot = json.loads(
         (project / "runs" / second["run_id"] / "inputs.snapshot.json").read_text()
     )
-    assert second_snapshot["dataset_metadata_snapshot"]["title"] == "Title of approved survey dataset"
+    assert (
+        second_snapshot["dataset_metadata_snapshot"]["title"] == "Title of approved survey dataset"
+    )
     assert second_snapshot["dataset_metadata_snapshot"]["revision_sha256"] == rev1
 
     draft(project, "Later revised title of survey dataset", rev1)
@@ -182,9 +197,10 @@ def test_generic_run_pins_approved_title_and_preserves_older_run(tmp_path):
     approve_dataset_metadata(project)
 
     assert verify_project(project)["completed_runs"] == 2
-    assert json.loads(
-        (project / "runs" / second["run_id"] / "inputs.snapshot.json").read_text()
-    ) == second_snapshot
+    assert (
+        json.loads((project / "runs" / second["run_id"] / "inputs.snapshot.json").read_text())
+        == second_snapshot
+    )
 
     revision_file = project / "configurations" / "dataset-metadata" / f"{rev1}.json"
     revision_file.write_text("{}", encoding="utf-8")
