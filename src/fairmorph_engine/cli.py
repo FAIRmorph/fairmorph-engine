@@ -263,6 +263,28 @@ def select_pipeline_command(
         raise typer.Exit(code=1) from error
 
 
+@app.command(name="approve-projection")
+def approve_projection_command(
+    project: Annotated[Path, typer.Option("--project")],
+    pipeline_sha256: Annotated[str, typer.Option("--pipeline-sha256")],
+    reviewer: Annotated[str, typer.Option("--reviewer")],
+) -> None:
+    """Approve an explicit, version-pinned entity projection."""
+    from jsonschema.exceptions import ValidationError
+
+    from fairmorph_engine.core.entity_projection import approve_projection
+
+    try:
+        emit_event(
+            "result",
+            status="success",
+            data=approve_projection(project, pipeline_sha256, reviewer),
+        )
+    except (ValueError, RuntimeError, OSError, KeyError, ValidationError) as error:
+        emit_event("result", status="error", message=str(error))
+        raise typer.Exit(code=1) from error
+
+
 @app.command(name="handshake")
 def handshake() -> None:
     """Advertise the supported PoC contract without changing any project data."""
@@ -285,6 +307,7 @@ def handshake() -> None:
                 "run-pipeline",
                 "register-pipeline",
                 "select-pipeline",
+                "approve-projection",
                 "export-package",
                 "verify-project",
                 "reconcile-runs",
