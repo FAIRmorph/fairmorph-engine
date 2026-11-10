@@ -1,4 +1,4 @@
-# Framework v0.12 – generic RUN executor (integration increment)
+> **Historische P0.1-/P0.2-Konzeptnotiz.** Der aktuelle Engine-Stand enthält zusätzlich P0.3 sparses Change Audit, P0.4 Relationsassertions und P0.5 verpflichtende Profile und kuratierte Metadaten. Für die gegenwärtigen Verträge siehe [v0.13 Scope](FRAMEWORK-v0.13-POC-SCOPE.md) und [Project-driven RUN](project-driven-run.md). Keine rückwärtsgerichtete Kompatibilitätspflicht unter v1.0.\n\n# Framework v0.12 – generic RUN executor (integration increment)
 
 This implementation supplies a dataset-neutral **wide-to-long count** executor
 that consumes a project-local, explicitly reviewed mapping and field-definition
