@@ -84,7 +84,9 @@ def _project(tmp_path, *, include_foreign_key=False):
             }
         ],
         "outputs": ["selected"],
-        "profile_bindings": profile_bindings_for(project, ["SamplingEvent", "Occurrence", "MeasurementOrFact"]),
+        "profile_bindings": profile_bindings_for(
+            project, ["SamplingEvent", "Occurrence", "MeasurementOrFact"]
+        ),
         "entities": {
             "SamplingEvent": {
                 "source_table": "selected",
