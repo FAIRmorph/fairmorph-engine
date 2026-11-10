@@ -153,6 +153,23 @@ Further coverage in `test_generic_run_executor.py` rejects unapproved mappings, 
 
 **No merge, release or PR-ready transition is performed by creating this record.**
 
+## Mandatory v0.12 vertical acceptance gate (binding; not yet met)
+
+**Release blocker:** The preceding 94-test CI result proves only the implemented generic RUN/2 and isolated publication components. It does **not** constitute complete v0.12 acceptance. PR #10 must remain Draft until the criteria below are implemented and evidenced.
+
+1. **One configuration-only execution interface.** A public Engine CLI/API accepts a versioned project pipeline configuration, runs all stages without dataset-specific Python modules, and emits structured machine-readable results suitable for a future Workbench interview/UI. The Engine must never import or invoke `examples/cs-phoc/legacy/*.py`, `run_reference_publication.py`, or any project-specific Python code on the production path.
+2. **Generic declarative pipeline.** JSON Schema-validated, immutable, approved configuration; allowlisted versioned operators; explicit input/output dependencies; deterministic DAG order; typed transformations, join, lookup, projection, stable identifier derivation, conditional mappings; source-to-output lineage and reproducible artifacts. No unrestricted Python expressions, arbitrary imports or implicit scientific inferences.
+3. **Verified publication artifacts.** The same generic RUN produces both Event and Occurrence Parquet tables as checksum-pinned artifacts, with row-level lineage, identity/foreign-key validation and a manifest. Versioned EML metadata, Darwin Core bindings, publication projection and integrity contracts drive only the generic EML/DwC-A adapters. Generated EML is validated against an official offline EML 2.2.0 XSD; generated DwC-A `meta.xml` against the official TDWG XSD, plus archive references, CSV widths, checksums and expected rows.
+4. **Two independent vertical E2E datasets.** The real CS-PHOC inputs and an independent synthetic dataset with different column names, structures and semantics run through the **same public Engine entry point**. Only input data and declarative configs differ. Both produce independently validated `eml.xml`, `dwca.zip`, manifest and lineage, with asserted expected/actual metrics.
+5. **Cross-platform and negative tests.** Ubuntu and Windows CI execute both vertical cases; invalid schemas, missing/ambiguous joins, duplicate IDs, orphan Occurrences, tampered inputs/artifacts, unsupported operators, missing metadata and invalid export contracts fail closed. The report pins tested commit SHA, expected/actual values and downloadable outputs.
+6. **Human sign-off.** No merge, release or transition out of Draft without explicit authorization and documented review of remaining limitations.
+
+**Current status: NOT MET.** The current CS-PHOC reference export still executes example-specific Python logic and is not evidence for items 1–4. It may remain only as an independent comparison oracle; it must not be invoked as a step in the production pipeline. The current reference-publication JSON is not a validated generic publication contract.
+
+**Acceptance evidence required:** a new CI run against the final implementation commit, exact expected/actual rows and file hashes for both datasets, official schema validation results and the executed public CLI commands. No future result may be inferred from the earlier passing RUN/2 baseline.
+
+---
+
 ## 8. Reproduction
 
 From a clean checkout of the **pinned baseline SHA**:
