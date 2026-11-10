@@ -490,7 +490,6 @@ def show_metadata_snapshot_command(
         raise typer.Exit(code=1) from error
 
 
-
 @app.command(name="show-dataset-metadata")
 def show_dataset_metadata_command(
     project: Annotated[Path, typer.Option("--project")],
