@@ -43,6 +43,6 @@ export has not yet been converted to consume that completed generic RUN.
 RUN/1 and RUN/2 contract consolidation must happen **with** this migration,
 not as an unsafe partial change. There are no earlier scientific RUNs to migrate.
 
-The profile's draft status is intentional. A scientific reviewer must explicitly
-approve each mapping revision; the engine does not accept a bundled example as
+The profile's draft status is intentional. The responsible user must explicitly
+confirm each mapping revision; the engine does not accept a bundled example as
 implicit authorisation. No Workbench changes or publication action.
