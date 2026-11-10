@@ -32,7 +32,7 @@ def select_project_mapping(project: Path, mapping_sha256: str) -> dict:
     """Bind a reviewed mapping revision to the project; do not create a RUN."""
     if not re.fullmatch(r"[0-9a-f]{64}", mapping_sha256):
         raise ValueError("Mapping SHA-256 must be 64 lowercase hex digits")
-    # This verifies the independent mapping and field-definition review events.
+    # This verifies explicit revision-bound mapping and field-definition confirmations.
     mapping_snapshot(project, mapping_sha256)
     path, descriptor = _project_descriptor(project)
     descriptor["active_mapping_sha256"] = mapping_sha256
