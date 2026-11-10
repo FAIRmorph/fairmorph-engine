@@ -59,3 +59,53 @@ Generic Event/Occurrence materialization, publication validation and the two
 vertical E2E datasets remain separate acceptance steps. The generic RUN
 outputs are not yet supported by the legacy `export-package` adapter, which
 expects mapping-specific `observations.parquet` and `lineage.parquet`.
+
+## P0.2: Reviewed semantic entity projections
+
+A Workbench can write the `entities` member into the same content-addressed
+pipeline definition. It must explicitly describe the source table, user
+meaning and every source-to-target field mapping for **Observation, Event and
+Occurrence**. For example:
+
+```json
+"entities": {
+  "Observation": {
+    "source_table": "observations",
+    "description": "User-confirmed observation row and event semantics.",
+    "fields": {"observationID": "observation_key", "eventID": "event_key"}
+  },
+  "Event": {
+    "source_table": "events",
+    "description": "User-confirmed sampling event semantics.",
+    "fields": {"eventID": "event_key"}
+  },
+  "Occurrence": {
+    "source_table": "occurrences",
+    "description": "User-confirmed occurrence and event semantics.",
+    "fields": {"occurrenceID": "occurrence_key", "eventID": "event_key"}
+  }
+}
+```
+
+After registration, an independent reviewer must explicitly approve the
+content-addressed projection **before** selecting it:
+
+```sh
+fairmorph-engine approve-projection --project ./survey.fairmorph --pipeline-sha256 <sha> --reviewer <reviewer>
+fairmorph-engine select-pipeline --project ./survey.fairmorph --pipeline-sha256 <sha>
+fairmorph-engine run-pipeline --project ./survey.fairmorph
+```
+
+The approval record is retained under `configurations/approvals/`. The RUN/2
+input snapshot records the reviewer, timestamp and pinned configuration SHA.
+The Engine never infers taxonomy, occurrence status or aggregation semantics.
+It enforces unique, non-null entity identifiers and checks declared Event and
+Observation foreign keys. Duplicate Event rows must be resolved explicitly
+by the declarative DAG (for example with `table.distinct/1`); the Engine does
+not silently deduplicate them. Zero values remain unchanged, and missing
+values remain null when present in the mapped source.
+
+This projection contract is a v0.12 PoC integration, **not** a substitute for
+the complete SourceFieldDefinition revision/review workflow. A future
+Workbench must bind its approved field revisions to the semantic projection
+before production acceptance. Record-level lineage remains P0.3.
