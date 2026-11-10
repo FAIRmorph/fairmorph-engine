@@ -1,6 +1,6 @@
 # FAIRmorph Engine — User Guide
 
-**Audience:** Data curators, scientific reviewers and operators running the generic CSV-to-Parquet workflow. **Scope:** Framework v0.12 Draft branch (Python package version `0.1.0`). This guide uses **synthetic, dataset-independent** inputs. The code and JSON Schemas in the branch are authoritative.
+**Audience:** Curators and operators. **Scope:** Framework **v0.13 vertical PoC** (Python package `0.1.0`). This guide primarily documents the **external CSV-mapping reference path**, not the newer generic DAG + semantic Entity path; both are active and have intentionally different RUN artifacts. Synthetic demonstration only, not general scientific/product validation. [PoC rules](FRAMEWORK-v0.13-POC-SCOPE.md).
 
 ## 1. Requirements and installation
 
@@ -305,3 +305,19 @@ Reconciliation validates completed RUN directories and restores missing index re
 For acceptance, run `ruff check src tests`, `ruff format --check src tests`, and `pytest --cov=fairmorph_engine --cov-report=xml`. The fault-injection suite and generic end-to-end tests must pass on both Ubuntu and Windows before formal PoC recovery acceptance. The CS-PHOC reference is optional and manually triggered; it is not an engine configuration default.
 
 **Further reading:** [Architecture](ARCHITECTURE.md) · [API Reference](API-REFERENCE.md) · [Data Contracts](DATA-CONTRACTS.md) · [Operations](OPERATIONS.md).
+
+
+## 10. Distinct semantic Entity RUN path (P0.2–P0.5, v0.13)
+
+The earlier sections document `run-mapping` and its historical `observations.parquet` + `lineage.parquet`. For current **generic Entity pipelines**, do **not** expect that artifact layout. The entity path is:
+
+1. `init-project` and `import-resource`; technical import has no domain profile requirement.
+2. Define relevant source fields (`registry.define_field`) and explicitly approve their revisions (`review_field`), retaining source resource ID, field ID, revision ID and definition hash.
+3. `install-profile-contracts --project <path> --confirmed-by <user>`; retrieve exact envelope/entity schema bindings using `profile-bindings --entities SamplingEvent,MeasurementOrFact`.
+4. Declare the versioned DAG, `entities` mappings and required **`profile_bindings`**. A semantic config without them is invalid. `register-pipeline`, `confirm-projection --confirmed-by <user>`, and `select-pipeline` must succeed.
+5. Optionally use `assert-relation`, `replace-relation` or `retract-relation`, and `record-metadata` for curated envelope revisions. These actions are explicitly user-confirmed, not inferred from field names.
+6. `run-pipeline` and `verify-project` publish and check named Parquet/entity tables, `audit/pipeline.json`, sparse `audit/value_changes.parquet` **only when value changes exist**, and input snapshots pinning profile, relation and curated metadata revisions. There is no mandatory full cell-lineage artifact for generic DAG runs.
+
+Detailed declaration, column pins and command examples: [Project-driven RUN](project-driven-run.md), [P0.5 checkpoint](P0.5-CHECKPOINT.md). Full v0.12 source contracts + v0.13 addendum are available in the technical framework source bundle.
+
+**Compatibility:** No previous PoC RUNs have to be migrated. Before the framework reaches version 1.0, maintain **forward consistency**, not backward-compatible experimental readers; never silently alter immutable source bytes or a published valid RUN.
