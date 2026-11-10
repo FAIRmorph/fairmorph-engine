@@ -1,6 +1,7 @@
 """Generic pipeline contracts, ordering and rejection tests."""
 import polars as pl
 import pytest
+from jsonschema.exceptions import ValidationError
 
 from fairmorph_engine.core.pipeline import execute_pipeline
 
@@ -42,7 +43,7 @@ def test_generic_derived_ids_and_filter():
 
 
 def test_rejects_unsupported_operator_and_cycle():
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         execute_pipeline({"schema_version": "fairmorph.pipeline/1", "steps": [
             step("exec", "python.eval", ["source"], "output", code="1+1")
         ]}, {"source": pl.DataFrame({"a": [1]})})
