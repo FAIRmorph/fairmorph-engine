@@ -87,8 +87,9 @@ Occurrence**. For example:
 }
 ```
 
-After registration, an independent reviewer must explicitly approve the
-content-addressed projection **before** selecting it:
+After registration, the responsible user must explicitly confirm the
+content-addressed projection **before** selecting it. No second person or
+four-eyes review is required:
 
 ```sh
 fairmorph-engine approve-projection --project ./survey.fairmorph --pipeline-sha256 <sha> --reviewer <reviewer>
