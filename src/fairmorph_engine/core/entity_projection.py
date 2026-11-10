@@ -4,6 +4,7 @@ Scientific meaning is supplied by confirmed SourceFieldDefinition revisions.
 The engine validates provenance; it never infers an ecological interpretation.
 """
 
+import json
 import re
 import sqlite3
 from datetime import UTC, datetime
@@ -19,6 +20,7 @@ from fairmorph_engine.core.registry import (
 )
 
 ENTITIES = ("Observation", "Event", "Occurrence", "MeasurementOrFact")
+ID = {"Observation": "observationID", "Event": "eventID", "Occurrence": "occurrenceID", "MeasurementOrFact": "measurementID"}
 RELATIONS = {
     "Observation": {"eventID": "Event"},
     "Occurrence": {"eventID": "Event", "observationID": "Observation"},
@@ -46,8 +48,8 @@ def validate_entities(config: dict) -> None:
         if not isinstance(spec["description"], str) or len(spec["description"].strip()) < 12:
             raise ValueError(f"{kind} requires a substantive user description")
         fields = spec["fields"]
-        if not isinstance(fields, dict) or "entityID" not in fields:
-            raise ValueError(f"{kind} requires an explicit technical entityID")
+        if not isinstance(fields, dict) or ID[kind] not in fields:
+            raise ValueError(f"{kind} requires an explicit {ID[kind]} binding")
         for target, binding in fields.items():
             if not isinstance(target, str) or not _NAME.fullmatch(target):
                 raise ValueError("Invalid semantic target field")
@@ -207,11 +209,12 @@ def _evidence(project: Path, config: dict, tables: dict) -> dict:
                     if not resource_names:
                         raise ValueError("Field definition references an unbound resource")
                     original_column = None
-                    for fmt in resource_names.values():
-                        prefix = "csv:" if fmt == "csv" else "parquet:"
-                        if locator == {"kind": "column", "path": prefix + locator["path"][len(prefix):]} and locator["path"].startswith(prefix):
-                            original_column = locator["path"][len(prefix):]
-                            break
+                    if locator.get("kind") == "column":
+                        for fmt in resource_names.values():
+                            prefix = "csv:" if fmt == "csv" else "parquet:"
+                            if locator["path"].startswith(prefix):
+                                original_column = locator["path"][len(prefix):]
+                                break
                     if original_column is None or (resource_id, original_column) not in source:
                         raise ValueError("Field definition does not match source-column provenance")
                     if definition["semantic_status"] != "defined":
@@ -303,8 +306,6 @@ def confirm_projection(project: Path, sha: str, confirmed_by: str) -> dict:
 
 def require_confirmation(project: Path, sha: str) -> dict:
     """Resolve and verify revision-bound evidence from the project catalog."""
-    import json
-
     if not _SHA.fullmatch(sha):
         raise ValueError("Invalid projection configuration SHA-256")
     with _catalog(project) as db:
@@ -328,7 +329,7 @@ def require_confirmation(project: Path, sha: str) -> dict:
                 "WHERE review_id=? AND revision_id=?",
                 (item["confirmation"]["review_id"], item["revision_id"]),
             ).fetchone()
-            if review != (
+            if review is None or review != (
                 item["confirmation"]["decision"],
                 item["confirmation"]["confirmed_by"],
                 item["confirmation"]["confirmed_at"],
@@ -344,6 +345,13 @@ def require_confirmation(project: Path, sha: str) -> dict:
     }
 
 
+def verify_projection_evidence(project: Path, config: dict, tables: dict, confirmation: dict) -> None:
+    """Require exact source-field provenance at RUN execution."""
+    current = _evidence(project, config, tables)
+    if digest(current) != confirmation["evidence_sha256"]:
+        raise ValueError("Projection source-field definitions or provenance changed")
+
+
 def project_entities(config: dict, tables: dict[str, pl.DataFrame]) -> dict[str, pl.DataFrame]:
     """Materialize only declared entities, with no implicit scientific interpretation."""
     validate_entities(config)
@@ -357,11 +365,11 @@ def project_entities(config: dict, tables: dict[str, pl.DataFrame]) -> dict[str,
         output = frame.select(
             [pl.col(binding["column"]).alias(target) for target, binding in fields.items()]
         )
-        identity = output.get_column("entityID")
+        identity = output.get_column(ID[kind])
         if not output.height or identity.null_count() or identity.n_unique() != output.height:
-            raise ValueError(f"{kind} technical entityID must be unique and non-null")
+            raise ValueError(f"{kind} {ID[kind]} must be unique and non-null")
         if identity.dtype == pl.String and identity.str.strip_chars().eq("").any():
-            raise ValueError(f"{kind} technical entityID cannot be blank")
+            raise ValueError(f"{kind} {ID[kind]} cannot be blank")
         if kind == "Event" and "eventID" in output.columns:
             ids = output.get_column("eventID")
             if ids.null_count() or ids.n_unique() != output.height:
@@ -373,10 +381,11 @@ def project_entities(config: dict, tables: dict[str, pl.DataFrame]) -> dict[str,
         for foreign_key, parent in references.items():
             if foreign_key not in result[child].columns:
                 continue
-            if parent not in result or foreign_key not in result[parent].columns:
+            parent_key = ID[parent]
+            if parent not in result or parent_key not in result[parent].columns:
                 raise ValueError(f"{child}.{foreign_key} has no mapped parent identity")
             child_ids = result[child].get_column(foreign_key)
-            parent_ids = result[parent].get_column(foreign_key)
+            parent_ids = result[parent].get_column(parent_key)
             if child_ids.null_count() or child_ids.dtype != parent_ids.dtype:
                 raise ValueError(f"{child}.{foreign_key} contains missing/incompatible keys")
             if set(child_ids.to_list()) - set(parent_ids.to_list()):
