@@ -79,9 +79,7 @@ class ChangeAudit:
         self.steps: list[dict] = []
         self.changes: list[tuple] = []
 
-    def observe(
-        self, step: dict, inputs: list[pl.DataFrame], output: pl.DataFrame
-    ) -> None:
+    def observe(self, step: dict, inputs: list[pl.DataFrame], output: pl.DataFrame) -> None:
         operation = step["operator"]
         differences = 0
         without_baseline = []
