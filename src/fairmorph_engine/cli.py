@@ -289,6 +289,101 @@ def confirm_projection_command(
         raise typer.Exit(code=1) from error
 
 
+
+@app.command(name="assert-relation")
+def assert_relation_command(
+    project: Annotated[Path, typer.Option("--project")],
+    pipeline_sha256: Annotated[str, typer.Option("--pipeline-sha256")],
+    predicate: Annotated[str, typer.Option("--predicate")],
+    subject_id: Annotated[str, typer.Option("--subject-id")],
+    object_id: Annotated[str, typer.Option("--object-id")],
+    confirmed_by: Annotated[str, typer.Option("--confirmed-by")],
+    source_reference: Annotated[str, typer.Option("--source-reference")],
+) -> None:
+    """Record a confirmed, versioned relation assertion; no second reviewer."""
+    from jsonschema.exceptions import ValidationError
+
+    from fairmorph_engine.core.relation_assertions import assert_relation
+
+    try:
+        data = assert_relation(
+            project, pipeline_sha256, predicate, subject_id, object_id,
+            confirmed_by, source_reference,
+        )
+        emit_event("result", status="success", data=data)
+    except (ValueError, RuntimeError, OSError, KeyError, ValidationError) as error:
+        emit_event("result", status="error", message=str(error))
+        raise typer.Exit(code=1) from error
+
+
+@app.command(name="replace-relation")
+def replace_relation_command(
+    project: Annotated[Path, typer.Option("--project")],
+    pipeline_sha256: Annotated[str, typer.Option("--pipeline-sha256")],
+    relation_id: Annotated[str, typer.Option("--relation-id")],
+    object_id: Annotated[str, typer.Option("--object-id")],
+    confirmed_by: Annotated[str, typer.Option("--confirmed-by")],
+    source_reference: Annotated[str, typer.Option("--source-reference")],
+) -> None:
+    """Revise the target of an active relation by a new assertion."""
+    from jsonschema.exceptions import ValidationError
+
+    from fairmorph_engine.core.relation_assertions import replace_relation
+
+    try:
+        data = replace_relation(
+            project, pipeline_sha256, relation_id, object_id,
+            confirmed_by, source_reference,
+        )
+        emit_event("result", status="success", data=data)
+    except (ValueError, RuntimeError, OSError, KeyError, ValidationError) as error:
+        emit_event("result", status="error", message=str(error))
+        raise typer.Exit(code=1) from error
+
+
+@app.command(name="retract-relation")
+def retract_relation_command(
+    project: Annotated[Path, typer.Option("--project")],
+    pipeline_sha256: Annotated[str, typer.Option("--pipeline-sha256")],
+    relation_id: Annotated[str, typer.Option("--relation-id")],
+    confirmed_by: Annotated[str, typer.Option("--confirmed-by")],
+    source_reference: Annotated[str, typer.Option("--source-reference")],
+) -> None:
+    """Revoke an active relation without erasing its history."""
+    from jsonschema.exceptions import ValidationError
+
+    from fairmorph_engine.core.relation_assertions import retract_relation
+
+    try:
+        data = retract_relation(
+            project, pipeline_sha256, relation_id, confirmed_by, source_reference,
+        )
+        emit_event("result", status="success", data=data)
+    except (ValueError, RuntimeError, OSError, KeyError, ValidationError) as error:
+        emit_event("result", status="error", message=str(error))
+        raise typer.Exit(code=1) from error
+
+
+@app.command(name="show-relations")
+def show_relations_command(
+    project: Annotated[Path, typer.Option("--project")],
+    pipeline_sha256: Annotated[str, typer.Option("--pipeline-sha256")],
+) -> None:
+    """Show the pinned profile and current confirmed relations."""
+    from jsonschema.exceptions import ValidationError
+
+    from fairmorph_engine.core.relation_assertions import relation_snapshot
+
+    try:
+        emit_event(
+            "result", status="success",
+            data=relation_snapshot(project, pipeline_sha256),
+        )
+    except (ValueError, RuntimeError, OSError, KeyError, ValidationError) as error:
+        emit_event("result", status="error", message=str(error))
+        raise typer.Exit(code=1) from error
+
+
 @app.command(name="handshake")
 def handshake() -> None:
     """Advertise the supported PoC contract without changing any project data."""
@@ -312,6 +407,10 @@ def handshake() -> None:
                 "register-pipeline",
                 "select-pipeline",
                 "confirm-projection",
+                "assert-relation",
+                "replace-relation",
+                "retract-relation",
+                "show-relations",
                 "export-package",
                 "verify-project",
                 "reconcile-runs",
