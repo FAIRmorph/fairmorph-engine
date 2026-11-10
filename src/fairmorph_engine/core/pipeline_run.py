@@ -202,7 +202,7 @@ def verify_pipeline_run(project, run_dir, manifest):
     audit = json.loads((run_dir / "audit" / "pipeline.json").read_text(encoding="utf-8"))
     if audit["configuration_sha256"] != sha or audit["steps"] != config["steps"] or audit["source_bindings"] != pins:
         raise ValueError("RUN DAG audit mismatch")
-    expected_outputs = config["outputs"] + ([kind.lower() for kind in ("Observation", "Event", "Occurrence")] if "entities" in config else [])
+    expected_outputs = config["outputs"] + ([kind.lower() for kind in config["entities"]] if "entities" in config else [])
     if [item["name"] for item in audit["outputs"]] != expected_outputs:
         raise ValueError("RUN output binding mismatch")
     for item in audit["outputs"]:
