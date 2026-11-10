@@ -75,9 +75,9 @@ def select_project_pipeline(project: Path, pipeline_sha256: str) -> dict:
 
     config = load_pipeline(project, pipeline_sha256)
     if "entities" in config:
-        from fairmorph_engine.core.entity_projection import require_approval
+        from fairmorph_engine.core.entity_projection import require_confirmation
 
-        require_approval(project, pipeline_sha256)
+        require_confirmation(project, pipeline_sha256)
     resolve_resources(project, config)
     path, descriptor = _project_descriptor(project)
     descriptor["active_pipeline_sha256"] = pipeline_sha256
