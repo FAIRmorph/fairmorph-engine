@@ -145,18 +145,13 @@ def test_entity_vertical_slice_pins_fields_and_verifies_run(tmp_path):
     ].to_list() == [0, 4]
     snapshot = json.loads((run_dir / "inputs.snapshot.json").read_text(encoding="utf-8"))
     assert snapshot["projection_confirmation"]["confirmed_by"] == "responsible-user"
-    assert (
-        snapshot["projection_confirmation"]["evidence_sha256"]
-        == confirmation["evidence_sha256"]
-    )
+    assert snapshot["projection_confirmation"]["evidence_sha256"] == confirmation["evidence_sha256"]
     assert verify_project(project)["completed_runs"] == 1
 
 
 def test_event_only_run_does_not_require_occurrence(tmp_path):
     project, resource_id, pins = _setup(tmp_path)
-    sha = register_pipeline(project, _config(resource_id, pins, event_only=True))[
-        "pipeline_sha256"
-    ]
+    sha = register_pipeline(project, _config(resource_id, pins, event_only=True))["pipeline_sha256"]
     confirm_projection(project, sha, "responsible-user")
     select_project_pipeline(project, sha)
     manifest = execute_project_run(project)
