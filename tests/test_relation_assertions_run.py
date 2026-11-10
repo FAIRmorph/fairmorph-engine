@@ -124,9 +124,7 @@ def test_relations_are_pinned_and_old_run_survives_retraction(tmp_path):
         project, sha, "event_occurrence", "e1", "o1", "same-user", "fieldwork-note-2"
     )
     assert_relation(project, sha, "event_measurement", "e1", "m1", "same-user", "count-note")
-    assert_relation(
-        project, sha, "occurrence_measurement", "o1", "m1", "same-user", "count-note"
-    )
+    assert_relation(project, sha, "occurrence_measurement", "o1", "m1", "same-user", "count-note")
     assert len(relation_snapshot(project, sha)["active_assertions"]) == 4
 
     run_a = execute_project_run(project)
@@ -136,9 +134,11 @@ def test_relations_are_pinned_and_old_run_survives_retraction(tmp_path):
     assert original["profile"]["version"] == "0.12-poc.1"
     assert original["snapshot_sha256"]
     assert len(original["active_assertions"]) == 4
-    assert pl.read_parquet(dir_a / "outputs" / "measurementorfact.parquet")[
-        "value"
-    ].to_list() == [0, 4, 6]
+    assert pl.read_parquet(dir_a / "outputs" / "measurementorfact.parquet")["value"].to_list() == [
+        0,
+        4,
+        6,
+    ]
 
     revoked = retract_relation(project, sha, second["relation_id"], "same-user", "correction")
     assert revoked["operation"] == "retract"
@@ -150,28 +150,32 @@ def test_relations_are_pinned_and_old_run_survives_retraction(tmp_path):
     assert current["snapshot_sha256"] != original["snapshot_sha256"]
     run_b = execute_project_run(project)
     dir_b, _ = verified_run(project, run_b["run_id"])
-    assert len(
-        json.loads((dir_b / "inputs.snapshot.json").read_text())[
-            "relations_snapshot"
-        ]["active_assertions"]
-    ) == 3
+    assert (
+        len(
+            json.loads((dir_b / "inputs.snapshot.json").read_text())["relations_snapshot"][
+                "active_assertions"
+            ]
+        )
+        == 3
+    )
     assert verified_run(project, run_a["run_id"])[1] == run_a
     assert (
-        relation_snapshot(project, sha, through_sequence=original["through_sequence"])
-        == original
+        relation_snapshot(project, sha, through_sequence=original["through_sequence"]) == original
     )
     assert verify_project(project)["completed_runs"] == 2
 
     with sqlite3.connect(project / "catalog" / "catalog.sqlite") as db:
         assert db.execute(
-            "SELECT operation FROM relation_assertions WHERE relation_id=?"
-            " ORDER BY sequence",
+            "SELECT operation FROM relation_assertions WHERE relation_id=? ORDER BY sequence",
             (second["relation_id"],),
         ).fetchall() == [("assert",), ("retract",)]
-        assert db.execute(
-            "SELECT assertion_id FROM current_relations WHERE relation_id=?",
-            (second["relation_id"],),
-        ).fetchone() is None
+        assert (
+            db.execute(
+                "SELECT assertion_id FROM current_relations WHERE relation_id=?",
+                (second["relation_id"],),
+            ).fetchone()
+            is None
+        )
         with pytest.raises(sqlite3.DatabaseError, match="append-only"):
             db.execute(
                 "DELETE FROM relation_assertions WHERE assertion_id=?", (first["assertion_id"],)
@@ -224,12 +228,21 @@ def test_cli_assert_and_show_explicit_user_relation(tmp_path):
     result = CliRunner().invoke(
         app,
         [
-            "assert-relation", "--project", str(project),
-            "--pipeline-sha256", sha,
-            "--predicate", "parent_event",
-            "--subject-id", "e2", "--object-id", "e1",
-            "--confirmed-by", "same-user",
-            "--source-reference", "field-note-42",
+            "assert-relation",
+            "--project",
+            str(project),
+            "--pipeline-sha256",
+            sha,
+            "--predicate",
+            "parent_event",
+            "--subject-id",
+            "e2",
+            "--object-id",
+            "e1",
+            "--confirmed-by",
+            "same-user",
+            "--source-reference",
+            "field-note-42",
         ],
     )
     assert result.exit_code == 0, result.output
@@ -239,6 +252,6 @@ def test_cli_assert_and_show_explicit_user_relation(tmp_path):
         app, ["show-relations", "--project", str(project), "--pipeline-sha256", sha]
     )
     assert response.exit_code == 0, response.output
-    assert len(json.loads(response.output.strip().splitlines()[-1])["data"][
-        "active_assertions"
-    ]) == 1
+    assert (
+        len(json.loads(response.output.strip().splitlines()[-1])["data"]["active_assertions"]) == 1
+    )
