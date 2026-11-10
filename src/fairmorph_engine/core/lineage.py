@@ -75,10 +75,7 @@ def _step_trace(
     frame = frames[0]
     if operator == "table.select/1":
         traced = TableTrace(
-            cells=[
-                {column: row[column] for column in params["columns"]}
-                for row in base.cells
-            ],
+            cells=[{column: row[column] for column in params["columns"]} for row in base.cells],
             records=base.records,
         )
     elif operator == "table.filter/1":
@@ -105,9 +102,7 @@ def _step_trace(
         for index, row in enumerate(base.cells):
             updated = dict(row)
             for column, expression in params["expressions"].items():
-                updated[column] = _sources_of_expression(
-                    expression, base, index, frame, masks
-                )
+                updated[column] = _sources_of_expression(expression, base, index, frame, masks)
             cells.append(updated)
         traced = TableTrace(cells=cells, records=base.records)
     elif operator == "table.unpivot/1":
@@ -247,10 +242,7 @@ def trace_entities(config: dict, traces: dict[str, TableTrace]) -> dict[str, Tab
         source = traces[spec["source_table"]]
         result[kind.lower()] = TableTrace(
             cells=[
-                {
-                    target: row[binding["column"]]
-                    for target, binding in spec["fields"].items()
-                }
+                {target: row[binding["column"]] for target, binding in spec["fields"].items()}
                 for row in source.cells
             ],
             records=source.records,
@@ -288,7 +280,17 @@ def lineage_frame(
                 raise ValueError("Published output has no matching cell-level lineage")
             for resource, checksum, index in sorted(records):
                 rows.append(
-                    (name, output_index, None, "record", resource, checksum, index, None, "data_row")
+                    (
+                        name,
+                        output_index,
+                        None,
+                        "record",
+                        resource,
+                        checksum,
+                        index,
+                        None,
+                        "data_row",
+                    )
                 )
             for column in frame.columns:
                 origins = cells[column]
@@ -297,7 +299,14 @@ def lineage_frame(
                         (name, output_index, column, "cell", None, None, None, None, "derived")
                     )
                 for resource, checksum, index, field, kind in sorted(
-                    origins, key=lambda ref: (ref[0], ref[1], -1 if ref[2] is None else ref[2], ref[3], ref[4])
+                    origins,
+                    key=lambda ref: (
+                        ref[0],
+                        ref[1],
+                        -1 if ref[2] is None else ref[2],
+                        ref[3],
+                        ref[4],
+                    ),
                 ):
                     rows.append(
                         (name, output_index, column, "cell", resource, checksum, index, field, kind)
