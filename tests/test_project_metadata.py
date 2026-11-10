@@ -140,7 +140,7 @@ def test_generic_run_pins_approved_title_and_preserves_older_run(tmp_path):
     project = tmp_path / "project"
     initialize_project(project)
     source = tmp_path / "source.csv"
-    source.write_text("sample,count\\nS1,0\\nS2,3\\n", encoding="utf-8")
+    source.write_text("sample,count\nS1,0\nS2,3\n", encoding="utf-8")
     resource = import_resource(project, source, "survey")
     pipeline = {
         "schema_version": "fairmorph.pipeline/1",
