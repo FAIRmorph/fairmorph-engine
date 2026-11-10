@@ -182,9 +182,7 @@ def _confirmation_table(db: sqlite3.Connection) -> None:
     )
 
 
-def _evidence(
-    project: Path, config: dict, tables: dict, *, require_current: bool = True
-) -> dict:
+def _evidence(project: Path, config: dict, tables: dict, *, require_current: bool = True) -> dict:
     """Preflight every projected field against current, confirmed source revisions."""
     provenance = _column_provenance(config, tables)
     revisions = {}
