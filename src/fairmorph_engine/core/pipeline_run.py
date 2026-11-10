@@ -26,10 +26,9 @@ def pipeline_path(project, sha):
 
 
 def validate_pipeline(config):
-    if not isinstance(config, dict) or set(config) not in (
-        {"schema_version", "steps", "resources", "outputs"},
-        {"schema_version", "steps", "resources", "outputs", "entities"},
-    ):
+    required = {"schema_version", "steps", "resources", "outputs"}
+    allowed = required | {"entities", "profile_bindings"}
+    if not isinstance(config, dict) or not required.issubset(config) or set(config) - allowed:
         raise ValueError("Pipeline requires schema_version, steps, resources and outputs")
     schema = json.loads(
         (Path(__file__).resolve().parents[1] / "contracts" / "pipeline.schema.json").read_text()
@@ -42,6 +41,10 @@ def validate_pipeline(config):
         from fairmorph_engine.core.entity_projection import validate_entities
 
         validate_entities(config)
+    if "profile_bindings" in config:
+        from fairmorph_engine.core.domain_profiles import validate_profile_bindings
+
+        validate_profile_bindings(config)
     if not isinstance(resources, dict) or not resources:
         raise ValueError("Pipeline requires explicit resource bindings")
     for name, binding in resources.items():
@@ -77,6 +80,10 @@ def register_pipeline(project, config):
     if not (project / "project.json").is_file() or (project / "project.json").is_symlink():
         raise ValueError("Initialize project before registering a pipeline")
     validate_pipeline(config)
+    if "profile_bindings" in config:
+        from fairmorph_engine.core.domain_profiles import resolve_profiles
+
+        resolve_profiles(project, config)
     sha = hashlib.sha256(canonical_bytes(config)).hexdigest()
     path = pipeline_path(project, sha)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -96,6 +103,10 @@ def load_pipeline(project, sha):
         raise ValueError("Pinned pipeline missing")
     config = json.loads(path.read_text(encoding="utf-8"))
     validate_pipeline(config)
+    if "profile_bindings" in config:
+        from fairmorph_engine.core.domain_profiles import resolve_profiles
+
+        resolve_profiles(project, config)
     if hashlib.sha256(canonical_bytes(config)).hexdigest() != sha:
         raise ValueError("Pipeline configuration checksum mismatch")
     return config
@@ -159,6 +170,17 @@ def execute_pipeline_run(project, sha, emit=lambda *_a, **_k: None):
 
         verify_projection_evidence(project, config, tables, confirmation)
         entity_frames = project_entities(config, tables)
+    metadata = None
+    if "profile_bindings" in config:
+        from fairmorph_engine.core.domain_profiles import (
+            resolve_profiles,
+            validate_entity_profiles,
+        )
+        from fairmorph_engine.core.metadata_revisions import metadata_snapshot
+
+        resolved = resolve_profiles(project, config)
+        validate_entity_profiles(resolved, entity_frames)
+        metadata = metadata_snapshot(project, sha, entity_frames=entity_frames)
     relations = None
     if entity_frames:
         from fairmorph_engine.core.relation_assertions import relation_snapshot
@@ -190,6 +212,9 @@ def execute_pipeline_run(project, sha, emit=lambda *_a, **_k: None):
         if confirmation is not None:
             snapshot["projection_confirmation"] = confirmation
             snapshot["relations_snapshot"] = relations
+        if metadata is not None:
+            snapshot["profile_bindings"] = config["profile_bindings"]
+            snapshot["metadata_snapshot"] = metadata
         _write_json(staging / "inputs.snapshot.json", snapshot)
         _write_json(staging / "configuration.snapshot.json", config)
         _write_json(
@@ -287,6 +312,9 @@ def verify_pipeline_run(project, run_dir, manifest):
     if confirmation is not None:
         expected_snapshot["projection_confirmation"] = confirmation
         expected_snapshot["relations_snapshot"] = snapshot.get("relations_snapshot")
+    if "profile_bindings" in config:
+        expected_snapshot["profile_bindings"] = config["profile_bindings"]
+        expected_snapshot["metadata_snapshot"] = snapshot.get("metadata_snapshot")
     if snapshot != expected_snapshot:
         raise ValueError("RUN source pins mismatch")
     frames, _ = resolve_resources(project, config)
@@ -320,6 +348,26 @@ def verify_pipeline_run(project, run_dir, manifest):
             != saved_relations
         ):
             raise ValueError("Historical RUN relation snapshot mismatch")
+        if "profile_bindings" in config:
+            from fairmorph_engine.core.domain_profiles import (
+                resolve_profiles,
+                validate_entity_profiles,
+            )
+            from fairmorph_engine.core.metadata_revisions import metadata_snapshot
+
+            validate_entity_profiles(resolve_profiles(project, config), entity_frames)
+            saved_metadata = snapshot["metadata_snapshot"]
+            if (
+                not isinstance(saved_metadata, dict)
+                or metadata_snapshot(
+                    project,
+                    sha,
+                    through_sequence=saved_metadata["through_sequence"],
+                    entity_frames=entity_frames,
+                )
+                != saved_metadata
+            ):
+                raise ValueError("Historical RUN metadata snapshot mismatch")
     for name, frame in reconstructed.items():
         if not frame.equals(pl.read_parquet(run_dir / "outputs" / f"{name}.parquet")):
             raise ValueError("RUN output differs from pinned DAG input")
