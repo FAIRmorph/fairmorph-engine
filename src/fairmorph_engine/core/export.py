@@ -59,9 +59,14 @@ def verified_run(project: Path, run_id: str) -> tuple[Path, dict]:
     if sha256(run_dir / "inputs.snapshot.json") != manifest["input_snapshot_sha256"]:
         raise ValueError("RUN input snapshot mismatch")
     if manifest["schema_version"] == "fairmorph.poc.run/2":
-        from fairmorph_engine.core.run_executor import verify_mapping_run
+        if manifest["transformation_version"] == "fairmorph.pipeline/1":
+            from fairmorph_engine.core.pipeline_run import verify_pipeline_run
 
-        verify_mapping_run(project, run_dir, manifest)
+            verify_pipeline_run(project, run_dir, manifest)
+        else:
+            from fairmorph_engine.core.run_executor import verify_mapping_run
+
+            verify_mapping_run(project, run_dir, manifest)
     return run_dir, manifest
 
 
