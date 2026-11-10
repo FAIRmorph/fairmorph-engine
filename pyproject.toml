@@ -84,4 +84,4 @@ pythonpath = ["src"]
 addopts = "-v --strict-markers"
 
 [tool.setuptools.package-data]
-"fairmorph_engine" = ["contracts/*.schema.json"]
+"fairmorph_engine" = ["contracts/*.schema.json", "contracts/relation-profile.poc.json"]
