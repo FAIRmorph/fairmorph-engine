@@ -14,9 +14,7 @@ import polars as pl
 
 from fairmorph_engine.core.registry import _catalog, digest
 
-_PROFILE_PATH = (
-    Path(__file__).resolve().parents[1] / "contracts" / "relation-profile.poc.json"
-)
+_PROFILE_PATH = Path(__file__).resolve().parents[1] / "contracts" / "relation-profile.poc.json"
 _SOURCE_KINDS = {"user_confirmed", "imported_declared", "extracted", "suggested"}
 
 
@@ -81,9 +79,7 @@ def _events(db: sqlite3.Connection, sha: str, through: int | None) -> list[tuple
         arguments = (sha, through)
     statement += " ORDER BY sequence"
     events = []
-    for sequence, aid, rid, operation, previous, raw, checksum in db.execute(
-        statement, arguments
-    ):
+    for sequence, aid, rid, operation, previous, raw, checksum in db.execute(statement, arguments):
         payload = json.loads(raw)
         if (
             digest(payload) != checksum
@@ -175,10 +171,7 @@ def _entity_frames(project: Path, sha: str) -> dict[str, pl.DataFrame]:
 def _check_active(
     active: dict[str, dict], profile: dict, entities: dict[str, pl.DataFrame]
 ) -> None:
-    ids = {
-        kind: set(frame.get_column("entity_id").to_list())
-        for kind, frame in entities.items()
-    }
+    ids = {kind: set(frame.get_column("entity_id").to_list()) for kind, frame in entities.items()}
     by_subject = {}
     by_object = {}
     seen_edges = set()
@@ -285,8 +278,7 @@ def _assertion(
     if source_kind not in _SOURCE_KINDS:
         raise ValueError("Unknown relation source kind")
     if not all(
-        isinstance(value, str) and value.strip()
-        for value in (subject_entity_id, object_entity_id)
+        isinstance(value, str) and value.strip() for value in (subject_entity_id, object_entity_id)
     ):
         raise ValueError("Relation requires explicit technical entity identities")
     valid_time = _valid_time(valid_from, valid_to)
@@ -296,9 +288,7 @@ def _assertion(
         "relation_id": relation_id,
         "configuration_sha256": sha,
         "operation": operation,
-        "supersedes_assertion_id": (
-            previous["assertion_id"] if previous is not None else None
-        ),
+        "supersedes_assertion_id": (previous["assertion_id"] if previous is not None else None),
         "subject_type": subject_type,
         "subject_entity_id": subject_entity_id,
         "predicate": predicate,
@@ -427,11 +417,17 @@ def assert_relation(
 ) -> dict:
     """Record one confirmed assertion; no second/independent reviewer required."""
     return _append(
-        project, pipeline_sha256,
-        operation="assert", predicate=predicate,
-        subject_entity_id=subject_entity_id, object_entity_id=object_entity_id,
-        confirmed_by=confirmed_by, source_reference=source_reference,
-        source_kind=source_kind, valid_from=valid_from, valid_to=valid_to,
+        project,
+        pipeline_sha256,
+        operation="assert",
+        predicate=predicate,
+        subject_entity_id=subject_entity_id,
+        object_entity_id=object_entity_id,
+        confirmed_by=confirmed_by,
+        source_reference=source_reference,
+        source_kind=source_kind,
+        valid_from=valid_from,
+        valid_to=valid_to,
     )
 
 
@@ -447,10 +443,13 @@ def replace_relation(
 ) -> dict:
     """Re-point an existing relation by a new assertion, never an overwrite."""
     return _append(
-        project, pipeline_sha256,
-        operation="replace", relation_id=relation_id,
+        project,
+        pipeline_sha256,
+        operation="replace",
+        relation_id=relation_id,
         object_entity_id=new_object_entity_id,
-        confirmed_by=confirmed_by, source_reference=source_reference,
+        confirmed_by=confirmed_by,
+        source_reference=source_reference,
         source_kind=source_kind,
     )
 
@@ -464,9 +463,12 @@ def retract_relation(
 ) -> dict:
     """Revoke a relation with an append-only event, preserving old RUNs."""
     return _append(
-        project, pipeline_sha256,
-        operation="retract", relation_id=relation_id,
-        confirmed_by=confirmed_by, source_reference=source_reference,
+        project,
+        pipeline_sha256,
+        operation="retract",
+        relation_id=relation_id,
+        confirmed_by=confirmed_by,
+        source_reference=source_reference,
     )
 
 
@@ -495,8 +497,7 @@ def relation_snapshot(
         if through_sequence is None:
             _check_current(db, pipeline_sha256, active)
         cutoff = (
-            through_sequence if through_sequence is not None
-            else (events[-1][0] if events else 0)
+            through_sequence if through_sequence is not None else (events[-1][0] if events else 0)
         )
     if entity_frames is not None:
         _check_active(active, profile, entity_frames)
@@ -508,8 +509,7 @@ def relation_snapshot(
         },
         "through_sequence": cutoff,
         "active_assertions": [
-            {"assertion_sha256": digest(doc), "assertion": doc}
-            for _, doc in sorted(active.items())
+            {"assertion_sha256": digest(doc), "assertion": doc} for _, doc in sorted(active.items())
         ],
     }
     return {**result, "snapshot_sha256": digest(result)}
