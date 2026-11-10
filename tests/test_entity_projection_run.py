@@ -158,7 +158,9 @@ def test_entity_vertical_slice_pins_fields_and_verifies_run(tmp_path):
 
 def test_event_only_run_does_not_require_occurrence(tmp_path):
     project, resource_id, pins = _setup(tmp_path)
-    sha = register_pipeline(project, _config(project, resource_id, pins, event_only=True))["pipeline_sha256"]
+    sha = register_pipeline(project, _config(project, resource_id, pins, event_only=True))[
+        "pipeline_sha256"
+    ]
     confirm_projection(project, sha, "responsible-user")
     select_project_pipeline(project, sha)
     manifest = execute_project_run(project)
