@@ -146,18 +146,10 @@ def test_entity_vertical_slice_pins_fields_and_verifies_run(tmp_path):
     snapshot = json.loads((run_dir / "inputs.snapshot.json").read_text(encoding="utf-8"))
     assert snapshot["projection_confirmation"]["confirmed_by"] == "responsible-user"
     assert snapshot["projection_confirmation"]["evidence_sha256"] == confirmation["evidence_sha256"]
-    # The semantic entity cell points to the original imported count cell.
-    lineage = pl.read_parquet(run_dir / "audit" / "lineage.parquet")
-    value = lineage.filter(
-        (pl.col("output_table") == "measurementorfact")
-        & (pl.col("output_row_index") == 0)
-        & (pl.col("output_column") == "value")
-        & (pl.col("lineage_type") == "cell")
-    )
-    assert value["source_resource_id"].to_list() == [resource_id]
-    assert value["source_row_index"].to_list() == [0]
-    assert value["source_column"].to_list() == ["count"]
-    assert value["source_object_sha256"].to_list() == [snapshot["sources"][0]["sha256"]]
+    # Projection only renames explicitly bound values: no per-cell copies are audited.
+    audit = json.loads((run_dir / "audit" / "pipeline.json").read_text(encoding="utf-8"))
+    assert audit["value_change_count"] == 0
+    assert not (run_dir / "audit" / "value_changes.parquet").exists()
     assert verify_project(project)["completed_runs"] == 1
 
 
