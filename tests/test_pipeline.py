@@ -21,10 +21,22 @@ def test_generic_dag_orders_steps_and_rejects_missing_join_keys():
     config = {
         "schema_version": "fairmorph.pipeline/1",
         "steps": [
-            step("z-project", "table.select/1", ["enriched"], "result",
-                 columns=["id", "event", "value"]),
-            step("a-join", "table.join/1", ["counts", "events"], "enriched",
-                 keys=["event"], cardinality="m:1", require_match=True),
+            step(
+                "z-project",
+                "table.select/1",
+                ["enriched"],
+                "result",
+                columns=["id", "event", "value"],
+            ),
+            step(
+                "a-join",
+                "table.join/1",
+                ["counts", "events"],
+                "enriched",
+                keys=["event"],
+                cardinality="m:1",
+                require_match=True,
+            ),
         ],
     }
     sources = {
@@ -45,7 +57,10 @@ def test_generic_derived_ids_and_filter():
         "schema_version": "fairmorph.pipeline/1",
         "steps": [
             step(
-                "derive", "table.derive/1", ["source"], "named",
+                "derive",
+                "table.derive/1",
+                ["source"],
+                "named",
                 expressions={
                     "record": {
                         "concat": [{"column": "event"}, {"literal": "-"}, {"column": "category"}]
@@ -60,7 +75,10 @@ def test_generic_derived_ids_and_filter():
                 },
             ),
             step(
-                "filter", "table.filter/1", ["named"], "positive",
+                "filter",
+                "table.filter/1",
+                ["named"],
+                "positive",
                 predicate={"column": "value", "op": "gt", "value": 0},
             ),
         ],
