@@ -52,9 +52,7 @@ def _setup(tmp_path, *, install=True):
         }
         if column == "count":
             definition["counting_unit"] = "individual"
-        registered = define_field(
-            project, imported["resource_id"], f"csv:{column}", definition
-        )
+        registered = define_field(project, imported["resource_id"], f"csv:{column}", definition)
         review_field(project, registered["revision_id"], "owner", "approved")
         pins[column] = {
             "source_resource_id": imported["resource_id"],
@@ -72,9 +70,7 @@ def _setup(tmp_path, *, install=True):
 
     config = {
         "schema_version": "fairmorph.pipeline/1",
-        "resources": {
-            "survey": {"resource_id": imported["resource_id"], "format": "csv"}
-        },
+        "resources": {"survey": {"resource_id": imported["resource_id"], "format": "csv"}},
         "steps": [
             {
                 "id": "select",
@@ -154,9 +150,7 @@ def test_v012_profile_bundle_is_valid_and_is_installed_by_explicit_user(tmp_path
     for schema in [*bundle["domains"].values(), bundle["envelope"]]:
         Draft202012Validator.check_schema(schema)
         version = "0.8.0"
-        registered, checksum = get_schema(
-            project, schema_id=schema["$id"], schema_version=version
-        )
+        registered, checksum = get_schema(project, schema_id=schema["$id"], schema_version=version)
         assert checksum
         assert registered == schema
     assert config["profile_bindings"]["entities"]["SamplingEvent"]["schema_version"] == "0.8.0"
@@ -187,23 +181,29 @@ def test_approved_profiles_and_metadata_are_pinned_without_cell_duplication(tmp_
     assert len(frozen["active_revisions"]) == 1
     assert frozen["active_revisions"][0]["metadata_revision_id"] == first["metadata_revision_id"]
     assert frozen["schema_pins"]["envelope"]["schema_sha256"]
-    assert "audit/lineage.parquet" not in {
-        item["path"] for item in first_run["artifacts"]
-    }
+    assert "audit/lineage.parquet" not in {item["path"] for item in first_run["artifacts"]}
     assert not (run_dir / "audit" / "value_changes.parquet").exists()
 
     with pytest.raises(ValueError, match="current parent"):
         register_metadata_revision(
-            project, sha, entity_type="SamplingEvent", entity_id="e1",
+            project,
+            sha,
+            entity_type="SamplingEvent",
+            entity_id="e1",
             attributes={"event_type": "point_count"},
             field_provenance=_provenance("event_type"),
-            source="user_confirmed", confirmed_by="owner",
+            source="user_confirmed",
+            confirmed_by="owner",
         )
     updated = register_metadata_revision(
-        project, sha, entity_type="SamplingEvent", entity_id="e1",
+        project,
+        sha,
+        entity_type="SamplingEvent",
+        entity_id="e1",
         attributes={"event_type": "point_count", "remarks": "Updated review evidence"},
         field_provenance=_provenance("event_type", "remarks"),
-        source="user_confirmed", confirmed_by="owner",
+        source="user_confirmed",
+        confirmed_by="owner",
         parent_revision_id=first["metadata_revision_id"],
     )
     assert updated["parent_revision_id"] == first["metadata_revision_id"]
@@ -212,9 +212,7 @@ def test_approved_profiles_and_metadata_are_pinned_without_cell_duplication(tmp_
     second_run = execute_project_run(project)
     verified_run(project, second_run["run_id"])
     assert verified_run(project, first_run["run_id"])[1] == first_run
-    assert metadata_snapshot(
-        project, sha, through_sequence=frozen["through_sequence"]
-    ) == frozen
+    assert metadata_snapshot(project, sha, through_sequence=frozen["through_sequence"]) == frozen
     assert verify_project(project)["completed_runs"] == 2
     with sqlite3.connect(project / "catalog" / "catalog.sqlite") as db:
         with pytest.raises(sqlite3.DatabaseError, match="append-only"):
@@ -242,24 +240,36 @@ def test_invalid_values_provenance_and_schema_pin_are_blocked(tmp_path):
     sha = _confirmed(project, config)
     with pytest.raises(ValueError, match="field_provenance"):
         register_metadata_revision(
-            project, sha, entity_type="SamplingEvent", entity_id="e1",
+            project,
+            sha,
+            entity_type="SamplingEvent",
+            entity_id="e1",
             attributes={"event_type": "point_count"},
             field_provenance={},
-            source="user_confirmed", confirmed_by="owner",
+            source="user_confirmed",
+            confirmed_by="owner",
         )
     with pytest.raises(ValueError, match="does not exist in confirmed projection"):
         register_metadata_revision(
-            project, sha, entity_type="SamplingEvent", entity_id="nonexistent",
+            project,
+            sha,
+            entity_type="SamplingEvent",
+            entity_id="nonexistent",
             attributes={"event_type": "point_count"},
             field_provenance=_provenance("event_type"),
-            source="user_confirmed", confirmed_by="owner",
+            source="user_confirmed",
+            confirmed_by="owner",
         )
     with pytest.raises(ValueError, match="minimum|profile validation"):
         register_metadata_revision(
-            project, sha, entity_type="MeasurementOrFact", entity_id="m1",
+            project,
+            sha,
+            entity_type="MeasurementOrFact",
+            entity_id="m1",
             attributes={"measurement_type": "count", "value": 0, "uncertainty": -2},
             field_provenance=_provenance("measurement_type", "value", "uncertainty"),
-            source="user_confirmed", confirmed_by="owner",
+            source="user_confirmed",
+            confirmed_by="owner",
         )
     assert metadata_snapshot(project, sha)["active_revisions"] == []
 
@@ -280,9 +290,10 @@ def test_later_approved_schema_version_does_not_reinterpret_old_run(tmp_path):
         status="approved",
         reviewer="owner",
     )
-    assert registered["schema_sha256"] != config["profile_bindings"]["entities"][
-        "SamplingEvent"
-    ]["schema_sha256"]
+    assert (
+        registered["schema_sha256"]
+        != config["profile_bindings"]["entities"]["SamplingEvent"]["schema_sha256"]
+    )
     assert verified_run(project, run["run_id"])[1] == run
     with pytest.raises(ValueError, match="immutable"):
         register_schema(
@@ -298,7 +309,9 @@ def test_later_approved_schema_version_does_not_reinterpret_old_run(tmp_path):
 
 def test_general_v012_profile_rules_without_global_taxon_or_transect_requirements():
     schemas = profile_bundle()["domains"]
-    validate_attributes(schemas["SamplingEvent"], {"event_type": "sensor_interval"}, context="event")
+    validate_attributes(
+        schemas["SamplingEvent"], {"event_type": "sensor_interval"}, context="event"
+    )
     validate_attributes(schemas["Occurrence"], {}, context="occurrence")
     validate_attributes(schemas["Sample"], {}, context="sample")
     validate_attributes(schemas["Transect"], {}, context="transect")
@@ -316,15 +329,20 @@ def test_general_v012_profile_rules_without_global_taxon_or_transect_requirement
     with pytest.raises(ValueError, match="start must precede end"):
         validate_attributes(
             schemas["SamplingEvent"],
-            {"event_type": "sensor_interval", "event_time": {
-                "start": "2026-11-10T16:00:00Z", "end": "2026-11-10T15:00:00Z"
-            }},
+            {
+                "event_type": "sensor_interval",
+                "event_time": {"start": "2026-11-10T16:00:00Z", "end": "2026-11-10T15:00:00Z"},
+            },
             context="backwards time",
         )
     with pytest.raises(ValueError, match="profile validation"):
         validate_attributes(
             schemas["MediaAsset"],
-            {"file_object_hash": "invalid", "media_type": "image/jpeg", "original_filename": "a.jpg"},
+            {
+                "file_object_hash": "invalid",
+                "media_type": "image/jpeg",
+                "original_filename": "a.jpg",
+            },
             context="bad file hash",
         )
 
@@ -337,9 +355,13 @@ def test_cli_profile_install_and_binding_template(tmp_path):
     )
     assert install.exit_code == 0, install.output
     show = runner.invoke(
-        app, [
-            "profile-bindings", "--project", str(project),
-            "--entities", "SamplingEvent,MeasurementOrFact",
+        app,
+        [
+            "profile-bindings",
+            "--project",
+            str(project),
+            "--entities",
+            "SamplingEvent,MeasurementOrFact",
         ],
     )
     assert show.exit_code == 0, show.output
