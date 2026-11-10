@@ -13,6 +13,10 @@ Installed executable: `fairmorph-engine` (Typer). Success and error events are w
 | `stage-csv-mapping` | `--project PATH --resource-id ID --profile FILE` | Validate profile and register draft mapping/fields |
 | `approve-mapping` | `--project PATH --mapping-sha256 HASH --confirmed-by TEXT` | Explicitly approve mapping and field revisions |
 | `run-mapping` | `--project PATH --mapping-sha256 HASH` | Execute approved mapping as RUN/2 |
+| `register-pipeline` | `--project PATH --definition FILE` | Register a versioned declarative DAG and optional entity mappings |
+| `confirm-projection` | `--project PATH --pipeline-sha256 HASH --confirmed-by USER` | Confirm exact field-revision pins and entity projection as the responsible user |
+| `select-pipeline` | `--project PATH --pipeline-sha256 HASH` | Select a confirmed project DAG revision |
+| `run-pipeline` | `--project PATH` | Run the selected mapping/DAG and publish RUN/2 |
 | `export-package` | `--project PATH --run-id ID` | Export verified RUN as a Data Package |
 | `verify-project` | `--project PATH` | Read-only integrity and index checks |
 | `reconcile-runs` | `--project PATH` | Explicitly repair interrupted RUN publication |
@@ -36,7 +40,7 @@ The publication adapters are Python APIs; `cli.py` does not expose a complete pu
 - `canonical_bytes(document: dict) -> bytes`: sorted, deterministic JSON encoding (not a formal RFC 8785 guarantee).
 - `digest(document: dict) -> str`: SHA-256 of the canonical bytes.
 - `define_field(project, resource_id, locator, definition, parent_revision_id=None) -> dict`: store an immutable schema-validated field revision.
-- `review_field(project, revision_id, reviewer, decision) -> dict`: record `approved` or `rejected`.
+- `review_field(project, revision_id, reviewer, decision) -> dict`: record `approved` or `rejected` by the confirming user; no separate reviewer is required.
 - `register_mapping(project, mapping: dict) -> dict`: store a draft mapping version with revision bindings.
 - `approve_mapping(project, mapping_sha256, reviewer) -> dict`: approve a valid mapping version.
 - `mapping_snapshot(project, mapping_sha256) -> dict`: resolve source, field and mapping pins for execution.
@@ -44,7 +48,7 @@ The publication adapters are Python APIs; `cli.py` does not expose a complete pu
 ## 4. External profiles — `core.profile`
 
 - `stage_csv_mapping(project: Path, resource_id: str, profile_file: Path) -> dict`: validate the external CSV mapping profile, source columns and declared relationships; register drafts.
-- `approve_staged_mapping(project: Path, mapping_sha256: str, reviewer: str) -> dict`: approve the staged field revisions and mapping in a SQLite transaction.
+- `approve_staged_mapping(project: Path, mapping_sha256: str, reviewer: str) -> dict`: confirm the staged field revisions and mapping in a SQLite transaction (parameter is the confirming user).
 
 Relationship preflight checks resources, keys, declared cardinality and missing-key policy. Malformed CSV records (including too many or too few fields) are rejected.
 
@@ -64,12 +68,22 @@ Both operate on explicitly declared columns; neither infers scientific semantics
 - `core.export.verify_project(project: Path) -> dict`: validate sources, imports, packages, indexed RUNs, SQLite references and exports; includes `completed_runs`, `exports`, `status`.
 - `core.run_recovery.reconcile_runs(project: Path) -> dict`: validate completed RUN directories and repair missing SQLite/JSON index entries; includes `recovered`, `pending`, `status`. **Never run concurrently with writers.**
 
-## 7. Local schema registry — `core.schema_registry`
+## 7. P0.2 semantic entity projection
+
+- `core.pipeline_run.register_pipeline(project, config) -> dict`: store SHA-256-pinned declarative DAG (and optional `entities`).
+- `core.entity_projection.confirm_projection(project, sha, confirmed_by) -> dict`: validate the exact `SourceFieldDefinition` revisions and field provenance, then store one revision-bound user confirmation in SQLite.
+- `core.entity_projection.require_confirmation(project, sha) -> dict`: retrieve and validate the pinned confirmation/evidence.
+- `core.project_execution.select_project_pipeline(project, pipeline_sha256)`: select only a confirmed semantic projection when `entities` are present.
+- `core.pipeline_run.execute_pipeline_run(project, sha, emit=...)`: produce RUN/2 materialized `SamplingEvent`, optional `Occurrence` and `MeasurementOrFact`, snapshots and checksums.
+
+This is a v0.12 **vertical PoC**, not a complete production schema or publication adapter. The `--confirmed-by` argument is a user identity, not a four-eyes or external-review requirement. See `docs/project-driven-run.md` and `docs/P0.2-CHECKPOINT.md`.
+
+## 8. Local schema registry — `core.schema_registry`
 
 - `register_schema(project, *, schema_id, schema_version, kind, schema, status="draft", reviewer=None) -> dict`: validate Draft 2020-12, reject remote references and persist immutable content under SHA-256. Kinds: `core`, `source`, `export`, `extension`.
 - `get_schema(project, *, schema_id, schema_version) -> tuple[dict, str]`: load only an exact version and verify its content pin.
 
-## 8. Publication APIs
+## 9. Publication APIs
 
 These functions consume **explicit external** profiles and metadata; they do not infer Darwin Core semantics.
 
@@ -87,6 +101,6 @@ These functions consume **explicit external** profiles and metadata; they do not
 
 A preflight or materialization result with `publication_ready: false` is not a final publication approval.
 
-## 9. Error handling
+## 10. Error handling
 
 Typical errors include `ValueError` (invalid profiles, unapproved mappings, integrity failures), `OSError` (filesystem), SQLite exceptions, JSON Schema `ValidationError` and missing optional processing dependencies. Integrations should inspect `result` events, avoid manual edits to RUNs, and use recovery only after stopping writers.
