@@ -1,0 +1,128 @@
+"""P0.6 dataset metadata revision contract – project files, no scientific CLI arguments."""
+import json
+
+import pytest
+
+from fairmorph_engine.core.project import initialize_project
+from fairmorph_engine.core.project_metadata import (
+    approve_dataset_metadata,
+    dataset_metadata_snapshot,
+    show_dataset_metadata,
+    stage_dataset_metadata,
+)
+
+
+def draft(project, title, parent=None):
+    path = project / "configurations" / "drafts" / "dataset-metadata.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps({
+            "schema_version": "fairmorph.dataset-metadata/1",
+            "title": title,
+            "parent_revision_sha256": parent,
+        }), encoding="utf-8",
+    )
+
+
+def approval(project, sha, reviewer="researcher"):
+    path = project / "configurations" / "drafts" / "dataset-metadata-approval.json"
+    path.write_text(json.dumps({
+        "schema_version": "fairmorph.dataset-metadata-approval/1",
+        "decision": "approve",
+        "revision_sha256": sha,
+        "confirmed_by": reviewer,
+    }), encoding="utf-8")
+
+
+def test_draft_stage_approve_and_historical_revision(tmp_path):
+    project = tmp_path / "project"
+    initialize_project(project)
+    assert show_dataset_metadata(project)["status"] == "unconfigured"
+    assert dataset_metadata_snapshot(project) is None
+
+    draft(project, "User-defined scientific dataset title")
+    staged = stage_dataset_metadata(project)
+    sha1 = staged["revision_sha256"]
+    assert staged["status"] == "staged"
+    assert show_dataset_metadata(project)["status"] == "unconfigured"
+    assert dataset_metadata_snapshot(project) is None
+
+    approval(project, sha1)
+    assert approve_dataset_metadata(project)["status"] == "approved"
+    old = dataset_metadata_snapshot(project)
+    assert old["revision_sha256"] == sha1
+    assert old["title"] == "User-defined scientific dataset title"
+    assert old["confirmed_by"] == "researcher"
+
+    draft(project, "Revised scientific dataset title", sha1)
+    sha2 = stage_dataset_metadata(project)["revision_sha256"]
+    assert sha2 != sha1
+    assert show_dataset_metadata(project)["revision_sha256"] == sha1
+    approval(project, sha2)
+    approve_dataset_metadata(project)
+    assert show_dataset_metadata(project)["revision_sha256"] == sha2
+    assert dataset_metadata_snapshot(project, sha1) == old
+    assert dataset_metadata_snapshot(project)["title"] == "Revised scientific dataset title"
+    assert (project / "configurations/dataset-metadata" / f"{sha1}.json").exists()
+
+
+def test_stale_drafts_and_double_approval_are_rejected(tmp_path):
+    project = tmp_path / "project"
+    initialize_project(project)
+    draft(project, "First scientific title")
+    sha = stage_dataset_metadata(project)["revision_sha256"]
+    approval(project, sha)
+    approve_dataset_metadata(project)
+    with pytest.raises(ValueError, match="already active|Stale"):
+        approve_dataset_metadata(project)
+    draft(project, "Outdated revised title", None)
+    with pytest.raises(ValueError, match="Stale"):
+        stage_dataset_metadata(project)
+    draft(project, "First scientific title", sha)
+    staged = stage_dataset_metadata(project)
+    assert staged["revision_sha256"] != sha
+
+
+def test_unapproved_and_invalid_files_are_rejected(tmp_path):
+    project = tmp_path / "project"
+    initialize_project(project)
+    draft(project, "A descriptive dataset title")
+    sha = stage_dataset_metadata(project)["revision_sha256"]
+    approval(project, sha, "  ")
+    with pytest.raises(Exception):
+        approve_dataset_metadata(project)
+    approval(project, "f" * 64)
+    with pytest.raises(ValueError, match="Unknown"):
+        approve_dataset_metadata(project)
+    assert show_dataset_metadata(project)["status"] == "unconfigured"
+    draft(project, "x")
+    with pytest.raises(Exception):
+        stage_dataset_metadata(project)
+
+
+def test_tampered_staged_revision_is_detected(tmp_path):
+    project = tmp_path / "project"
+    initialize_project(project)
+    draft(project, "A scientific dataset title")
+    sha = stage_dataset_metadata(project)["revision_sha256"]
+    revision = project / "configurations/dataset-metadata" / f"{sha}.json"
+    revision.write_text('{"title":"tampered"}', encoding="utf-8")
+    approval(project, sha)
+    with pytest.raises(ValueError, match="changed or missing"):
+        approve_dataset_metadata(project)
+
+
+def test_sqlite_revisions_and_approval_are_append_only(tmp_path):
+    import sqlite3
+
+    project = tmp_path / "project"
+    initialize_project(project)
+    draft(project, "A scientific dataset title")
+    sha = stage_dataset_metadata(project)["revision_sha256"]
+    approval(project, sha)
+    approve_dataset_metadata(project)
+    with sqlite3.connect(project / "catalog/catalog.sqlite") as db:
+        with pytest.raises(sqlite3.IntegrityError):
+            db.execute("DELETE FROM dataset_metadata_revisions WHERE revision_sha256=?", (sha,))
+        with pytest.raises(sqlite3.IntegrityError):
+            db.execute("UPDATE dataset_metadata_approvals SET confirmed_by='other'")
