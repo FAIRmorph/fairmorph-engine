@@ -159,6 +159,11 @@ def execute_pipeline_run(project, sha, emit=lambda *_a, **_k: None):
 
         verify_projection_evidence(project, config, tables, confirmation)
         entity_frames = project_entities(config, tables)
+    relations = None
+    if entity_frames:
+        from fairmorph_engine.core.relation_assertions import relation_snapshot
+
+        relations = relation_snapshot(project, sha, entity_frames=entity_frames)
     started = datetime.now(UTC).isoformat()
     run_id = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ") + "-" + uuid.uuid4().hex[:12]
     staging = project / "runs" / f".pending-{run_id}"
@@ -184,6 +189,7 @@ def execute_pipeline_run(project, sha, emit=lambda *_a, **_k: None):
         }
         if confirmation is not None:
             snapshot["projection_confirmation"] = confirmation
+            snapshot["relations_snapshot"] = relations
         _write_json(staging / "inputs.snapshot.json", snapshot)
         _write_json(staging / "configuration.snapshot.json", config)
         _write_json(
@@ -280,6 +286,7 @@ def verify_pipeline_run(project, run_dir, manifest):
     }
     if confirmation is not None:
         expected_snapshot["projection_confirmation"] = confirmation
+        expected_snapshot["relations_snapshot"] = snapshot.get("relations_snapshot")
     if snapshot != expected_snapshot:
         raise ValueError("RUN source pins mismatch")
     frames, _ = resolve_resources(project, config)
@@ -297,9 +304,22 @@ def verify_pipeline_run(project, run_dir, manifest):
         )
 
         verify_projection_evidence(project, config, tables, confirmation, historical=True)
-        reconstructed.update(
-            {kind.lower(): frame for kind, frame in project_entities(config, tables).items()}
-        )
+        entity_frames = project_entities(config, tables)
+        reconstructed.update({kind.lower(): frame for kind, frame in entity_frames.items()})
+        from fairmorph_engine.core.relation_assertions import relation_snapshot
+
+        saved_relations = snapshot["relations_snapshot"]
+        if (
+            not isinstance(saved_relations, dict)
+            or relation_snapshot(
+                project,
+                sha,
+                through_sequence=saved_relations["through_sequence"],
+                entity_frames=entity_frames,
+            )
+            != saved_relations
+        ):
+            raise ValueError("Historical RUN relation snapshot mismatch")
     for name, frame in reconstructed.items():
         if not frame.equals(pl.read_parquet(run_dir / "outputs" / f"{name}.parquet")):
             raise ValueError("RUN output differs from pinned DAG input")
