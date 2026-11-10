@@ -1,6 +1,7 @@
 """P0.2 explicit approved entity projection through public RUN/2."""
 
 import json
+import sqlite3
 
 import polars as pl
 import pytest
@@ -55,7 +56,15 @@ def test_approved_entities_materialize_into_verified_run(tmp_path):
     sha = register_pipeline(project, make_config(resource["resource_id"]))["pipeline_sha256"]
     with pytest.raises(ValueError, match="approval"):
         select_project_pipeline(project, sha)
-    approve_projection(project, sha, "scientific-reviewer")
+    approve_projection(project, sha, "responsible-user")
+    with sqlite3.connect(project / "catalog" / "catalog.sqlite") as db:
+        assert db.execute(
+            "SELECT confirmed_by FROM projection_confirmations WHERE configuration_sha256=?",
+            (sha,),
+        ).fetchone() == ("responsible-user",)
+    assert not (project / "configurations" / "approvals").exists()
+    with pytest.raises(ValueError, match="already confirmed"):
+        approve_projection(project, sha, "responsible-user")
     select_project_pipeline(project, sha)
     manifest = execute_project_run(project)
     run_dir, _ = verified_run(project, manifest["run_id"])
@@ -63,7 +72,7 @@ def test_approved_entities_materialize_into_verified_run(tmp_path):
     assert pl.read_parquet(run_dir / "outputs" / "event.parquet").height == 2
     assert pl.read_parquet(run_dir / "outputs" / "occurrence.parquet").height == 2
     snapshot = json.loads((run_dir / "inputs.snapshot.json").read_text())
-    assert snapshot["projection_approval"]["reviewer"] == "scientific-reviewer"
+    assert snapshot["projection_approval"]["reviewer"] == "responsible-user"
     assert verify_project(project)["completed_runs"] == 1
 
 
