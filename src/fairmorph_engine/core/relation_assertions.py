@@ -242,13 +242,21 @@ def _check_active(
 
 
 def _valid_time(start: str | None, end: str | None) -> dict:
-    for value in (start, end):
-        if value is not None:
-            try:
-                datetime.fromisoformat(value.replace("Z", "+00:00"))
-            except (TypeError, ValueError) as error:
-                raise ValueError("Invalid ISO-8601 relation validity time") from error
-    if start is not None and end is not None and start >= end:
+    def instant(value: str | None) -> datetime | None:
+        if value is None:
+            return None
+        if not isinstance(value, str) or not value.strip():
+            raise ValueError("Invalid ISO-8601 relation validity time")
+        try:
+            parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError as error:
+            raise ValueError("Invalid ISO-8601 relation validity time") from error
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=UTC)
+        return parsed.astimezone(UTC)
+
+    beginning, ending = instant(start), instant(end)
+    if beginning is not None and ending is not None and beginning >= ending:
         raise ValueError("Relation valid_from must precede valid_to")
     return {"valid_from": start, "valid_to": end}
 
