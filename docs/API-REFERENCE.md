@@ -78,12 +78,23 @@ Both operate on explicitly declared columns; neither infers scientific semantics
 
 This is a v0.12 **vertical PoC**, not a complete production schema or publication adapter. The `--confirmed-by` argument is a user identity, not a four-eyes or external-review requirement. See `docs/project-driven-run.md` and `docs/P0.2-CHECKPOINT.md`.
 
-## 8. Local schema registry — `core.schema_registry`
+## 8. P0.3 sparse change audit for generic DAG RUN/2
+
+- `core.pipeline.execute_pipeline(config, resources, on_step=...)`: optionally report each executed operator with input/output frames to an observer; does not change the registered DAG contract.
+- `core.change_audit.ChangeAudit`: collect per-step row counts and differences of directly comparable `table.derive/1` values without materializing a source-cell table.
+- `core.pipeline_run.execute_pipeline_run`: always write the checksummed `audit/pipeline.json` with `step_audit`; write `audit/value_changes.parquet` **only when actual differences occur**.
+- `core.pipeline_run.verify_pipeline_run`: reconstruct the pinned source/DAG outputs, step counts and optional change events; reject modified data or audit entries, including after a forged audit file hash.
+
+For combined/constant derived values without a single comparison baseline, `fields_without_direct_value_comparison` records the exceptional field in `audit/pipeline.json`. Normal field provenance remains deterministic via source hashes, field revisions and the saved declarative rule. This is **not** a guarantee of full per-cell auditability; see `docs/P0.3-CHECKPOINT.md`.
+
+The original profile-mapping RUN/2 path (`core.run_executor`) continues to use its own established lineage artifacts for the CS-PHOC reference demonstration. The sparse audit is the **generic DAG** P0.3 contract; harmonizing both paths is a separate planned task.
+
+## 9. Local schema registry — `core.schema_registry`
 
 - `register_schema(project, *, schema_id, schema_version, kind, schema, status="draft", reviewer=None) -> dict`: validate Draft 2020-12, reject remote references and persist immutable content under SHA-256. Kinds: `core`, `source`, `export`, `extension`.
 - `get_schema(project, *, schema_id, schema_version) -> tuple[dict, str]`: load only an exact version and verify its content pin.
 
-## 9. Publication APIs
+## 10. Publication APIs
 
 These functions consume **explicit external** profiles and metadata; they do not infer Darwin Core semantics.
 
@@ -101,6 +112,6 @@ These functions consume **explicit external** profiles and metadata; they do not
 
 A preflight or materialization result with `publication_ready: false` is not a final publication approval.
 
-## 10. Error handling
+## 11. Error handling
 
 Typical errors include `ValueError` (invalid profiles, unapproved mappings, integrity failures), `OSError` (filesystem), SQLite exceptions, JSON Schema `ValidationError` and missing optional processing dependencies. Integrations should inspect `result` events, avoid manual edits to RUNs, and use recovery only after stopping writers.
