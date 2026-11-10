@@ -214,6 +214,11 @@ def execute_pipeline_run(project, sha, emit=lambda *_a, **_k: None):
         if metadata is not None:
             snapshot["profile_bindings"] = config["profile_bindings"]
             snapshot["metadata_snapshot"] = metadata
+        from fairmorph_engine.core.project_metadata import dataset_metadata_snapshot
+
+        dataset_metadata = dataset_metadata_snapshot(project)
+        if dataset_metadata is not None:
+            snapshot["dataset_metadata_snapshot"] = dataset_metadata
         _write_json(staging / "inputs.snapshot.json", snapshot)
         _write_json(staging / "configuration.snapshot.json", config)
         _write_json(
@@ -314,6 +319,17 @@ def verify_pipeline_run(project, run_dir, manifest):
     if "profile_bindings" in config:
         expected_snapshot["profile_bindings"] = config["profile_bindings"]
         expected_snapshot["metadata_snapshot"] = snapshot.get("metadata_snapshot")
+    if "dataset_metadata_snapshot" in snapshot:
+        from fairmorph_engine.core.project_metadata import dataset_metadata_snapshot
+
+        saved_dataset = snapshot["dataset_metadata_snapshot"]
+        if (
+            not isinstance(saved_dataset, dict)
+            or dataset_metadata_snapshot(project, saved_dataset.get("revision_sha256"))
+            != saved_dataset
+        ):
+            raise ValueError("Historical RUN dataset metadata revision mismatch")
+        expected_snapshot["dataset_metadata_snapshot"] = saved_dataset
     if snapshot != expected_snapshot:
         raise ValueError("RUN source pins mismatch")
     frames, _ = resolve_resources(project, config)
