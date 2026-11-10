@@ -1,0 +1,28 @@
+{
+  "schema_version": "fairmorph.relation-profile/1",
+  "profile_id": "fairmorph.ecology.core",
+  "version": "0.12-poc.1",
+  "predicates": {
+    "parent_event": {
+      "subject": "SamplingEvent",
+      "object": "SamplingEvent",
+      "max_objects_per_subject": 1,
+      "acyclic": true
+    },
+    "event_occurrence": {
+      "subject": "SamplingEvent",
+      "object": "Occurrence",
+      "max_subjects_per_object": 1
+    },
+    "event_measurement": {
+      "subject": "SamplingEvent",
+      "object": "MeasurementOrFact",
+      "max_subjects_per_object": 1
+    },
+    "occurrence_measurement": {
+      "subject": "Occurrence",
+      "object": "MeasurementOrFact",
+      "max_subjects_per_object": 1
+    }
+  }
+}
