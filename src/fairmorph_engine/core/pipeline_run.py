@@ -12,6 +12,7 @@ from pathlib import Path
 import polars as pl
 from jsonschema import Draft202012Validator
 
+from fairmorph_engine.core.lineage import lineage_frame, trace_entities, trace_pipeline
 from fairmorph_engine.core.pipeline import execute_pipeline
 from fairmorph_engine.core.project import digest
 from fairmorph_engine.core.registry import canonical_bytes
@@ -155,6 +156,13 @@ def execute_pipeline_run(project, sha, emit=lambda *_a, **_k: None):
 
         verify_projection_evidence(project, config, tables, confirmation)
         entity_frames = project_entities(config, tables)
+    # Trace original source rows and cells through the same DAG and entity bindings.
+    # These are physical source locations, never inferred biological identities.
+    traces = trace_pipeline(config, tables, pins)
+    traces.update(trace_entities(config, traces))
+    published = {name: tables[name] for name in config["outputs"]}
+    published.update({kind.lower(): frame for kind, frame in entity_frames.items()})
+    lineage = lineage_frame(published, traces)
     started = datetime.now(UTC).isoformat()
     run_id = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ") + "-" + uuid.uuid4().hex[:12]
     staging = project / "runs" / f".pending-{run_id}"
@@ -163,6 +171,7 @@ def execute_pipeline_run(project, sha, emit=lambda *_a, **_k: None):
         (staging / "outputs").mkdir()
         (staging / "audit").mkdir()
         (staging / "reports").mkdir()
+        lineage.write_parquet(staging / "audit" / "lineage.parquet")
         metrics = []
         for name in config["outputs"]:
             frame = tables[name]
@@ -194,6 +203,7 @@ def execute_pipeline_run(project, sha, emit=lambda *_a, **_k: None):
             *(f"outputs/{n}.parquet" for n in config["outputs"]),
             *(f"outputs/{k.lower()}.parquet" for k in entity_frames),
             "audit/pipeline.json",
+            "audit/lineage.parquet",
             "reports/quality.json",
             "inputs.snapshot.json",
             "configuration.snapshot.json",
@@ -273,6 +283,33 @@ def verify_pipeline_run(project, run_dir, manifest):
         expected_snapshot["projection_confirmation"] = confirmation
     if snapshot != expected_snapshot:
         raise ValueError("RUN source pins mismatch")
+    if "audit/lineage.parquet" not in {item["path"] for item in manifest["artifacts"]}:
+        raise ValueError("RUN manifest must pin the source-lineage artifact")
+    # Reconstruct physical provenance from the pinned source bytes and DAG.
+    frames, _ = resolve_resources(project, config)
+    tables = execute_pipeline(
+        {"schema_version": config["schema_version"], "steps": config["steps"]}, frames
+    )
+    traces = trace_pipeline(config, tables, pins)
+    reconstructed = {name: tables[name] for name in config["outputs"]}
+    if "entities" in config:
+        from fairmorph_engine.core.entity_projection import (
+            project_entities,
+            verify_projection_evidence,
+        )
+
+        verify_projection_evidence(project, config, tables, confirmation)
+        reconstructed.update(
+            {kind.lower(): frame for kind, frame in project_entities(config, tables).items()}
+        )
+        traces.update(trace_entities(config, traces))
+    for name, frame in reconstructed.items():
+        if not frame.equals(pl.read_parquet(run_dir / "outputs" / f"{name}.parquet")):
+            raise ValueError("RUN output differs from pinned DAG input")
+    expected_lineage = lineage_frame(reconstructed, traces)
+    recorded_lineage = pl.read_parquet(run_dir / "audit" / "lineage.parquet")
+    if not expected_lineage.equals(recorded_lineage):
+        raise ValueError("RUN source-cell lineage mismatch")
     audit = json.loads((run_dir / "audit" / "pipeline.json").read_text(encoding="utf-8"))
     if (
         audit["configuration_sha256"] != sha
