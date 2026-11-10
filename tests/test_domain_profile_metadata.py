@@ -249,7 +249,7 @@ def test_invalid_values_provenance_and_schema_pin_are_blocked(tmp_path):
 
 def test_later_approved_schema_version_does_not_reinterpret_old_run(tmp_path):
     project, config = _setup(tmp_path)
-    sha = _confirmed(project, config)
+    _confirmed(project, config)
     run = execute_project_run(project)
     original = profile_bundle()["domains"]["SamplingEvent"]
     new_schema = json.loads(json.dumps(original))
