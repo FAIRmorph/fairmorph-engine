@@ -103,8 +103,8 @@ def _apply(operator, frames, params):
             raise ValueError("join requires keys")
         left, right = frames
         if (
-            left.select(keys).null_count().sum_horizontal().sum()
-            or right.select(keys).null_count().sum_horizontal().sum()
+            left.select(keys).null_count().sum_horizontal().item() > 0
+            or right.select(keys).null_count().sum_horizontal().item() > 0
         ):
             raise ValueError("Join keys must not contain nulls")
         cardinality = params["cardinality"]
