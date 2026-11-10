@@ -59,7 +59,7 @@ def main():
     mapping_file = args.output / "approved-mapping.json"
     mapping_file.write_text(json.dumps(mapping, indent=2) + "\n", encoding="utf-8")
     staged = command(runner, "stage-csv-mapping", "--project", project, "--resource-id", counts["resource_id"], "--profile", mapping_file)
-    command(runner, "approve-mapping", "--project", project, "--mapping-sha256", staged["mapping_sha256"], "--reviewer", "cs-phoc-reference-test")
+    command(runner, "approve-mapping", "--project", project, "--mapping-sha256", staged["mapping_sha256"], "--confirmed-by", "cs-phoc-reference-test")
     run = command(runner, "run-mapping", "--project", project, "--mapping-sha256", staged["mapping_sha256"])
     run_id = run["run_id"]
     run_dir, _ = verified_run(project, run_id)
