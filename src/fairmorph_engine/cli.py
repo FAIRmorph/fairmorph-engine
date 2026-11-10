@@ -185,6 +185,47 @@ def reconcile_runs_command(
         raise typer.Exit(code=1) from error
 
 
+@app.command(name="select-mapping")
+def select_mapping_command(
+    project: Annotated[Path, typer.Option("--project", help="Existing FAIRmorph project")],
+    mapping_sha256: Annotated[
+        str, typer.Option("--mapping-sha256", help="Explicitly approved mapping revision")
+    ],
+) -> None:
+    """Pin an approved mapping in project.json without changing Data Package descriptors."""
+    from jsonschema.exceptions import ValidationError
+
+    from fairmorph_engine.core.project_execution import select_project_mapping
+
+    try:
+        emit_event(
+            "result",
+            status="success",
+            data=select_project_mapping(project, mapping_sha256),
+        )
+    except (ValueError, RuntimeError, OSError, KeyError, ValidationError) as error:
+        emit_event("result", status="error", message=str(error))
+        raise typer.Exit(code=1) from error
+
+
+@app.command(name="run-pipeline")
+def run_pipeline_command(
+    project: Annotated[
+        Path, typer.Option("--project", help="Project with explicitly selected mapping")
+    ] = Path("."),
+) -> None:
+    """Execute the project's approved mapping using the immutable RUN/2 publisher."""
+    from jsonschema.exceptions import ValidationError
+
+    from fairmorph_engine.core.project_execution import execute_project_run
+
+    try:
+        execute_project_run(project, emit_event)
+    except (ValueError, RuntimeError, OSError, KeyError, ImportError, ValidationError) as error:
+        emit_event("result", status="error", message=str(error))
+        raise typer.Exit(code=1) from error
+
+
 @app.command(name="handshake")
 def handshake() -> None:
     """Advertise the supported PoC contract without changing any project data."""
@@ -203,6 +244,8 @@ def handshake() -> None:
                 "stage-csv-mapping",
                 "approve-mapping",
                 "run-mapping",
+                "select-mapping",
+                "run-pipeline",
                 "export-package",
                 "verify-project",
                 "reconcile-runs",
