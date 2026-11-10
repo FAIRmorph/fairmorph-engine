@@ -6,7 +6,6 @@ scientific meaning or to assign a Darwin Core publication profile.
 
 import json
 import math
-import sqlite3
 from datetime import date, datetime
 from pathlib import Path
 
