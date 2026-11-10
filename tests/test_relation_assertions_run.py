@@ -276,6 +276,10 @@ def test_valid_time_offsets_and_source_class_do_not_replace_user_confirmation(tm
     assert approved["review"]["status"] == "approved"
     assert approved["review"]["confirmed_by"] == "same-user"
     assert approved["recorded_at"] != approved["valid_time"]["valid_from"]
+    corrected = replace_relation(
+        project, sha, approved["relation_id"], "e3", "same-user", "correction-note"
+    )
+    assert corrected["valid_time"] == approved["valid_time"]
     with pytest.raises(ValueError, match="valid_from must precede valid_to"):
         assert_relation(
             project,
