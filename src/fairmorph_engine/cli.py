@@ -397,6 +397,99 @@ def show_relations_command(
         raise typer.Exit(code=1) from error
 
 
+@app.command(name="install-profile-contracts")
+def install_profile_contracts_command(
+    project: Annotated[Path, typer.Option("--project")],
+    confirmed_by: Annotated[str, typer.Option("--confirmed-by")],
+) -> None:
+    """Install explicitly approved local v0.12 schema and metadata contracts."""
+    from fairmorph_engine.core.domain_profiles import install_builtin_profiles
+
+    try:
+        emit_event(
+            "result",
+            status="success",
+            data=install_builtin_profiles(project, confirmed_by),
+        )
+    except (ValueError, RuntimeError, OSError, KeyError) as error:
+        emit_event("result", status="error", message=str(error))
+        raise typer.Exit(code=1) from error
+
+
+@app.command(name="profile-bindings")
+def profile_bindings_command(
+    project: Annotated[Path, typer.Option("--project")],
+    entities: Annotated[str, typer.Option("--entities")],
+) -> None:
+    """Show a project-resolved, explicit profile pin template for the DAG."""
+    from fairmorph_engine.core.domain_profiles import profile_bindings_for
+
+    try:
+        kinds = [value.strip() for value in entities.split(",") if value.strip()]
+        emit_event("result", status="success", data=profile_bindings_for(project, kinds))
+    except (ValueError, RuntimeError, OSError, KeyError) as error:
+        emit_event("result", status="error", message=str(error))
+        raise typer.Exit(code=1) from error
+
+
+@app.command(name="record-metadata")
+def record_metadata_command(
+    project: Annotated[Path, typer.Option("--project")],
+    pipeline_sha256: Annotated[str, typer.Option("--pipeline-sha256")],
+    entity_type: Annotated[str, typer.Option("--entity-type")],
+    entity_id: Annotated[str, typer.Option("--entity-id")],
+    attributes: Annotated[Path, typer.Option("--attributes")],
+    provenance: Annotated[Path, typer.Option("--provenance")],
+    source: Annotated[str, typer.Option("--source")],
+    confirmed_by: Annotated[str, typer.Option("--confirmed-by")],
+    parent_revision_id: Annotated[str | None, typer.Option("--parent-revision-id")] = None,
+) -> None:
+    """Append user-approved, schema-validated metadata; no source row duplication."""
+    from jsonschema.exceptions import ValidationError
+
+    from fairmorph_engine.core.metadata_revisions import register_metadata_revision
+
+    try:
+        if any(not path.is_file() or path.is_symlink() for path in (attributes, provenance)):
+            raise ValueError("Metadata input JSON files must be regular files")
+        result = register_metadata_revision(
+            project,
+            pipeline_sha256,
+            entity_type=entity_type,
+            entity_id=entity_id,
+            attributes=json.loads(attributes.read_text(encoding="utf-8")),
+            field_provenance=json.loads(provenance.read_text(encoding="utf-8")),
+            source=source,
+            confirmed_by=confirmed_by,
+            parent_revision_id=parent_revision_id,
+        )
+        emit_event("result", status="success", data=result)
+    except (ValueError, RuntimeError, OSError, KeyError, ValidationError) as error:
+        emit_event("result", status="error", message=str(error))
+        raise typer.Exit(code=1) from error
+
+
+@app.command(name="show-metadata-snapshot")
+def show_metadata_snapshot_command(
+    project: Annotated[Path, typer.Option("--project")],
+    pipeline_sha256: Annotated[str, typer.Option("--pipeline-sha256")],
+) -> None:
+    """Inspect current metadata pins without rewriting any historical RUN."""
+    from jsonschema.exceptions import ValidationError
+
+    from fairmorph_engine.core.metadata_revisions import metadata_snapshot
+
+    try:
+        emit_event(
+            "result",
+            status="success",
+            data=metadata_snapshot(project, pipeline_sha256),
+        )
+    except (ValueError, RuntimeError, OSError, KeyError, ValidationError) as error:
+        emit_event("result", status="error", message=str(error))
+        raise typer.Exit(code=1) from error
+
+
 @app.command(name="handshake")
 def handshake() -> None:
     """Advertise the supported PoC contract without changing any project data."""
@@ -424,6 +517,10 @@ def handshake() -> None:
                 "replace-relation",
                 "retract-relation",
                 "show-relations",
+                "install-profile-contracts",
+                "profile-bindings",
+                "record-metadata",
+                "show-metadata-snapshot",
                 "export-package",
                 "verify-project",
                 "reconcile-runs",
