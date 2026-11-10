@@ -127,9 +127,14 @@ def _step_trace(
         ):
             row = base.cells[source_index]
             origins = row[variable]
-            headers = frozenset(
-                (resource, checksum, None, column, "column_header")
-                for resource, checksum, _, column, _ in origins
+            # A transformed column name is generated, not a source-file header.
+            headers = (
+                frozenset(
+                    (resource, checksum, None, column, "column_header")
+                    for resource, checksum, _, column, _ in origins
+                )
+                if origins and all(column == variable for _, _, _, column, _ in origins)
+                else frozenset()
             )
             cells.append(
                 {
