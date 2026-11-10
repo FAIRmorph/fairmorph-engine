@@ -60,7 +60,7 @@ vertical E2E datasets remain separate acceptance steps. The generic RUN
 outputs are not yet supported by the legacy `export-package` adapter, which
 expects mapping-specific `observations.parquet` and `lineage.parquet`.
 
-## P0.2: Reviewed semantic entity projections
+## P0.2: Confirmed semantic entity projections
 
 A Workbench can write the `entities` member into the same content-addressed
 pipeline definition. It must explicitly describe the source table, user
@@ -92,16 +92,15 @@ content-addressed projection **before** selecting it. No second person or
 four-eyes review is required:
 
 ```sh
-fairmorph-engine approve-projection --project ./survey.fairmorph --pipeline-sha256 <sha> --reviewer <reviewer>
+fairmorph-engine confirm-projection --project ./survey.fairmorph --pipeline-sha256 <sha> --confirmed-by <user-id>
 fairmorph-engine select-pipeline --project ./survey.fairmorph --pipeline-sha256 <sha>
 fairmorph-engine run-pipeline --project ./survey.fairmorph
 ```
 
-The user confirmation is recorded as an append-only entry in the project
+The user confirmation is recorded as an immutable revision-bound entry in the project
 SQLite registry (`projection_confirmations`). The RUN/2 input snapshot records
-the confirming user, timestamp and pinned configuration SHA. Existing CLI
-`--reviewer` is retained for compatibility and denotes the confirming user,
-not an independent second person.
+the confirming user, timestamp and pinned configuration SHA. The CLI records the identity of the confirming user without requiring a
+second person.
 The Engine never infers taxonomy, occurrence status or aggregation semantics.
 It enforces unique, non-null entity identifiers and checks declared Event and
 Observation foreign keys. Duplicate Event rows must be resolved explicitly
