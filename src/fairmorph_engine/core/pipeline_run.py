@@ -46,7 +46,7 @@ def validate_pipeline(config):
         raise ValueError("Invalid published outputs")
     if not set(outputs).issubset({s["output"] for s in config["steps"]}):
         raise ValueError("Published outputs must be produced by DAG steps")
-    if set(outputs) & {kind.lower() for kind in config["entities"]} and "entities" in config:
+    if "entities" in config and set(outputs) & {kind.lower() for kind in config["entities"]}:
         raise ValueError("Entity output names are reserved for approved projections")
     if any(not re.fullmatch(r"[A-Za-z][A-Za-z0-9_-]*", n) for n in outputs):
         raise ValueError("Invalid output filename")
@@ -113,8 +113,12 @@ def execute_pipeline_run(project, sha, emit=lambda *_a, **_k: None):
     tables = execute_pipeline({"schema_version": config["schema_version"], "steps": config["steps"]}, frames)
     entity_frames = {}
     if "entities" in config:
-        from fairmorph_engine.core.entity_projection import project_entities
+        from fairmorph_engine.core.entity_projection import (
+            project_entities,
+            verify_projection_evidence,
+        )
 
+        verify_projection_evidence(project, config, tables, confirmation)
         entity_frames = project_entities(config, tables)
     started = datetime.now(UTC).isoformat()
     run_id = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ") + "-" + uuid.uuid4().hex[:12]
@@ -184,11 +188,11 @@ def verify_pipeline_run(project, run_dir, manifest):
     if saved != config:
         raise ValueError("RUN configuration mismatch")
     _, pins = resolve_resources(project, config)
-    approval = None
+    confirmation = None
     if "entities" in config:
-        from fairmorph_engine.core.entity_projection import require_approval
+        from fairmorph_engine.core.entity_projection import require_confirmation
 
-        approval = require_approval(project, sha)
+        confirmation = require_confirmation(project, sha)
     snapshot = json.loads((run_dir / "inputs.snapshot.json").read_text(encoding="utf-8"))
     expected_snapshot = {"schema_version": "fairmorph.pipeline.inputs/1", "configuration_sha256": sha, "sources": pins}
     if confirmation is not None:
