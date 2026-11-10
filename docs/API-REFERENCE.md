@@ -1,6 +1,6 @@
 # CLI and Python API Reference
 
-**Scope:** Draft branch `refactor/framework-v012-foundation`. Python functions are implementation interfaces, **not yet a stable SemVer SDK**. Signatures and return structures may change before acceptance. The authoritative sources are `src/fairmorph_engine/` and the tests.
+**Scope:** Technical framework **v0.13 vertical PoC** (P0.1–P0.5). Python implementation APIs are **not** a stable SemVer SDK, and this is not a complete v0.12 product. Before framework document version 1.0 there is **no backward-compatibility obligation** for experimental PoC contracts; changes must be **forward-consistent** across schema, code, tests and docs. Current implementation authority is `src/fairmorph_engine/` and its tests. See [v0.13 policy](FRAMEWORK-v0.13-POC-SCOPE.md).
 
 ## 1. CLI contract
 
