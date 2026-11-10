@@ -33,7 +33,7 @@ The import returns a `resource_id` and SHA-256 digest. An **explicit external ma
 
 ```bash
 fairmorph-engine stage-csv-mapping --project ./demo.fairmorph --resource-id RESOURCE_ID --profile ./mapping.json
-fairmorph-engine approve-mapping --project ./demo.fairmorph --mapping-sha256 MAPPING_SHA256 --reviewer reviewer
+fairmorph-engine approve-mapping --project ./demo.fairmorph --mapping-sha256 MAPPING_SHA256 --confirmed-by reviewer
 fairmorph-engine run-mapping --project ./demo.fairmorph --mapping-sha256 MAPPING_SHA256
 fairmorph-engine export-package --project ./demo.fairmorph --run-id RUN_ID
 fairmorph-engine verify-project --project ./demo.fairmorph
