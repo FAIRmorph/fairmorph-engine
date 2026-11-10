@@ -185,3 +185,69 @@ def register_package(project: Path, package_id: str, resources: dict[str, dict])
             )
     update_index(project, package_id=package_id)
     return descriptor
+
+
+
+def register_package_from_project_draft(project: Path) -> dict:
+    """Register a virtual package from a validated project-local draft.
+
+    The Engine resolves imported resources and immutable original bytes on its
+    own; callers cannot supply scientific values or source hashes via CLI.
+    """
+    from jsonschema import Draft202012Validator, FormatChecker
+
+    project = Path(project)
+    draft_path = project / "configurations" / "drafts" / "package-registration.json"
+    if (
+        not (project / "project.json").is_file()
+        or (project / "project.json").is_symlink()
+        or not draft_path.is_file()
+        or draft_path.is_symlink()
+    ):
+        raise ValueError("Expected an initialized project and regular package-registration draft")
+    spec = json.loads(draft_path.read_text(encoding="utf-8"))
+    schema_path = (
+        Path(__file__).resolve().parents[1]
+        / "contracts"
+        / "package-registration.schema.json"
+    )
+    schema = json.loads(schema_path.read_text(encoding="utf-8"))
+    Draft202012Validator(schema, format_checker=FormatChecker()).validate(spec)
+    roles = [entry["role"] for entry in spec["resources"]]
+    resource_ids = [entry["resource_id"] for entry in spec["resources"]]
+    if len(roles) != len(set(roles)) or len(resource_ids) != len(set(resource_ids)):
+        raise ValueError("Duplicate role or resource_id in package draft")
+
+    manifest_by_role = {}
+    catalog = project / "catalog" / "catalog.sqlite"
+    if not catalog.is_file() or catalog.is_symlink():
+        raise ValueError("Project catalog missing")
+    with sqlite3.connect(f"file:{catalog.resolve()}?mode=ro", uri=True) as db:
+        for entry in spec["resources"]:
+            role, resource_id = entry["role"], entry["resource_id"]
+            record = db.execute(
+                "SELECT import_id, original_name, object_sha256 FROM source_resources "
+                "WHERE resource_id=?", (resource_id,),
+            ).fetchone()
+            if record is None:
+                raise ValueError(f"Unregistered source resource: {resource_id}")
+            import_id, original_name, object_sha = record
+            import_path = project / "imports" / import_id / "manifest.json"
+            if not import_path.is_file() or import_path.is_symlink():
+                raise ValueError("Missing immutable import record")
+            manifest = json.loads(import_path.read_text(encoding="utf-8"))
+            expected_path = f"objects/sha256/{object_sha[:2]}/{object_sha}"
+            if (
+                manifest.get("import_id") != import_id
+                or manifest.get("original_name") != original_name
+                or manifest.get("role") != role
+                or manifest.get("sha256") != object_sha
+                or manifest.get("object_path") != expected_path
+            ):
+                raise ValueError("Package resource does not match registered import identity")
+            stored = project / expected_path
+            if not stored.is_file() or stored.is_symlink() or digest(stored) != object_sha:
+                raise ValueError("Immutable source object missing or corrupted")
+            manifest_by_role[role] = {**manifest, "resource_id": resource_id}
+
+    return register_package(project, spec["package_id"], manifest_by_role)
