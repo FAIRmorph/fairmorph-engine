@@ -3,27 +3,77 @@
   "$id": "https://www.fairmorph.org/contracts/poc/1/project.schema.json",
   "title": "FAIRmorph PoC project manifest",
   "type": "object",
-  "required": ["schema_version", "project_id", "name", "catalog_schema_version", "package_ids", "run_ids", "input_objects"],
+  "required": [
+    "schema_version",
+    "project_id",
+    "name",
+    "catalog_schema_version",
+    "package_ids",
+    "run_ids",
+    "input_objects"
+  ],
   "properties": {
-    "schema_version": {"const": "fairmorph.poc.project/1"},
-    "project_id": {"type": "string", "format": "uuid"},
-    "name": {"type": "string", "minLength": 1},
-    "catalog_schema_version": {"const": "poc/1"},
-    "package_ids": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
-    "run_ids": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
-    "input_objects": {"type": "array", "items": {"$ref": "#/$defs/object"}}
+    "schema_version": {
+      "const": "fairmorph.poc.project/1"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "catalog_schema_version": {
+      "const": "poc/1"
+    },
+    "package_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    },
+    "run_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    },
+    "input_objects": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/object"
+      }
+    },
+    "active_mapping_sha256": {
+      "$ref": "#/$defs/sha256",
+      "description": "Explicit project-selected approved mapping revision; never inferred from catalog"
+    }
   },
   "$defs": {
     "object": {
       "type": "object",
-      "required": ["sha256", "object_path"],
+      "required": [
+        "sha256",
+        "object_path"
+      ],
       "properties": {
-        "sha256": {"$ref": "#/$defs/sha256"},
-        "object_path": {"type": "string", "pattern": "^objects/sha256/[0-9a-f]{2}/[0-9a-f]{64}$"}
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "object_path": {
+          "type": "string",
+          "pattern": "^objects/sha256/[0-9a-f]{2}/[0-9a-f]{64}$"
+        }
       },
       "additionalProperties": false
     },
-    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
   },
   "additionalProperties": false
 }
