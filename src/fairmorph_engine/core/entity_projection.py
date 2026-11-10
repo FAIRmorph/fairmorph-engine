@@ -1,7 +1,7 @@
 """Explicit, reviewed Observation/Event/Occurrence projections.
 
 No dataset-specific inference: the Workbench can produce these declarative
-bindings, while a separate reviewer approves the pinned configuration.
+bindings, while the responsible user explicitly confirms the pinned configuration.
 """
 
 import json
@@ -56,7 +56,7 @@ def approve_projection(project: Path, sha: str, reviewer: str) -> dict:
     from fairmorph_engine.core.pipeline_run import load_pipeline
 
     if not isinstance(reviewer, str) or not reviewer.strip():
-        raise ValueError("Independent reviewer required")
+        raise ValueError("Explicit confirming user identity required")
     config = load_pipeline(project, sha)
     validate_entities(config)
     path = approval_path(project, sha)
@@ -76,7 +76,7 @@ def approve_projection(project: Path, sha: str, reviewer: str) -> dict:
 def require_approval(project: Path, sha: str) -> dict:
     path = approval_path(project, sha)
     if not path.is_file() or path.is_symlink():
-        raise ValueError("Projection requires explicit independent approval")
+        raise ValueError("Projection requires explicit user confirmation")
     record = json.loads(path.read_text(encoding="utf-8"))
     if set(record) != {"schema_version", "configuration_sha256", "reviewer", "reviewed_at", "decision"} or record["schema_version"] != "fairmorph.projection.approval/1" or record["configuration_sha256"] != sha or record["decision"] != "approved" or not record["reviewer"].strip():
         raise ValueError("Invalid projection approval")
