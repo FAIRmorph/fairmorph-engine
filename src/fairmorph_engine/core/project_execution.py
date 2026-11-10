@@ -2,7 +2,7 @@
 
 The project must explicitly pin an approved mapping revision. No mapping is
 inferred from catalog ordering, and no caller-supplied runtime config is used.
-The generic DAG publisher is a separate, still-open vertical integration task.
+Generic DAG configurations are explicitly SHA-256-pinned in the project.
 """
 
 import json
@@ -36,6 +36,7 @@ def select_project_mapping(project: Path, mapping_sha256: str) -> dict:
     mapping_snapshot(project, mapping_sha256)
     path, descriptor = _project_descriptor(project)
     descriptor["active_mapping_sha256"] = mapping_sha256
+    descriptor.pop("active_pipeline_sha256", None)
     temporary = path.with_name(f".project.{uuid.uuid4().hex}.tmp")
     try:
         with temporary.open("x", encoding="utf-8") as output:
@@ -56,8 +57,33 @@ def execute_project_run(project: Path, emit=lambda *_a, **_k: None) -> dict:
     snapshots, checksums, audit artifacts and recovery behavior.
     """
     _, descriptor = _project_descriptor(project)
+    pipeline_sha256 = descriptor.get("active_pipeline_sha256")
+    if pipeline_sha256:
+        from fairmorph_engine.core.pipeline_run import execute_pipeline_run
+
+        return execute_pipeline_run(project, pipeline_sha256, emit)
     mapping_sha256 = descriptor.get("active_mapping_sha256")
     if not mapping_sha256:
         raise ValueError("Project has no selected mapping; use select-mapping first")
     mapping_snapshot(project, mapping_sha256)
     return execute_mapping_run(project, mapping_sha256, emit)
+
+
+def select_project_pipeline(project: Path, pipeline_sha256: str) -> dict:
+    """Select an immutable declarative DAG, without inferring catalog ordering."""
+    from fairmorph_engine.core.pipeline_run import load_pipeline, resolve_resources
+
+    config = load_pipeline(project, pipeline_sha256)
+    resolve_resources(project, config)
+    path, descriptor = _project_descriptor(project)
+    descriptor["active_pipeline_sha256"] = pipeline_sha256
+    descriptor.pop("active_mapping_sha256", None)
+    temporary = path.with_name(f".project.{uuid.uuid4().hex}.tmp")
+    try:
+        temporary.write_text(
+            json.dumps(descriptor, sort_keys=True, indent=2) + "\n", encoding="utf-8"
+        )
+        os.replace(temporary, path)
+    finally:
+        temporary.unlink(missing_ok=True)
+    return {"project_id": descriptor["project_id"], "active_pipeline_sha256": pipeline_sha256}
