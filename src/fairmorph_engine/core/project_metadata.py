@@ -89,7 +89,7 @@ def _verified_revision(project: Path, db: sqlite3.Connection, sha: str) -> dict:
     row = db.execute(
         "SELECT content_json, parent_revision_sha256 FROM dataset_metadata_revisions "
         "WHERE revision_sha256=?",
-            (sha,)
+        (sha,),
     ).fetchone()
     if row is None:
         raise ValueError("Unknown dataset metadata revision")
@@ -118,7 +118,7 @@ def show_dataset_metadata(project: Path) -> dict:
         approval = db.execute(
             "SELECT confirmed_by, confirmed_at FROM dataset_metadata_approvals "
             "WHERE revision_sha256=?",
-            (sha,)
+            (sha,),
         ).fetchone()
         if approval is None:
             raise ValueError("Active dataset metadata lacks approval")
@@ -212,7 +212,7 @@ def dataset_metadata_snapshot(project: Path, revision_sha256: str | None = None)
         approval = db.execute(
             "SELECT confirmed_by, confirmed_at FROM dataset_metadata_approvals "
             "WHERE revision_sha256=?",
-            (sha,)
+            (sha,),
         ).fetchone()
         if approval is None:
             raise ValueError("Dataset metadata revision is unapproved")
