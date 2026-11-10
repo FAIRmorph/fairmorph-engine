@@ -41,10 +41,9 @@ def validate_pipeline(config):
         from fairmorph_engine.core.entity_projection import validate_entities
 
         validate_entities(config)
-    if "profile_bindings" in config:
-        from fairmorph_engine.core.domain_profiles import validate_profile_bindings
+    from fairmorph_engine.core.domain_profiles import validate_profile_bindings
 
-        validate_profile_bindings(config)
+    validate_profile_bindings(config)
     if not isinstance(resources, dict) or not resources:
         raise ValueError("Pipeline requires explicit resource bindings")
     for name, binding in resources.items():
