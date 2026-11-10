@@ -1,100 +1,96 @@
-# Architecture, Components and Concepts
+# FAIRmorph Engine — Architecture and v0.13 Vertical PoC
 
-## 1. System boundary
+**Status:** P0.1–P0.5 implemented and synthetically CI-tested; framework v0.13, Python package `0.1.0`. This is a **vertical PoC**, not a complete product. [Binding pre-1.0 rules](FRAMEWORK-v0.13-POC-SCOPE.md).
 
-The engine comprises a Typer CLI (`src/fairmorph_engine/cli.py`), Python core modules (`core/`), tabular transformations (`processing/`), versioned JSON Schema contracts (`contracts/`) and separate reference examples (`examples/`). Processing is local; the inspected core does not expose an HTTP or gRPC API.
+## 1. System boundary and trust model
+
+The headless Python Engine provides a Typer CLI (NDJSON result/progress events), project/source registry, declarative Polars processing, versioned field/schema decisions, materialized Parquet RUNs and discrete publication adapter prototypes. No persistent production Workbench IPC protocol, remotely accessible service or automatic scientific interpretation is claimed.
 
 ```text
-CSV / external mapping profiles / publication metadata
-                       |
-                 CLI (NDJSON)
-                       |
-             Project + SHA-256 object store
-                       |
-     SQLite: resources, field revisions, reviews, mappings
-                       |
-             Approval -> generic RUN/2 executor
-                       |
-       runs/<RUN_ID>/ (Parquet, lineage, snapshots, manifest)
-                       |
-       Verification -> Data Package / optional publication adapters
-                       |
-         Explicit interrupted-RUN reconciliation
+Unchanged CSV / Parquet input files
+              |
+         Import + SHA-256 object store       (no semantic profile required)
+              |
+       Project catalog and versioned decisions (SQLite)
+              |  SourceFieldDefinition + explicit user review
+              |  local domain profile ID / version / hash
+              |  append-only relation assertions & curated metadata
+              |
+       Version-pinned allowlisted Polars DAG
+              |
+        Project-selected RUN/2 (immutable published artifacts)
+         |            |               |
+   Named Parquet  Rule/count audit   Input/config/decision snapshots
+   outputs        + sparse changes   + checksummed manifest
+              |
+      Verification/reconstruction
+              |
+      Independent target-specific export prototypes
 ```
 
-## 2. Component inventory
+A separate **CSV external-profile path** (`stage-csv-mapping` / `approve-mapping` / `run-mapping`) remains for reference/CS-PHOC workflows. It emits `outputs/observations.parquet` and `audit/lineage.parquet`; its export adapter expects these specific artifacts. The generic DAG path emits named tables (and approved entity projections), `audit/pipeline.json`, and optional `audit/value_changes.parquet`; it does **not** automatically produce the CSV-profile lineage artifact. These paths must be reconciled **forward** in future work.
 
-| Module | Responsibility |
+## 2. Responsibilities
+
+| Component | Responsibility |
 | --- | --- |
-| `cli.py` | CLI commands, structured NDJSON events, error exit codes |
-| `core/project.py` | Project initialization, SQLite base catalog, import, SHA objects, virtual packages |
-| `core/registry.py` | Append-only field revisions, review decisions, mapping versions and snapshots |
-| `core/schema_registry.py` | Local versioned schema registry; rejects remote `$ref` |
-| `core/profile.py` | External CSV profile validation, preflight, staging and grouped approval |
-| `processing/tabular.py` | Generic wide-to-long count and typed-value transformations |
-| `core/run_executor.py` | Approval and pin verification, Polars/Parquet, quality metrics, RUN/2 publication |
-| `core/export.py` | RUN verification, Frictionless-style Data Package and project verification |
-| `core/run_recovery.py` | Explicit index reconciliation from verified completed RUN directories |
-| `core/publication.py` | Publication intent and metadata validation |
-| `core/publication_projection.py` | Declared publication tables/columns versus pinned Parquet artifacts |
-| `core/publication_bindings.py` | Darwin Core bindings versus projection columns |
-| `core/publication_integrity.py` | Publication-level identifier and relationship checks |
-| `core/publication_materialize.py` | Materialization of declared publication CSV tables |
-| `core/publication_adapters.py` | EML and Darwin Core Archive creation/validation |
-| `core/eml_compiler.py` | EML XML compilation from project metadata |
+| `core.project`, `core.project_execution` | Initialize/select a project; SHA-256 import identities; select a reviewed mapping or pinned pipeline |
+| `core.registry`, `core.entity_projection` | Append-only SourceFieldDefinition revisions, user confirmations, explicit SamplingEvent and optional Occurrence/MeasurementOrFact projection |
+| `core.schema_registry`, `core.domain_profiles` | Immutable, locally approved schema ID + SemVer + SHA pins; v0.12 eight domain schema drafts and envelope; validate three live entity types |
+| `core.metadata_revisions` | Explicitly curated, user-approved metadata-envelope revisions and historical snapshots, separate from observation Parquet |
+| `core.relation_assertions` | Four event/occurrence/measurement relations, append-only assert/replace/retract, current view, historical RUN snapshot; type/cardinality/cycle checks |
+| `core.pipeline`, `core.change_audit`, `core.pipeline_run` | Allowlisted declarative operators, per-step row summaries, changed-value audit, immutable published RUN/2 and replay verification |
+| `core.run_executor`, `core.profile`, `processing.tabular` | Separate CSV profile mapping execution and traditional reference lineage path |
+| `core.export`, `core.run_recovery` | Artifact/checksum verification, reference Data Package export, explicit indexed-RUN reconciliation |
+| `core.publication_*`, `core.eml_compiler` | Independently controlled EML / Darwin Core adapter primitives; not complete generalized publication lifecycle |
+| Workbench / website | **Outside the verified P0.1–P0.5 vertical slice**; P0.6 and later integration |
 
-## 3. On-disk project structure
+## 3. Project and RUN filesystem
 
 ```text
 <project>/
-  project.json                  # readable project index
-  catalog/catalog.sqlite       # identities, reviews and mapping states
-  objects/sha256/ab/<sha256>    # original immutable source bytes
+  project.json
+  catalog/catalog.sqlite                 # registry, reviews, relations, curated metadata
+  objects/sha256/ab/<sha256>              # immutable original object
   imports/<import_id>/manifest.json
   packages/<package_id>/virtual-descriptor.json
-  configurations/
-  registry/schemas/            # versioned local schemas, when registered
-  runs/
-    .pending-<run_id>/         # incomplete or failed execution
-    <run_id>/
-      manifest.json
-      inputs.snapshot.json
-      configuration.snapshot.json
-      outputs/observations.parquet
-      audit/lineage.parquet
-      reports/quality.json
-  exports/<export_id>/
-    export-manifest.json
-    package/datapackage.json
-    package/observations.csv
-    package/lineage.csv
-    package/quality.json
+  configurations/pipelines/<sha256>.json
+  registry/schemas/<sha256>.json          # exact local schema bytes
+  runs/<run_id>/
+    manifest.json
+    inputs.snapshot.json                 # source/field/relation/profile/metadata pins
+    configuration.snapshot.json
+    outputs/<named>.parquet              # generic DAG outputs
+    outputs/samplingevent.parquet        # when explicitly projected
+    outputs/occurrence.parquet           # optional
+    outputs/measurementorfact.parquet    # optional
+    audit/pipeline.json
+    audit/value_changes.parquet          # ONLY if comparable values changed
+    reports/quality.json
+  exports/<export_id>/                    # separate versioned adapter outputs
 ```
 
-The project index records `project_id`, `name`, `schema_version`, `catalog_schema_version`, `input_objects`, `package_ids` and `run_ids`. SQLite base tables include `project_meta`, `source_objects`, `source_resources`, `packages`, `package_resources` and `runs`. Registry operations add `source_fields`, `field_definition_revisions`, `field_definition_reviews`, `current_field_definitions`, `mapping_versions`, `mapping_reviews` and `mapping_field_bindings`; the schema registry adds `schema_versions`.
+A **CSV-profile RUN** differs: it uses `outputs/observations.parquet`, `audit/lineage.parquet` and its own snapshots, as documented in [User Guide](USER-GUIDE.md). Do not conflate those artifacts with generic DAG/Entity provenance.
 
-## 4. Identity, immutability and approval
+## 4. Scientific and schema invariants
 
-**Source identity:** Every imported source is identified by its SHA-256 digest. Identical bytes can be deduplicated. The `imported_unmapped` state explicitly means that no scientific interpretation has been approved.
+- **No inferred semantics.** Technical `entity_id` differs from scientific `event_id` / `occurrence_id`. SamplingEvent requires no coordinates, taxon, GPS, transect or Occurrence.
+- **Source bytes do not mutate.** An imported object has a SHA-256 content address; resource/import identity and semantic field identity are separate.
+- **Explicit confirmation.** SourceFieldDefinition revisions, target entity mappings, relation assertions and metadata revisions require explicit responsible-user action; a second independent reviewer is not mandatory.
+- **Strict profile selection (P0.5).** Every semantic Entity pipeline **must** pin an explicitly approved envelope and exact domain schema ID/version/hash for each selected entity. No legacy unprofiled Entity pipeline path is supported. Purely technical source imports and non-entity DAG runs need no domain profile.
+- **No confusion between zero and missing.** A real numeric `0` remains a data value; `null` requires explicit applicable missing semantics in a projected measurement.
+- **Independent versioning.** Domain profiles, relation profile, input objects, field definition revisions and configuration/RUN are separately addressable; completed RUN/2 pins the exact reproducible state.
 
-**Field semantics:** A `source_field_id` identifies a source field; immutable `field_definition_revisions` capture its semantic definitions. `field_definition_reviews` record explicit decisions. Descriptions, definition provenance, counting units and missing/zero semantics must be supplied rather than inferred.
+## 5. Audit, integrity and operations
 
-**Mapping versions:** `mapping_id` and `version` express mapping identity; `mapping_sha256` pins its exact content. `draft` and `approved` are distinct states. Execution resolves approved, internally consistent snapshots; later mapping changes do not rewrite an existing RUN.
+The generic DAG retains deterministic, declarative transformations and hashes the inputs/config/output artifacts. `audit/pipeline.json` records each step and input/output cardinalities. Only **actual value differences with a defined comparison baseline** go to `audit/value_changes.parquet` (zero-to-zero or unchanged fields produce no row). Joins/unpivot/derived compound fields remain reconstructible from pinned inputs and versioned DAG, but **no guarantee of a saved physical source-cell entry for every value** is made.
 
-**Schema registry:** `schema_id` is an HTTPS URI, `schema_version` is SemVer, and `schema_sha256` pins content. Schemas are validated locally; remote `$ref` is rejected. Statuses `draft`, `approved` and `deprecated` are registry states, not automatic migrations.
+RUN creation uses staging and publication, and `verify-project` replays the generic DAG and validates its output, sparse audit, profile/relation/metadata snapshots and manifests. SQLite and `project.json` do not share a single atomic commit; `reconcile-runs` is an explicit index recovery mechanism, **not** a substitute for tested full-power-loss recovery or backup/restore. SHA-256 detects modified bytes; it is not an authenticated signature or publication approval.
 
-## 5. Transformations and RUN/2
+## 6. v0.12 coverage and next work
 
-`wide-to-long-counts/1` and `wide-to-long-values/1` convert declared CSV columns into observation rows. Counts require explicit empty-cell and zero policies. Typed values require `integer`, `decimal` or `text` types and missing-token declarations. The engine does not infer scientific thresholds or taxonomies.
+P0.1–P0.5 demonstrate **core contracts** in a deliberately narrow vertical PoC. Open: **P0.6 Workbench** source-field/profile preview, findings and explicit user interactions; **P0.7** generalized target-specific EML/DwC-A/GeoPackage publication profiles; **P0.8** real CS-PHOC and second independent dataset regression. Later: all media/spatial/transect/dive profiles, typed search indices/R-Tree, complete source-cell preview, scaling, installer, IPC, security, backups, schema migrations and multiuser recovery.
 
-A RUN derives `record_id` from the source hash, source row/column, transformation version and mapping hash. `lineage.parquet` retains source provenance. `inputs.snapshot.json` pins source and registry state; `configuration.snapshot.json` captures the mapping configuration. The manifest checksums generated artifacts. Quality metrics such as `output_rows`, `explicit_zeros` and `value_sum` describe observed output; any expected values must be declared by the project.
+Before **framework documentation version 1.0** there is **no backward-compatibility obligation** for experimental PoC contracts. Make every breaking change *forward-consistent* across code, schemas, tests and docs; do not silently rewrite valid completed RUN evidence or immutable source data.
 
-Publication starts in `runs/.pending-*`, then renames the directory to `runs/<run_id>` and updates `project.json` and SQLite. These stores do not share a transaction: a crash can leave a completed directory absent from one or both indexes. Explicit [RUN recovery](RUN-RECOVERY.md) addresses these cases.
-
-## 6. Trust and security boundaries
-
-Checksums detect byte modifications but do not replace digital signatures or access control. Verification rejects modified artifacts and unsafe paths. Scientific correctness depends on externally reviewed definitions and mappings. Recovery requires exclusive writer access. EML/DwC-A validation uses local XSDs from `vendor/schemas/` or explicitly supplied paths. A structurally valid publication artifact does not imply scientific or organizational publication approval.
-
-## 7. External reference
-
-`examples/cs-phoc/` is an **optional** reference implementation. Its regression workflow is manual (`workflow_dispatch`); ordinary engine CI uses generic synthetic datasets.
+See [v0.13 gap analysis](FRAMEWORK-v0.13-POC-SCOPE.md), [P0.3 checkpoint](P0.3-CHECKPOINT.md), [P0.4 checkpoint](P0.4-CHECKPOINT.md), [P0.5 checkpoint](P0.5-CHECKPOINT.md) and [Technical CI evidence](POC-ACCEPTANCE-REPORT.md).
