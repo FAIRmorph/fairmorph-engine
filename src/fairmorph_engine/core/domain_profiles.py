@@ -73,8 +73,10 @@ def _validate_pin_shape(pin: dict) -> None:
 def validate_profile_bindings(config: dict) -> None:
     """Check the explicit shape without project access (pipeline registration preflight)."""
     selected = config.get("profile_bindings")
+    if "entities" in config and selected is None:
+        raise ValueError("Entity pipelines require explicit approved P0.5 profile bindings")
     if selected is None:
-        return  # Legacy P0.2 config remains executable without a P0.5 profile claim.
+        return  # A purely technical DAG has no projected semantic entity profile.
     if (
         "entities" not in config
         or not isinstance(selected, dict)
@@ -90,6 +92,9 @@ def validate_profile_bindings(config: dict) -> None:
 
 def _registered_schema(project: Path, pin: dict, expected_kind: str) -> dict:
     _validate_pin_shape(pin)
+    schema, checksum = get_schema(
+        project, schema_id=pin["schema_id"], schema_version=pin["schema_version"]
+    )
     with _catalog(project) as db:
         row = db.execute(
             "SELECT kind, status FROM schema_versions WHERE schema_id=? AND schema_version=?",
@@ -97,9 +102,6 @@ def _registered_schema(project: Path, pin: dict, expected_kind: str) -> dict:
         ).fetchone()
     if row != (expected_kind, "approved"):
         raise ValueError("Profile schema is not an explicitly approved registry version")
-    schema, checksum = get_schema(
-        project, schema_id=pin["schema_id"], schema_version=pin["schema_version"]
-    )
     if checksum != pin["schema_sha256"]:
         raise ValueError("Profile schema SHA-256 pin differs from registry content")
     return schema
