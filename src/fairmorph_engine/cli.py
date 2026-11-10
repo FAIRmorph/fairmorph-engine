@@ -229,7 +229,9 @@ def run_pipeline_command(
 @app.command(name="register-pipeline")
 def register_pipeline_command(
     project: Annotated[Path, typer.Option("--project")],
-    definition: Annotated[Path, typer.Option("--definition", help="Declarative pipeline JSON to register")],
+    definition: Annotated[
+        Path, typer.Option("--definition", help="Declarative pipeline JSON to register")
+    ],
 ) -> None:
     """Register a content-addressed pipeline configuration in the project."""
     from jsonschema.exceptions import ValidationError
@@ -257,7 +259,9 @@ def select_pipeline_command(
     from fairmorph_engine.core.project_execution import select_project_pipeline
 
     try:
-        emit_event("result", status="success", data=select_project_pipeline(project, pipeline_sha256))
+        emit_event(
+            "result", status="success", data=select_project_pipeline(project, pipeline_sha256)
+        )
     except (ValueError, RuntimeError, OSError, KeyError, ValidationError) as error:
         emit_event("result", status="error", message=str(error))
         raise typer.Exit(code=1) from error
