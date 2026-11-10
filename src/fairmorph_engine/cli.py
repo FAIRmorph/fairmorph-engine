@@ -267,7 +267,7 @@ def select_pipeline_command(
 def confirm_projection_command(
     project: Annotated[Path, typer.Option("--project")],
     pipeline_sha256: Annotated[str, typer.Option("--pipeline-sha256")],
-    reviewer: Annotated[str, typer.Option("--reviewer")],
+    confirmed_by: Annotated[str, typer.Option("--confirmed-by")],
 ) -> None:
     """Confirm version-pinned entity mappings as the responsible user."""
     from jsonschema.exceptions import ValidationError
