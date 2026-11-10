@@ -114,7 +114,7 @@ def define_field(
     if not locator or not isinstance(definition, dict):
         raise ValueError("Field locator and definition are required")
     if definition.get("review_status", "unreviewed") != "unreviewed":
-        raise ValueError("Approval requires an independent review event")
+        raise ValueError("Confirmation must be recorded as a separate revision-bound event")
     field_id = "field-" + hashlib.sha256(f"{resource_id}\0{locator}".encode()).hexdigest()
     project_id = json.loads((project / "project.json").read_text(encoding="utf-8"))["project_id"]
     field_locator = {"kind": "column", "path": locator}
