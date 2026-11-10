@@ -154,7 +154,7 @@ def test_headless_profile_review_cli(tmp_path):
         project,
         "--mapping-sha256",
         staged["mapping_sha256"],
-        "--reviewer",
+        "--confirmed-by",
         "explicit-scientific-reviewer",
     )
     assert approved["status"] == "approved"
