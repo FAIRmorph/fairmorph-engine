@@ -131,7 +131,9 @@ def _apply(operator, frames, params):
     raise ValueError(f"Unknown operator: {operator}")
 
 
-def execute_pipeline(config: dict, resources: dict[str, pl.DataFrame]) -> dict[str, pl.DataFrame]:
+def execute_pipeline(
+    config: dict, resources: dict[str, pl.DataFrame], on_step=None
+) -> dict[str, pl.DataFrame]:
     """Execute a validated, deterministic DAG using only registered operators.
 
     Input resources are supplied by the caller, not read from arbitrary config paths.
@@ -168,5 +170,7 @@ def execute_pipeline(config: dict, resources: dict[str, pl.DataFrame]) -> dict[s
             if len(frames) != expected:
                 raise ValueError("Incorrect number of operator inputs")
             tables[step["output"]] = _apply(step["operator"], frames, step["parameters"])
+            if on_step is not None:
+                on_step(step, frames, tables[step["output"]])
             del pending[step["id"]]
     return tables
