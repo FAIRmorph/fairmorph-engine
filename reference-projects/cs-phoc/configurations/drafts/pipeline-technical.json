@@ -1,0 +1,82 @@
+{
+  "schema_version": "fairmorph.pipeline/1",
+  "resources": {
+    "events": {
+      "resource_id": "REPLACE_WITH_IMPORTED_EVENTS_RESOURCE_ID",
+      "format": "csv"
+    },
+    "counts": {
+      "resource_id": "REPLACE_WITH_IMPORTED_COUNTS_RESOURCE_ID",
+      "format": "csv"
+    }
+  },
+  "steps": [
+    {
+      "id": "unpivot_explicit_counts",
+      "operator": "table.unpivot/1",
+      "inputs": [
+        "counts"
+      ],
+      "output": "count_cells",
+      "parameters": {
+        "columns": [
+          "ad_female_count",
+          "ad_male_count",
+          "ad_unk_count",
+          "juv_female_count",
+          "juv_male_count",
+          "juv_unk_count",
+          "pup_count",
+          "unk_female_count",
+          "unk_male_count",
+          "unk_unk_count"
+        ],
+        "identifiers": [
+          "count_id",
+          "event_id",
+          "location",
+          "species",
+          "species_common",
+          "total_count"
+        ],
+        "variable": "count_type",
+        "value": "count_value"
+      }
+    },
+    {
+      "id": "omit_unrecorded_counts",
+      "operator": "table.filter/1",
+      "inputs": [
+        "count_cells"
+      ],
+      "output": "recorded_counts",
+      "parameters": {
+        "predicate": {
+          "column": "count_value",
+          "op": "is_not_null",
+          "value": null
+        }
+      }
+    },
+    {
+      "id": "attach_event_context",
+      "operator": "table.join/1",
+      "inputs": [
+        "recorded_counts",
+        "events"
+      ],
+      "output": "counts_with_events",
+      "parameters": {
+        "keys": [
+          "event_id"
+        ],
+        "cardinality": "m:1",
+        "preserve_left_rows": true,
+        "require_match": true
+      }
+    }
+  ],
+  "outputs": [
+    "counts_with_events"
+  ]
+}
