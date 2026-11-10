@@ -3,6 +3,7 @@
 This module does not execute user Python, load plugins, or infer scientific semantics.
 It is a building block for the full immutable RUN/2 pipeline integration.
 """
+
 import json
 from pathlib import Path
 
@@ -82,12 +83,18 @@ def _apply(operator, frames, params):
         expressions = params["expressions"]
         if not isinstance(expressions, dict) or not expressions:
             raise ValueError("derive requires expressions")
-        return frames[0].with_columns([_expression(expr).alias(name) for name, expr in expressions.items()])
+        return frames[0].with_columns(
+            [_expression(expr).alias(name) for name, expr in expressions.items()]
+        )
     if operator == "table.distinct/1":
         return frames[0].unique(subset=params["keys"], keep="first", maintain_order=True)
     if operator == "table.unpivot/1":
-        return frames[0].unpivot(on=params["columns"], index=params["identifiers"],
-                                 variable_name=params["variable"], value_name=params["value"])
+        return frames[0].unpivot(
+            on=params["columns"],
+            index=params["identifiers"],
+            variable_name=params["variable"],
+            value_name=params["value"],
+        )
     if operator == "table.join/1":
         if len(frames) != 2:
             raise ValueError("join requires two inputs")
