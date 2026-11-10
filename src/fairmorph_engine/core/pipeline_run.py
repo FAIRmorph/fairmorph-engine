@@ -25,10 +25,17 @@ def pipeline_path(project, sha):
 
 
 def validate_pipeline(config):
-    if not isinstance(config, dict) or set(config) not in ({"schema_version", "steps", "resources", "outputs"}, {"schema_version", "steps", "resources", "outputs", "entities"}):
+    if not isinstance(config, dict) or set(config) not in (
+        {"schema_version", "steps", "resources", "outputs"},
+        {"schema_version", "steps", "resources", "outputs", "entities"},
+    ):
         raise ValueError("Pipeline requires schema_version, steps, resources and outputs")
-    schema = json.loads((Path(__file__).resolve().parents[1] / "contracts" / "pipeline.schema.json").read_text())
-    Draft202012Validator(schema).validate({"schema_version": config["schema_version"], "steps": config["steps"]})
+    schema = json.loads(
+        (Path(__file__).resolve().parents[1] / "contracts" / "pipeline.schema.json").read_text()
+    )
+    Draft202012Validator(schema).validate(
+        {"schema_version": config["schema_version"], "steps": config["steps"]}
+    )
     resources = config["resources"]
     if "entities" in config:
         from fairmorph_engine.core.entity_projection import validate_entities
@@ -37,12 +44,25 @@ def validate_pipeline(config):
     if not isinstance(resources, dict) or not resources:
         raise ValueError("Pipeline requires explicit resource bindings")
     for name, binding in resources.items():
-        if not re.fullmatch(r"[A-Za-z][A-Za-z0-9_-]*", name) or not isinstance(binding, dict) or set(binding) != {"resource_id", "format"}:
+        if (
+            not re.fullmatch(r"[A-Za-z][A-Za-z0-9_-]*", name)
+            or not isinstance(binding, dict)
+            or set(binding) != {"resource_id", "format"}
+        ):
             raise ValueError("Invalid resource binding")
-        if not isinstance(binding["resource_id"], str) or not binding["resource_id"] or binding["format"] not in ("csv", "parquet"):
+        if (
+            not isinstance(binding["resource_id"], str)
+            or not binding["resource_id"]
+            or binding["format"] not in ("csv", "parquet")
+        ):
             raise ValueError("Unsupported source binding")
     outputs = config["outputs"]
-    if not isinstance(outputs, list) or not outputs or any(not isinstance(n, str) for n in outputs) or len(outputs) != len(set(outputs)):
+    if (
+        not isinstance(outputs, list)
+        or not outputs
+        or any(not isinstance(n, str) for n in outputs)
+        or len(outputs) != len(set(outputs))
+    ):
         raise ValueError("Invalid published outputs")
     if not set(outputs).issubset({s["output"] for s in config["steps"]}):
         raise ValueError("Published outputs must be produced by DAG steps")
@@ -87,7 +107,10 @@ def resolve_resources(project, config):
         raise ValueError("Catalog missing")
     with sqlite3.connect(f"file:{catalog.resolve()}?mode=ro", uri=True) as db:
         for name, binding in sorted(config["resources"].items()):
-            row = db.execute("SELECT object_sha256 FROM source_resources WHERE resource_id=?", (binding["resource_id"],)).fetchone()
+            row = db.execute(
+                "SELECT object_sha256 FROM source_resources WHERE resource_id=?",
+                (binding["resource_id"],),
+            ).fetchone()
             if row is None:
                 raise ValueError("Resource not imported")
             sha = row[0]
@@ -97,8 +120,18 @@ def resolve_resources(project, config):
             path = project / relative
             if not path.is_file() or path.is_symlink() or digest(path) != sha:
                 raise ValueError("Immutable source missing or modified")
-            frames[name] = pl.read_csv(path) if binding["format"] == "csv" else pl.read_parquet(path)
-            pins.append({"name": name, "resource_id": binding["resource_id"], "sha256": sha, "object_path": relative, "format": binding["format"]})
+            frames[name] = (
+                pl.read_csv(path) if binding["format"] == "csv" else pl.read_parquet(path)
+            )
+            pins.append(
+                {
+                    "name": name,
+                    "resource_id": binding["resource_id"],
+                    "sha256": sha,
+                    "object_path": relative,
+                    "format": binding["format"],
+                }
+            )
     return frames, pins
 
 
@@ -110,7 +143,9 @@ def execute_pipeline_run(project, sha, emit=lambda *_a, **_k: None):
 
         confirmation = require_confirmation(project, sha)
     frames, pins = resolve_resources(project, config)
-    tables = execute_pipeline({"schema_version": config["schema_version"], "steps": config["steps"]}, frames)
+    tables = execute_pipeline(
+        {"schema_version": config["schema_version"], "steps": config["steps"]}, frames
+    )
     entity_frames = {}
     if "entities" in config:
         from fairmorph_engine.core.entity_projection import (
@@ -136,16 +171,48 @@ def execute_pipeline_run(project, sha, emit=lambda *_a, **_k: None):
         for kind, frame in entity_frames.items():
             frame.write_parquet(staging / "outputs" / f"{kind.lower()}.parquet")
             metrics.append({"name": kind.lower(), "rows": frame.height, "columns": frame.columns})
-        snapshot = {"schema_version": "fairmorph.pipeline.inputs/1", "configuration_sha256": sha, "sources": pins}
+        snapshot = {
+            "schema_version": "fairmorph.pipeline.inputs/1",
+            "configuration_sha256": sha,
+            "sources": pins,
+        }
         if confirmation is not None:
             snapshot["projection_confirmation"] = confirmation
         _write_json(staging / "inputs.snapshot.json", snapshot)
         _write_json(staging / "configuration.snapshot.json", config)
-        _write_json(staging / "audit" / "pipeline.json", {"configuration_sha256": sha, "steps": config["steps"], "source_bindings": pins, "outputs": metrics})
+        _write_json(
+            staging / "audit" / "pipeline.json",
+            {
+                "configuration_sha256": sha,
+                "steps": config["steps"],
+                "source_bindings": pins,
+                "outputs": metrics,
+            },
+        )
         _write_json(staging / "reports" / "quality.json", {"outputs": metrics})
-        paths = [*(f"outputs/{n}.parquet" for n in config["outputs"]), *(f"outputs/{k.lower()}.parquet" for k in entity_frames), "audit/pipeline.json", "reports/quality.json", "inputs.snapshot.json", "configuration.snapshot.json"]
-        artifacts = [{"path": p, "bytes": (staging / p).stat().st_size, "sha256": digest(staging / p)} for p in paths]
-        manifest = {"schema_version": "fairmorph.poc.run/2", "run_id": run_id, "status": "completed", "started_at": started, "engine_version": "0.1.0", "transformation_version": "fairmorph.pipeline/1", "configuration_sha256": sha, "input_snapshot_sha256": digest(staging / "inputs.snapshot.json"), "artifacts": artifacts}
+        paths = [
+            *(f"outputs/{n}.parquet" for n in config["outputs"]),
+            *(f"outputs/{k.lower()}.parquet" for k in entity_frames),
+            "audit/pipeline.json",
+            "reports/quality.json",
+            "inputs.snapshot.json",
+            "configuration.snapshot.json",
+        ]
+        artifacts = [
+            {"path": p, "bytes": (staging / p).stat().st_size, "sha256": digest(staging / p)}
+            for p in paths
+        ]
+        manifest = {
+            "schema_version": "fairmorph.poc.run/2",
+            "run_id": run_id,
+            "status": "completed",
+            "started_at": started,
+            "engine_version": "0.1.0",
+            "transformation_version": "fairmorph.pipeline/1",
+            "configuration_sha256": sha,
+            "input_snapshot_sha256": digest(staging / "inputs.snapshot.json"),
+            "artifacts": artifacts,
+        }
         _validate_contract("run-v2", manifest)
         _write_json(staging / "manifest.json", manifest)
         project_file = project / "project.json"
@@ -158,7 +225,10 @@ def execute_pipeline_run(project, sha, emit=lambda *_a, **_k: None):
         try:
             temp.write_text(json.dumps(index, indent=2, sort_keys=True) + "\n", encoding="utf-8")
             with sqlite3.connect(project / "catalog" / "catalog.sqlite") as db:
-                db.execute("INSERT INTO runs VALUES (?, ?, ?)", (run_id, f"runs/{run_id}/manifest.json", "completed"))
+                db.execute(
+                    "INSERT INTO runs VALUES (?, ?, ?)",
+                    (run_id, f"runs/{run_id}/manifest.json", "completed"),
+                )
                 os.replace(staging, project / "runs" / run_id)
                 published = True
                 os.replace(temp, project_file)
@@ -194,15 +264,25 @@ def verify_pipeline_run(project, run_dir, manifest):
 
         confirmation = require_confirmation(project, sha)
     snapshot = json.loads((run_dir / "inputs.snapshot.json").read_text(encoding="utf-8"))
-    expected_snapshot = {"schema_version": "fairmorph.pipeline.inputs/1", "configuration_sha256": sha, "sources": pins}
+    expected_snapshot = {
+        "schema_version": "fairmorph.pipeline.inputs/1",
+        "configuration_sha256": sha,
+        "sources": pins,
+    }
     if confirmation is not None:
         expected_snapshot["projection_confirmation"] = confirmation
     if snapshot != expected_snapshot:
         raise ValueError("RUN source pins mismatch")
     audit = json.loads((run_dir / "audit" / "pipeline.json").read_text(encoding="utf-8"))
-    if audit["configuration_sha256"] != sha or audit["steps"] != config["steps"] or audit["source_bindings"] != pins:
+    if (
+        audit["configuration_sha256"] != sha
+        or audit["steps"] != config["steps"]
+        or audit["source_bindings"] != pins
+    ):
         raise ValueError("RUN DAG audit mismatch")
-    expected_outputs = config["outputs"] + ([kind.lower() for kind in config["entities"]] if "entities" in config else [])
+    expected_outputs = config["outputs"] + (
+        [kind.lower() for kind in config["entities"]] if "entities" in config else []
+    )
     if [item["name"] for item in audit["outputs"]] != expected_outputs:
         raise ValueError("RUN output binding mismatch")
     for item in audit["outputs"]:
