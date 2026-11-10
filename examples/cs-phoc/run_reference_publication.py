@@ -1,0 +1,129 @@
+"""Manual CS-PHOC real-data reference export; example-only, not generic adapter API."""
+import argparse
+import csv
+import hashlib
+import json
+import sys
+import uuid
+from pathlib import Path
+
+import polars as pl
+from typer.testing import CliRunner
+
+from fairmorph_engine.cli import app
+from fairmorph_engine.core.export import verified_run
+
+
+def digest(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def command(runner, *args):
+    result = runner.invoke(app, list(map(str, args)))
+    if result.exit_code:
+        raise RuntimeError(f"CLI failed: {args[0]}\n{result.stdout}") from result.exception
+    events = [json.loads(line) for line in result.stdout.splitlines() if line.startswith("{")]
+    last = next(e for e in reversed(events) if e.get("event") == "result")
+    if last.get("status") != "success":
+        raise RuntimeError(str(last))
+    return last["data"]
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--output", type=Path, required=True, help="New output directory")
+    args = parser.parse_args()
+    base = Path(__file__).resolve().parent
+    cfg = json.loads((base / "reference-publication.json").read_text(encoding="utf-8"))
+    mapping = json.loads((base / cfg["mapping_profile"]).read_text(encoding="utf-8"))
+    counts_file = base / cfg["counts_source"]
+    events_file = base / cfg["events_source"]
+    if digest(counts_file) != mapping["source_sha256"]:
+        raise ValueError("Count CSV differs from approved mapping SHA-256")
+    if digest(events_file) != cfg["events_sha256"]:
+        raise ValueError("Event CSV differs from approved reference SHA-256")
+    if args.output.exists():
+        raise ValueError("Output directory already exists; choose a new destination")
+    args.output.mkdir(parents=True)
+    project = args.output / "project"
+    runner = CliRunner()
+    command(runner, "init-project", "--project", project, "--name", "CS-PHOC reference")
+    counts = command(runner, "import-resource", "--project", project, "--source", counts_file, "--role", "counts")
+    events = command(runner, "import-resource", "--project", project, "--source", events_file, "--role", "events")
+    mapping["auxiliary_resource_ids"] = [events["resource_id"]]
+    mapping["relationships"] = [{
+        "relationship_id": "count-event", "left_resource_id": counts["resource_id"],
+        "left_column": "event_id", "right_resource_id": events["resource_id"],
+        "right_column": "event_id", "cardinality": "many-to-one"
+    }]
+    mapping_file = args.output / "approved-mapping.json"
+    mapping_file.write_text(json.dumps(mapping, indent=2) + "\n", encoding="utf-8")
+    staged = command(runner, "stage-csv-mapping", "--project", project, "--resource-id", counts["resource_id"], "--profile", mapping_file)
+    command(runner, "approve-mapping", "--project", project, "--mapping-sha256", staged["mapping_sha256"], "--confirmed-by", "cs-phoc-reference-test")
+    run = command(runner, "run-mapping", "--project", project, "--mapping-sha256", staged["mapping_sha256"])
+    run_id = run["run_id"]
+    run_dir, _ = verified_run(project, run_id)
+    observations = pl.read_parquet(run_dir / "outputs" / "observations.parquet")
+    expected = cfg["expected"]
+    assert observations.height == expected["occurrences"]
+    assert observations["value"].eq(0).sum() == expected["zeros"]
+    assert observations["value"].sum() == expected["value_sum"]
+    command(runner, "verify-project", "--project", project)
+    command(runner, "export-package", "--project", project, "--run-id", run_id)
+    command(runner, "verify-project", "--project", project)
+
+    # Example-scoped scientific reference mapping, intentionally isolated from core.
+    sys.path.insert(0, str(base / "legacy"))
+    from dwca import published_records, write_archive
+
+    events_rows, occurrences = published_records(events_file, counts_file)
+    assert len(events_rows) == expected["events"]
+    assert len(occurrences) == expected["occurrences"]
+    # Independently compare every nonempty source category against the generic RUN.
+    oracle = {}
+    with counts_file.open(newline="", encoding="utf-8-sig") as handle:
+        for line, row in enumerate(csv.DictReader(handle), start=2):
+            for field in mapping["fields"]:
+                column = field["source_column"]
+                if row[column] != "":
+                    oracle[(line, column)] = (row["count_id"], int(row[column]))
+    actual = {
+        (row["source_line"], row["source_column"]): (row["source_identifier"], row["value"])
+        for row in observations.iter_rows(named=True)
+    }
+    if actual != oracle:
+        raise ValueError("Generic RUN observations differ from source cell oracle")
+
+    package = args.output / "publication"
+    package.mkdir()
+    details = write_archive(package, uuid.uuid4().hex, events_rows, occurrences)
+    # Archive is generated by the reference implementation, not the generic adapter.
+    # Its meta.xml has extra publisher fields not covered by the generic adapter's
+    # restrictive field-binding contract; do not claim generic adapter validation.
+    import zipfile
+    from lxml import etree
+    with zipfile.ZipFile(package / details["archive_path"]) as z:
+        assert z.testzip() is None
+        assert set(z.namelist()) == {"event.txt", "occurrence.txt", "meta.xml", "eml.xml"}
+        etree.fromstring(z.read("eml.xml"))
+        etree.fromstring(z.read("meta.xml"))
+    manifest = {
+        "implementation": cfg["implementation"],
+        "source_run_id": run_id,
+        "run_manifest_sha256": digest(run_dir / "manifest.json"),
+        "counts_sha256": digest(counts_file),
+        "events_sha256": digest(events_file),
+        "metadata_provenance": cfg["metadata_provenance"],
+        "expected": expected,
+        "files": {p.name: digest(p) for p in package.iterdir() if p.is_file()},
+        "reference_export": details,
+        "generic_publication_adapter_validated": False,
+        "official_eml_xsd_validated": False,
+        "official_dwca_xsd_validated": False,
+    }
+    (args.output / "test-report.json").write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    print(json.dumps({"status": "success", "output": str(args.output.resolve()), "run_id": run_id, "report": manifest}, indent=2))
+
+
+if __name__ == "__main__":
+    main()

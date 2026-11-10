@@ -1,0 +1,178 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://www.fairmorph.org/contracts/poc/2/inputs.snapshot.schema.json",
+  "title": "FAIRmorph approved-mapping input snapshot (PoC v2)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "sources",
+    "mapping_snapshot",
+    "configuration_sha256"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "fairmorph.poc.inputs/2"
+    },
+    "sources": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "resource_id",
+          "sha256",
+          "object_path"
+        ],
+        "properties": {
+          "resource_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "object_path": {
+            "type": "string",
+            "pattern": "^objects/sha256/[0-9a-f]{2}/[0-9a-f]{64}$"
+          }
+        }
+      }
+    },
+    "mapping_snapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mapping_id",
+        "mapping_version",
+        "mapping_sha256",
+        "field_definition_schema_sha256",
+        "field_definition_revisions",
+        "source_resources"
+      ],
+      "properties": {
+        "mapping_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mapping_version": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$"
+        },
+        "mapping_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "field_definition_schema_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "field_definition_revisions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "revision_id",
+              "sha256"
+            ],
+            "properties": {
+              "revision_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "sha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              }
+            }
+          }
+        },
+        "source_resources": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "resource_id",
+              "object_sha256"
+            ],
+            "properties": {
+              "resource_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "object_sha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              }
+            }
+          }
+        },
+        "relationships": {
+          "type": "array",
+          "description": "Approved inter-resource relationship declarations pinned by mapping configuration SHA-256.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "relationship_id",
+              "left_resource_id",
+              "left_column",
+              "right_resource_id",
+              "right_column",
+              "cardinality"
+            ],
+            "properties": {
+              "relationship_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "left_resource_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "left_column": {
+                "type": "string",
+                "minLength": 1
+              },
+              "right_resource_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "right_column": {
+                "type": "string",
+                "minLength": 1
+              },
+              "cardinality": {
+                "enum": [
+                  "one-to-one",
+                  "one-to-many",
+                  "many-to-one",
+                  "many-to-many"
+                ]
+              },
+              "require_match": {
+                "type": "boolean"
+              },
+              "missing_key_policy": {
+                "enum": [
+                  "reject",
+                  "ignore"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "configuration_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  }
+}

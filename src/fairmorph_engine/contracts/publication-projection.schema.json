@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://www.fairmorph.org/contracts/poc/2/publication-projection.schema.json",
+  "title": "External projection plan for verified RUN/2 artifacts",
+  "description": "Declarative, dataset-neutral projection sources; no implied transformation or publication readiness.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "run_manifest_sha256",
+    "tables"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "fairmorph.poc.publication-projection/1"
+    },
+    "run_manifest_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "tables": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "row_type",
+          "artifact_path",
+          "columns"
+        ],
+        "properties": {
+          "row_type": {
+            "enum": [
+              "Event",
+              "Occurrence"
+            ]
+          },
+          "artifact_path": {
+            "type": "string",
+            "pattern": "^outputs/[A-Za-z0-9_.-]+\\.parquet$"
+          },
+          "columns": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "column_types": {
+            "type": "object",
+            "additionalProperties": {
+              "enum": [
+                "String",
+                "Int64",
+                "Float64",
+                "Boolean"
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,301 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fairmorph.org/schemas/SourceFieldDefinition/1.0.0",
+  "title": "SourceFieldDefinition",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "dataset_id",
+    "source_resource_id",
+    "source_field_id",
+    "field_locator",
+    "semantic_status",
+    "review_status",
+    "definition_source",
+    "description",
+    "value_semantics"
+  ],
+  "properties": {
+    "contract_version": {
+      "const": "1.0.0"
+    },
+    "dataset_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_resource_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_field_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "field_locator": {
+      "type": "object",
+      "required": [
+        "kind",
+        "path"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "column",
+            "json_pointer",
+            "sheet_column",
+            "media_property"
+          ]
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "ordinal": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "original_name": {
+          "type": "string"
+        }
+      }
+    },
+    "semantic_status": {
+      "enum": [
+        "unresolved",
+        "partially_defined",
+        "defined"
+      ]
+    },
+    "review_status": {
+      "enum": [
+        "unreviewed",
+        "needs_clarification",
+        "confirmed",
+        "rejected"
+      ]
+    },
+    "description": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "language": {
+      "type": "string",
+      "default": "de"
+    },
+    "observed_property": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "quantity_kind_uri": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "uri"
+    },
+    "unit": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "counting_unit": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "counting_method": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "repeat_count_policy": {
+      "enum": [
+        "unknown",
+        "possible",
+        "excluded",
+        "not_applicable"
+      ]
+    },
+    "taxonomic_scope": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "spatial_scope": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "temporal_scope": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "sampling_effort": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "aggregation_level": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "denominator": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "value_semantics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "missing_values",
+        "zero_meaning"
+      ],
+      "properties": {
+        "missing_values": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "token",
+              "meaning"
+            ],
+            "properties": {
+              "token": {
+                "type": "string"
+              },
+              "meaning": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "zero_meaning": {
+          "enum": [
+            "true_zero",
+            "absence",
+            "not_applicable",
+            "unknown",
+            "other"
+          ]
+        },
+        "zero_explanation": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "codebook_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "categories": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "definition_source": {
+      "enum": [
+        "user_confirmed",
+        "source_documentation",
+        "extracted",
+        "suggested",
+        "unknown"
+      ]
+    },
+    "evidence_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "notes": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "reviewer_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "reviewed_at": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "semantic_status": {
+            "const": "defined"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "description": {
+            "type": "string",
+            "minLength": 12
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "review_status": {
+            "const": "confirmed"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "reviewer_id",
+          "reviewed_at"
+        ],
+        "properties": {
+          "reviewer_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "reviewed_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "semantic_status": {
+            "const": "defined"
+          }
+        }
+      }
+    }
+  ]
+}

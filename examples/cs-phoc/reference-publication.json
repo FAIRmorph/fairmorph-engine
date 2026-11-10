@@ -1,0 +1,24 @@
+{
+  "schema_version": "cs-phoc.reference-publication/1",
+  "profile_id": "cs-phoc-event-occurrence-reference",
+  "mapping_profile": "mapping-profile.json",
+  "events_source": "cs-phoc-events.csv",
+  "counts_source": "cs-phoc-counts.csv",
+  "publication_metadata": "publication-metadata.json",
+  "formats": [
+    "eml/2.2.0",
+    "dwca/1"
+  ],
+  "core": "Event",
+  "extension": "Occurrence",
+  "expected": {
+    "events": 536,
+    "occurrences": 16940,
+    "zeros": 11599,
+    "value_sum": 79232
+  },
+  "source_doi": "https://doi.org/10.48361/gklk1u",
+  "metadata_provenance": "FAIRmorph derivative; not original publisher EML",
+  "implementation": "example-only historical publisher-compatible mapping; NOT generic publication_adapters.export_dwca",
+  "events_sha256": "4362ae650cb72cc74901f7719920db5c8bbcfdc2ee09842595d04bf5e587bddc"
+}

@@ -9,7 +9,7 @@ XSI_NS = "http://www.w3.org/2001/XMLSchema-instance"
 NSMAP = {"eml": EML_NS, "xsi": XSI_NS}
 
 
-def compile_eml_xml(meta: ProjectMetadata) -> bytes:
+def compile_eml_xml(meta: ProjectMetadata, publication_date: str | None = None) -> bytes:
     dataset_urn = f"{meta.project_id}/v{meta.dataset_version}"
 
     root = etree.Element(
@@ -41,7 +41,9 @@ def compile_eml_xml(meta: ProjectMetadata) -> bytes:
             user_id = etree.SubElement(creator_el, "userId", directory="https://orcid.org/")
             user_id.text = c.orcid
 
-    etree.SubElement(dataset, "pubDate").text = datetime.now(UTC).strftime("%Y-%m-%d")
+    etree.SubElement(dataset, "pubDate").text = publication_date or datetime.now(UTC).strftime(
+        "%Y-%m-%d"
+    )
     etree.SubElement(dataset, "language").text = meta.language
 
     abstract_el = etree.SubElement(dataset, "abstract")

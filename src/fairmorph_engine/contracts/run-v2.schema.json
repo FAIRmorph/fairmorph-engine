@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://www.fairmorph.org/contracts/poc/2/run.schema.json",
+  "title": "FAIRmorph generic approved-mapping RUN (PoC v2)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "run_id",
+    "status",
+    "started_at",
+    "engine_version",
+    "transformation_version",
+    "configuration_sha256",
+    "input_snapshot_sha256",
+    "artifacts"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "fairmorph.poc.run/2"
+    },
+    "run_id": {
+      "type": "string",
+      "pattern": "^\\d{8}T\\d{6}Z-[0-9a-f]{12}$"
+    },
+    "status": {
+      "const": "completed"
+    },
+    "started_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "engine_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "transformation_version": {
+      "enum": [
+        "wide-to-long-counts/1",
+        "wide-to-long-values/1",
+        "fairmorph.pipeline/1"
+      ]
+    },
+    "configuration_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "input_snapshot_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "artifacts": {
+      "type": "array",
+      "minItems": 5,
+      "items": {
+        "type": "object",
+        "required": [
+          "path",
+          "bytes",
+          "sha256"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "path": {
+            "type": "string",
+            "pattern": "^(outputs|audit|reports)/|^(inputs|configuration)\\.snapshot\\.json$"
+          },
+          "bytes": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        }
+      }
+    }
+  }
+}

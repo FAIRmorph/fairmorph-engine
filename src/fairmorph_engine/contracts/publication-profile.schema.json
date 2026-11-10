@@ -1,0 +1,158 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://www.fairmorph.org/contracts/poc/2/publication-profile.schema.json",
+  "title": "External publication intent for a verified FAIRmorph RUN/2",
+  "description": "Declarative publication configuration only; does not imply an implemented EML or DwC-A exporter.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "profile_id",
+    "version",
+    "run_manifest_sha256",
+    "metadata_sha256",
+    "formats"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "fairmorph.poc.publication-profile/1"
+    },
+    "profile_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_.-]+$"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "run_manifest_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "metadata_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "formats": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "eml/2.2.0",
+          "dwca/1"
+        ]
+      }
+    },
+    "dwca": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "core",
+        "core_id_field",
+        "core_fields"
+      ],
+      "properties": {
+        "core": {
+          "enum": [
+            "Event",
+            "Occurrence"
+          ]
+        },
+        "core_id_field": {
+          "type": "string",
+          "minLength": 1
+        },
+        "core_fields": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "source_field",
+              "term"
+            ],
+            "properties": {
+              "source_field": {
+                "type": "string",
+                "minLength": 1
+              },
+              "term": {
+                "type": "string",
+                "pattern": "^http://rs.tdwg.org/dwc/terms/[A-Za-z][A-Za-z0-9]*$"
+              }
+            }
+          }
+        },
+        "extensions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "row_type",
+              "core_id_field",
+              "fields"
+            ],
+            "properties": {
+              "row_type": {
+                "enum": [
+                  "Event",
+                  "Occurrence"
+                ]
+              },
+              "core_id_field": {
+                "type": "string",
+                "minLength": 1
+              },
+              "fields": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "source_field",
+                    "term"
+                  ],
+                  "properties": {
+                    "source_field": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "term": {
+                      "type": "string",
+                      "pattern": "^http://rs.tdwg.org/dwc/terms/[A-Za-z][A-Za-z0-9]*$"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "formats": {
+            "contains": {
+              "const": "dwca/1"
+            }
+          }
+        },
+        "required": [
+          "formats"
+        ]
+      },
+      "then": {
+        "required": [
+          "dwca"
+        ]
+      }
+    }
+  ]
+}

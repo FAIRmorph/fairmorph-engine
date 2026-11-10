@@ -1,0 +1,267 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://www.fairmorph.org/contracts/poc/2/csv-mapping-profile.schema.json",
+  "title": "External versioned CSV transformation mapping profile",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "mapping_id",
+    "version",
+    "operation",
+    "source_sha256",
+    "identifier",
+    "empty_cell_policy",
+    "zero_cell_policy",
+    "fields"
+  ],
+  "properties": {
+    "mapping_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_.-]+$"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "operation": {
+      "enum": [
+        "wide-to-long-counts/1",
+        "wide-to-long-values/1"
+      ]
+    },
+    "source_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "identifier": {
+      "type": "string",
+      "minLength": 1
+    },
+    "empty_cell_policy": {
+      "const": "omit"
+    },
+    "zero_cell_policy": {
+      "const": "preserve"
+    },
+    "fields": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "source_column",
+          "target_field",
+          "description",
+          "definition_source",
+          "zero_meaning",
+          "missing_values"
+        ],
+        "properties": {
+          "source_column": {
+            "type": "string",
+            "minLength": 1
+          },
+          "target_field": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": {
+            "type": "string",
+            "minLength": 12
+          },
+          "definition_source": {
+            "enum": [
+              "source_documentation",
+              "user_confirmed"
+            ]
+          },
+          "counting_unit": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Project-defined unit of the counted entities; not inferred by the Engine."
+          },
+          "zero_meaning": {
+            "enum": [
+              "true_zero",
+              "absence",
+              "not_applicable",
+              "unknown",
+              "other"
+            ]
+          },
+          "missing_values": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "token",
+                "meaning"
+              ],
+              "properties": {
+                "token": {
+                  "type": "string"
+                },
+                "meaning": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "attributes": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "value_type": {
+            "enum": [
+              "integer",
+              "decimal",
+              "text"
+            ],
+            "description": "Explicit technical parser for wide-to-long-values/1; omitted for legacy count mappings."
+          }
+        }
+      }
+    },
+    "acceptance": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "output_rows": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "explicit_zeros": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "value_sum": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "auxiliary_resource_ids": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "description": "Additional imported source resources pinned to the RUN without implicit joins or transformations."
+    },
+    "relationships": {
+      "type": "array",
+      "uniqueItems": true,
+      "description": "Reviewer-approved declarative resource links. No join or inferred scientific semantics are executed.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "relationship_id",
+          "left_resource_id",
+          "left_column",
+          "right_resource_id",
+          "right_column",
+          "cardinality"
+        ],
+        "properties": {
+          "relationship_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_.-]+$"
+          },
+          "left_resource_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "left_column": {
+            "type": "string",
+            "minLength": 1
+          },
+          "right_resource_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "right_column": {
+            "type": "string",
+            "minLength": 1
+          },
+          "cardinality": {
+            "enum": [
+              "one-to-one",
+              "one-to-many",
+              "many-to-one",
+              "many-to-many"
+            ]
+          },
+          "require_match": {
+            "type": "boolean",
+            "description": "Require each non-missing left key to exist on the right. Defaults to true for earlier profiles."
+          },
+          "missing_key_policy": {
+            "enum": [
+              "reject",
+              "ignore"
+            ],
+            "description": "Reject missing keys or exclude them from integrity and cardinality checks. Defaults to reject."
+          }
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "wide-to-long-values/1"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "fields": {
+            "items": {
+              "required": [
+                "value_type"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "wide-to-long-counts/1"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "fields": {
+            "items": {
+              "required": [
+                "counting_unit"
+              ],
+              "properties": {
+                "zero_meaning": {
+                  "enum": [
+                    "true_zero",
+                    "absence"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}
