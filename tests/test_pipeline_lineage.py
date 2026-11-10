@@ -47,9 +47,7 @@ def _trace(tmp_path):
                 "operator": "table.filter/1",
                 "inputs": ["survey"],
                 "output": "selected",
-                "parameters": {
-                    "predicate": {"column": "keep", "op": "eq", "value": 1}
-                },
+                "parameters": {"predicate": {"column": "keep", "op": "eq", "value": 1}},
             },
             {
                 "id": "join",
@@ -120,9 +118,7 @@ def _cell(lines, table, row, column):
 def test_join_unpivot_and_derive_retain_exact_source_cells(tmp_path):
     project, left, right, config = _trace(tmp_path)
     run, manifest = _execute(project, config)
-    assert any(
-        item["path"] == "audit/lineage.parquet" for item in manifest["artifacts"]
-    )
+    assert any(item["path"] == "audit/lineage.parquet" for item in manifest["artifacts"])
     result = pl.read_parquet(run / "outputs" / "long.parquet")
     assert result["value"].to_list().count(0) == 2
     assert result["value"].to_list().count(7) == 2
@@ -157,11 +153,13 @@ def test_join_unpivot_and_derive_retain_exact_source_cells(tmp_path):
         & (pl.col("output_row_index") == row)
         & (pl.col("lineage_type") == "record")
     )
-    assert set(zip(
-        records["source_resource_id"].to_list(),
-        records["source_row_index"].to_list(),
-        strict=True,
-    )) == {(left["resource_id"], 0), (right["resource_id"], 0)}
+    assert set(
+        zip(
+            records["source_resource_id"].to_list(),
+            records["source_row_index"].to_list(),
+            strict=True,
+        )
+    ) == {(left["resource_id"], 0), (right["resource_id"], 0)}
 
 
 def test_distinct_pins_first_surviving_source_row(tmp_path):
@@ -172,9 +170,7 @@ def test_distinct_pins_first_surviving_source_row(tmp_path):
     imported = import_resource(project, source, "items")
     config = {
         "schema_version": "fairmorph.pipeline/1",
-        "resources": {
-            "items": {"resource_id": imported["resource_id"], "format": "csv"}
-        },
+        "resources": {"items": {"resource_id": imported["resource_id"], "format": "csv"}},
         "steps": [
             {
                 "id": "unique",
@@ -253,10 +249,7 @@ def test_unmatched_join_has_no_fictitious_right_source(tmp_path):
     output = pl.read_parquet(run / "outputs" / "joined.parquet")
     assert output["label"].to_list() == ["Alpha", None]
     lines = pl.read_parquet(run / "audit" / "lineage.parquet")
-    records = lines.filter(
-        (pl.col("output_row_index") == 1)
-        & (pl.col("lineage_type") == "record")
-    )
+    records = lines.filter((pl.col("output_row_index") == 1) & (pl.col("lineage_type") == "record"))
     assert records["source_resource_id"].to_list() == [left["resource_id"]]
     label = _cell(lines, "joined", 1, "label")
     assert label["source_kind"].to_list() == ["derived"]
