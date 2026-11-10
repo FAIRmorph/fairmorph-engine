@@ -182,7 +182,9 @@ def _confirmation_table(db: sqlite3.Connection) -> None:
     )
 
 
-def _evidence(project: Path, config: dict, tables: dict) -> dict:
+def _evidence(
+    project: Path, config: dict, tables: dict, *, require_current: bool = True
+) -> dict:
     """Preflight every projected field against current, confirmed source revisions."""
     provenance = _column_provenance(config, tables)
     revisions = {}
@@ -236,7 +238,7 @@ def _evidence(project: Path, config: dict, tables: dict) -> dict:
                         "SELECT revision_id FROM current_field_definitions WHERE source_field_id=?",
                         (field_id,),
                     ).fetchone()
-                    if current is None or current[0] != rid:
+                    if require_current and (current is None or current[0] != rid):
                         raise ValueError("Projection must bind current field-definition revisions")
                     if target == "individualCount":
                         if (
@@ -369,11 +371,16 @@ def require_confirmation(project: Path, sha: str) -> dict:
 
 
 def verify_projection_evidence(
-    project: Path, config: dict, tables: dict, confirmation: dict
+    project: Path,
+    config: dict,
+    tables: dict,
+    confirmation: dict,
+    *,
+    historical: bool = False,
 ) -> None:
-    """Require exact source-field provenance at RUN execution."""
-    current = _evidence(project, config, tables)
-    if digest(current) != confirmation["evidence_sha256"]:
+    """Validate exact revision pins; historical RUNs survive newer field definitions."""
+    evidence = _evidence(project, config, tables, require_current=not historical)
+    if digest(evidence) != confirmation["evidence_sha256"]:
         raise ValueError("Projection source-field definitions or provenance changed")
 
 
