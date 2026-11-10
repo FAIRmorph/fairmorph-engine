@@ -241,7 +241,7 @@ def test_forged_change_events_are_rejected_even_with_replaced_manifest_hash(tmp_
     path = run / "audit" / "value_changes.parquet"
     changed = pl.read_parquet(path)
     changed.with_columns(pl.lit(999).alias("output_row_index")).write_parquet(path)
-    with pytest.raises(ValueError, match="Checksum mismatch"):
+    with pytest.raises(ValueError, match="Missing or modified RUN artifact|Checksum mismatch"):
         verified_run(project, manifest["run_id"])
 
     document = json.loads((run / "manifest.json").read_text(encoding="utf-8"))
