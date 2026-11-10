@@ -1,0 +1,501 @@
+{
+  "schema_version": "fairmorph.poc.profile-bundle/1",
+  "origin": "FAIRmorph technical framework v0.12, shipped v0.8 ecological JSON Schemas",
+  "domain_version": "0.8.0",
+  "envelope_version": "0.8.0",
+  "domains": {
+    "SamplingEvent": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://fairmorph.org/schemas/v0.8/SamplingEvent.schema.json",
+      "title": "SamplingEvent",
+      "type": "object",
+      "required": [
+        "event_type"
+      ],
+      "properties": {
+        "event_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "event_type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "event_time": {
+          "type": "object",
+          "properties": {
+            "start": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "end": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          "additionalProperties": false,
+          "minProperties": 1
+        },
+        "method_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "sampling_protocol": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "remarks": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "Occurrence": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://fairmorph.org/schemas/v0.8/Occurrence.schema.json",
+      "title": "Occurrence",
+      "type": "object",
+      "required": [],
+      "properties": {
+        "occurrence_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "taxon_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "scientific_name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "occurrence_status": {
+          "enum": [
+            "present",
+            "absent",
+            "unknown",
+            null
+          ]
+        },
+        "individual_count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "basis_of_record": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "MeasurementOrFact": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://fairmorph.org/schemas/v0.8/MeasurementOrFact.schema.json",
+      "title": "MeasurementOrFact",
+      "type": "object",
+      "required": [
+        "measurement_type",
+        "value"
+      ],
+      "properties": {
+        "measurement_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "measurement_type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "value": {
+          "type": [
+            "number",
+            "string",
+            "boolean",
+            "null"
+          ]
+        },
+        "unit": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "method_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "uncertainty": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "missing_reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "Sample": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://fairmorph.org/schemas/v0.8/Sample.schema.json",
+      "title": "Sample",
+      "type": "object",
+      "required": [],
+      "properties": {
+        "sample_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "material_type": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "preservation_method": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "collected_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "storage_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "MediaAsset": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://fairmorph.org/schemas/v0.8/MediaAsset.schema.json",
+      "title": "MediaAsset",
+      "type": "object",
+      "required": [
+        "file_object_hash",
+        "media_type",
+        "original_filename"
+      ],
+      "properties": {
+        "file_object_hash": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "media_type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "original_filename": {
+          "type": "string",
+          "minLength": 1
+        },
+        "captured_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "capture_device": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "width_px": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "height_px": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "SpatialFeature": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://fairmorph.org/schemas/v0.8/SpatialFeature.schema.json",
+      "title": "SpatialFeature",
+      "type": "object",
+      "required": [
+        "geometry_type",
+        "geometry",
+        "crs",
+        "geometry_source"
+      ],
+      "properties": {
+        "geometry_type": {
+          "enum": [
+            "Point",
+            "LineString",
+            "Polygon",
+            "MultiPoint",
+            "MultiLineString",
+            "MultiPolygon",
+            "GeometryCollection"
+          ]
+        },
+        "geometry": {
+          "type": "object"
+        },
+        "crs": {
+          "type": "string",
+          "minLength": 1
+        },
+        "uncertainty_m": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "geometry_source": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "Transect": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://fairmorph.org/schemas/v0.8/Transect.schema.json",
+      "title": "Transect",
+      "type": "object",
+      "required": [],
+      "properties": {
+        "transect_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "sampling_method": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "length_m": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false
+    },
+    "Dive": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://fairmorph.org/schemas/v0.8/Dive.schema.json",
+      "title": "Dive",
+      "type": "object",
+      "required": [],
+      "properties": {
+        "dive_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "dive_start": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "dive_end": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "platform": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "envelope": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://fairmorph.org/schemas/v0.8/metadata-envelope.schema.json",
+    "title": "metadata-envelope",
+    "type": "object",
+    "required": [
+      "entity_id",
+      "entity_type",
+      "schema_version",
+      "metadata_revision_id",
+      "recorded_at",
+      "source",
+      "review_status",
+      "attributes",
+      "field_provenance"
+    ],
+    "properties": {
+      "entity_id": {
+        "type": "string",
+        "minLength": 1
+      },
+      "entity_type": {
+        "type": "string",
+        "enum": [
+          "SamplingEvent",
+          "Occurrence",
+          "MeasurementOrFact",
+          "Sample",
+          "MediaAsset",
+          "SpatialFeature",
+          "Transect",
+          "Dive"
+        ]
+      },
+      "schema_version": {
+        "const": "0.8.0"
+      },
+      "metadata_revision_id": {
+        "type": "string",
+        "minLength": 1
+      },
+      "recorded_at": {
+        "type": "string",
+        "format": "date-time"
+      },
+      "source": {
+        "type": "string",
+        "enum": [
+          "user_confirmed",
+          "extracted",
+          "suggested",
+          "derived",
+          "imported"
+        ]
+      },
+      "review_status": {
+        "enum": [
+          "pending",
+          "approved",
+          "rejected"
+        ]
+      },
+      "attributes": {
+        "type": "object"
+      },
+      "field_provenance": {
+        "type": "object",
+        "additionalProperties": {
+          "$ref": "#/$defs/provenance_entry"
+        }
+      }
+    },
+    "additionalProperties": false,
+    "$defs": {
+      "provenance_entry": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "https://fairmorph.org/schemas/v0.8/provenance-entry.schema.json",
+        "title": "provenance-entry",
+        "type": "object",
+        "required": [
+          "source_type"
+        ],
+        "properties": {
+          "source_type": {
+            "enum": [
+              "user_confirmed",
+              "extracted",
+              "suggested",
+              "derived",
+              "imported"
+            ]
+          },
+          "source_ref": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "method": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "reviewed_by": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "reviewed_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "confidence": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0,
+            "maximum": 1
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  }
+}
