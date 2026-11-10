@@ -130,6 +130,23 @@ def _provenance(*names):
     }
 
 
+def test_semantic_projection_requires_profiles_without_legacy_fallback(tmp_path):
+    project, config = _setup(tmp_path, install=False)
+    with pytest.raises(ValueError, match="require explicit approved P0.5 profile bindings"):
+        register_pipeline(project, config)
+
+    config["profile_bindings"] = {
+        "envelope": {
+            "schema_id": "https://fairmorph.org/schemas/v0.8/metadata-envelope.schema.json",
+            "schema_version": "0.8.0",
+            "schema_sha256": "0" * 64,
+        },
+        "entities": {},
+    }
+    with pytest.raises(ValueError, match="cover every selected entity"):
+        register_pipeline(project, config)
+
+
 def test_v012_profile_bundle_is_valid_and_is_installed_by_explicit_user(tmp_path):
     project, config = _setup(tmp_path)
     bundle = profile_bundle()
