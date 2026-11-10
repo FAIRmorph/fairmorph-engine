@@ -12,7 +12,7 @@ from pathlib import Path
 import polars as pl
 from jsonschema import Draft202012Validator
 
-from fairmorph_engine.core.lineage import lineage_frame, trace_entities, trace_pipeline
+from fairmorph_engine.core.change_audit import ChangeAudit
 from fairmorph_engine.core.pipeline import execute_pipeline
 from fairmorph_engine.core.project import digest
 from fairmorph_engine.core.registry import canonical_bytes
@@ -144,8 +144,11 @@ def execute_pipeline_run(project, sha, emit=lambda *_a, **_k: None):
 
         confirmation = require_confirmation(project, sha)
     frames, pins = resolve_resources(project, config)
+    changes = ChangeAudit()
     tables = execute_pipeline(
-        {"schema_version": config["schema_version"], "steps": config["steps"]}, frames
+        {"schema_version": config["schema_version"], "steps": config["steps"]},
+        frames,
+        on_step=changes.observe,
     )
     entity_frames = {}
     if "entities" in config:
@@ -156,13 +159,6 @@ def execute_pipeline_run(project, sha, emit=lambda *_a, **_k: None):
 
         verify_projection_evidence(project, config, tables, confirmation)
         entity_frames = project_entities(config, tables)
-    # Trace original source rows and cells through the same DAG and entity bindings.
-    # These are physical source locations, never inferred biological identities.
-    traces = trace_pipeline(config, tables, pins)
-    traces.update(trace_entities(config, traces))
-    published = {name: tables[name] for name in config["outputs"]}
-    published.update({kind.lower(): frame for kind, frame in entity_frames.items()})
-    lineage = lineage_frame(published, traces)
     started = datetime.now(UTC).isoformat()
     run_id = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ") + "-" + uuid.uuid4().hex[:12]
     staging = project / "runs" / f".pending-{run_id}"
@@ -171,7 +167,8 @@ def execute_pipeline_run(project, sha, emit=lambda *_a, **_k: None):
         (staging / "outputs").mkdir()
         (staging / "audit").mkdir()
         (staging / "reports").mkdir()
-        lineage.write_parquet(staging / "audit" / "lineage.parquet")
+        if changes.changes:
+            changes.changes_frame().write_parquet(staging / "audit" / "value_changes.parquet")
         metrics = []
         for name in config["outputs"]:
             frame = tables[name]
@@ -196,6 +193,8 @@ def execute_pipeline_run(project, sha, emit=lambda *_a, **_k: None):
                 "steps": config["steps"],
                 "source_bindings": pins,
                 "outputs": metrics,
+                "step_audit": changes.steps,
+                "value_change_count": len(changes.changes),
             },
         )
         _write_json(staging / "reports" / "quality.json", {"outputs": metrics})
@@ -203,7 +202,7 @@ def execute_pipeline_run(project, sha, emit=lambda *_a, **_k: None):
             *(f"outputs/{n}.parquet" for n in config["outputs"]),
             *(f"outputs/{k.lower()}.parquet" for k in entity_frames),
             "audit/pipeline.json",
-            "audit/lineage.parquet",
+            *(["audit/value_changes.parquet"] if changes.changes else []),
             "reports/quality.json",
             "inputs.snapshot.json",
             "configuration.snapshot.json",
@@ -283,14 +282,13 @@ def verify_pipeline_run(project, run_dir, manifest):
         expected_snapshot["projection_confirmation"] = confirmation
     if snapshot != expected_snapshot:
         raise ValueError("RUN source pins mismatch")
-    if "audit/lineage.parquet" not in {item["path"] for item in manifest["artifacts"]}:
-        raise ValueError("RUN manifest must pin the source-lineage artifact")
-    # Reconstruct physical provenance from the pinned source bytes and DAG.
     frames, _ = resolve_resources(project, config)
+    changes = ChangeAudit()
     tables = execute_pipeline(
-        {"schema_version": config["schema_version"], "steps": config["steps"]}, frames
+        {"schema_version": config["schema_version"], "steps": config["steps"]},
+        frames,
+        on_step=changes.observe,
     )
-    traces = trace_pipeline(config, tables, pins)
     reconstructed = {name: tables[name] for name in config["outputs"]}
     if "entities" in config:
         from fairmorph_engine.core.entity_projection import (
@@ -298,25 +296,31 @@ def verify_pipeline_run(project, run_dir, manifest):
             verify_projection_evidence,
         )
 
-        verify_projection_evidence(project, config, tables, confirmation)
+        verify_projection_evidence(project, config, tables, confirmation, historical=True)
         reconstructed.update(
             {kind.lower(): frame for kind, frame in project_entities(config, tables).items()}
         )
-        traces.update(trace_entities(config, traces))
     for name, frame in reconstructed.items():
         if not frame.equals(pl.read_parquet(run_dir / "outputs" / f"{name}.parquet")):
             raise ValueError("RUN output differs from pinned DAG input")
-    expected_lineage = lineage_frame(reconstructed, traces)
-    recorded_lineage = pl.read_parquet(run_dir / "audit" / "lineage.parquet")
-    if not expected_lineage.equals(recorded_lineage):
-        raise ValueError("RUN source-cell lineage mismatch")
+    changed_path = "audit/value_changes.parquet"
+    pinned_changes = changed_path in {item["path"] for item in manifest["artifacts"]}
+    if pinned_changes != bool(changes.changes):
+        raise ValueError("RUN value-change artifact presence mismatch")
+    if pinned_changes:
+        if not changes.changes_frame().equals(
+            pl.read_parquet(run_dir / "audit" / "value_changes.parquet")
+        ):
+            raise ValueError("RUN value-change audit mismatch")
     audit = json.loads((run_dir / "audit" / "pipeline.json").read_text(encoding="utf-8"))
     if (
         audit["configuration_sha256"] != sha
         or audit["steps"] != config["steps"]
         or audit["source_bindings"] != pins
+        or audit.get("step_audit") != changes.steps
+        or audit.get("value_change_count") != len(changes.changes)
     ):
-        raise ValueError("RUN DAG audit mismatch")
+        raise ValueError("RUN DAG/change audit mismatch")
     expected_outputs = config["outputs"] + (
         [kind.lower() for kind in config["entities"]] if "entities" in config else []
     )
