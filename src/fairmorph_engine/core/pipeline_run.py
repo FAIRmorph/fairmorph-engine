@@ -25,11 +25,15 @@ def pipeline_path(project, sha):
 
 
 def validate_pipeline(config):
-    if not isinstance(config, dict) or set(config) != {"schema_version", "steps", "resources", "outputs"}:
+    if not isinstance(config, dict) or set(config) not in ({"schema_version", "steps", "resources", "outputs"}, {"schema_version", "steps", "resources", "outputs", "entities"}):
         raise ValueError("Pipeline requires schema_version, steps, resources and outputs")
     schema = json.loads((Path(__file__).resolve().parents[1] / "contracts" / "pipeline.schema.json").read_text())
     Draft202012Validator(schema).validate({"schema_version": config["schema_version"], "steps": config["steps"]})
     resources = config["resources"]
+    if "entities" in config:
+        from fairmorph_engine.core.entity_projection import validate_entities
+
+        validate_entities(config)
     if not isinstance(resources, dict) or not resources:
         raise ValueError("Pipeline requires explicit resource bindings")
     for name, binding in resources.items():
@@ -98,8 +102,18 @@ def resolve_resources(project, config):
 
 def execute_pipeline_run(project, sha, emit=lambda *_a, **_k: None):
     config = load_pipeline(project, sha)
+    approval = None
+    if "entities" in config:
+        from fairmorph_engine.core.entity_projection import require_approval
+
+        approval = require_approval(project, sha)
     frames, pins = resolve_resources(project, config)
     tables = execute_pipeline({"schema_version": config["schema_version"], "steps": config["steps"]}, frames)
+    entity_frames = {}
+    if "entities" in config:
+        from fairmorph_engine.core.entity_projection import project_entities
+
+        entity_frames = project_entities(config, tables)
     started = datetime.now(UTC).isoformat()
     run_id = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ") + "-" + uuid.uuid4().hex[:12]
     staging = project / "runs" / f".pending-{run_id}"
@@ -113,12 +127,17 @@ def execute_pipeline_run(project, sha, emit=lambda *_a, **_k: None):
             frame = tables[name]
             frame.write_parquet(staging / "outputs" / f"{name}.parquet")
             metrics.append({"name": name, "rows": frame.height, "columns": frame.columns})
+        for kind, frame in entity_frames.items():
+            frame.write_parquet(staging / "outputs" / f"{kind.lower()}.parquet")
+            metrics.append({"name": kind.lower(), "rows": frame.height, "columns": frame.columns})
         snapshot = {"schema_version": "fairmorph.pipeline.inputs/1", "configuration_sha256": sha, "sources": pins}
+        if approval is not None:
+            snapshot["projection_approval"] = approval
         _write_json(staging / "inputs.snapshot.json", snapshot)
         _write_json(staging / "configuration.snapshot.json", config)
         _write_json(staging / "audit" / "pipeline.json", {"configuration_sha256": sha, "steps": config["steps"], "source_bindings": pins, "outputs": metrics})
         _write_json(staging / "reports" / "quality.json", {"outputs": metrics})
-        paths = [*(f"outputs/{n}.parquet" for n in config["outputs"]), "audit/pipeline.json", "reports/quality.json", "inputs.snapshot.json", "configuration.snapshot.json"]
+        paths = [*(f"outputs/{n}.parquet" for n in config["outputs"]), *(f"outputs/{k.lower()}.parquet" for k in entity_frames), "audit/pipeline.json", "reports/quality.json", "inputs.snapshot.json", "configuration.snapshot.json"]
         artifacts = [{"path": p, "bytes": (staging / p).stat().st_size, "sha256": digest(staging / p)} for p in paths]
         manifest = {"schema_version": "fairmorph.poc.run/2", "run_id": run_id, "status": "completed", "started_at": started, "engine_version": "0.1.0", "transformation_version": "fairmorph.pipeline/1", "configuration_sha256": sha, "input_snapshot_sha256": digest(staging / "inputs.snapshot.json"), "artifacts": artifacts}
         _validate_contract("run-v2", manifest)
@@ -163,13 +182,22 @@ def verify_pipeline_run(project, run_dir, manifest):
     if saved != config:
         raise ValueError("RUN configuration mismatch")
     _, pins = resolve_resources(project, config)
+    approval = None
+    if "entities" in config:
+        from fairmorph_engine.core.entity_projection import require_approval
+
+        approval = require_approval(project, sha)
     snapshot = json.loads((run_dir / "inputs.snapshot.json").read_text(encoding="utf-8"))
-    if snapshot != {"schema_version": "fairmorph.pipeline.inputs/1", "configuration_sha256": sha, "sources": pins}:
+    expected_snapshot = {"schema_version": "fairmorph.pipeline.inputs/1", "configuration_sha256": sha, "sources": pins}
+    if approval is not None:
+        expected_snapshot["projection_approval"] = approval
+    if snapshot != expected_snapshot:
         raise ValueError("RUN source pins mismatch")
     audit = json.loads((run_dir / "audit" / "pipeline.json").read_text(encoding="utf-8"))
     if audit["configuration_sha256"] != sha or audit["steps"] != config["steps"] or audit["source_bindings"] != pins:
         raise ValueError("RUN DAG audit mismatch")
-    if [item["name"] for item in audit["outputs"]] != config["outputs"]:
+    expected_outputs = config["outputs"] + ([kind.lower() for kind in ("Observation", "Event", "Occurrence")] if "entities" in config else [])
+    if [item["name"] for item in audit["outputs"]] != expected_outputs:
         raise ValueError("RUN output binding mismatch")
     for item in audit["outputs"]:
         frame = pl.read_parquet(run_dir / "outputs" / f"{item['name']}.parquet")
