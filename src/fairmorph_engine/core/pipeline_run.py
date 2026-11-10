@@ -46,6 +46,8 @@ def validate_pipeline(config):
         raise ValueError("Invalid published outputs")
     if not set(outputs).issubset({s["output"] for s in config["steps"]}):
         raise ValueError("Published outputs must be produced by DAG steps")
+    if set(outputs) & {kind.lower() for kind in ("Observation", "Event", "Occurrence")} and "entities" in config:
+        raise ValueError("Entity output names are reserved for approved projections")
     if any(not re.fullmatch(r"[A-Za-z][A-Za-z0-9_-]*", n) for n in outputs):
         raise ValueError("Invalid output filename")
 
