@@ -120,7 +120,7 @@ def stage_csv_mapping_command(
 def approve_mapping_command(
     project: Annotated[Path, typer.Option("--project")],
     mapping_sha256: Annotated[str, typer.Option("--mapping-sha256")],
-    reviewer: Annotated[str, typer.Option("--reviewer")],
+    confirmed_by: Annotated[str, typer.Option("--confirmed-by")],
 ) -> None:
     """Explicitly approve a staged mapping and its field revisions."""
     from fairmorph_engine.core.profile import approve_staged_mapping
@@ -129,7 +129,7 @@ def approve_mapping_command(
         emit_event(
             "result",
             status="success",
-            data=approve_staged_mapping(project, mapping_sha256, reviewer),
+            data=approve_staged_mapping(project, mapping_sha256, confirmed_by),
         )
     except (ValueError, OSError, KeyError) as error:
         emit_event("result", status="error", message=str(error))
@@ -263,22 +263,22 @@ def select_pipeline_command(
         raise typer.Exit(code=1) from error
 
 
-@app.command(name="approve-projection")
-def approve_projection_command(
+@app.command(name="confirm-projection")
+def confirm_projection_command(
     project: Annotated[Path, typer.Option("--project")],
     pipeline_sha256: Annotated[str, typer.Option("--pipeline-sha256")],
     reviewer: Annotated[str, typer.Option("--reviewer")],
 ) -> None:
-    """Approve an explicit, version-pinned entity projection."""
+    """Confirm version-pinned entity mappings as the responsible user."""
     from jsonschema.exceptions import ValidationError
 
-    from fairmorph_engine.core.entity_projection import approve_projection
+    from fairmorph_engine.core.entity_projection import confirm_projection
 
     try:
         emit_event(
             "result",
             status="success",
-            data=approve_projection(project, pipeline_sha256, reviewer),
+            data=confirm_projection(project, pipeline_sha256, confirmed_by),
         )
     except (ValueError, RuntimeError, OSError, KeyError, ValidationError) as error:
         emit_event("result", status="error", message=str(error))
@@ -307,7 +307,7 @@ def handshake() -> None:
                 "run-pipeline",
                 "register-pipeline",
                 "select-pipeline",
-                "approve-projection",
+                "confirm-projection",
                 "export-package",
                 "verify-project",
                 "reconcile-runs",
