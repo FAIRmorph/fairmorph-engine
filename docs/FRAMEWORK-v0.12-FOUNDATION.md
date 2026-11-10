@@ -1,4 +1,4 @@
-# Framework v0.12: dataset-independent foundation
+> **Historisches Stage-Dokument:** Diese Datei wurde beim frühen v0.12-Foundation-Schritt erstellt. Aussagen wie „Schema-Registry fehlt“ sind **für den heutigen P0.1–P0.5-Stand überholt**. Für den aktuellen Implementierungs-/Vertragsstand siehe [v0.13-POC-SCOPE](FRAMEWORK-v0.13-POC-SCOPE.md), [Architecture](ARCHITECTURE.md) und [P0.5-Checkpoint](P0.5-CHECKPOINT.md). Vor Rahmenwerk 1.0 gilt ausdrücklich **keine** Rückwärtskompatibilitätspflicht für experimentelle PoC-Artefakte.\n\n# Framework v0.12: dataset-independent foundation
 
 The engine is an application, not a scientific data repository. Runtime project
 directories are created by `init-project`. Original sources enter through
