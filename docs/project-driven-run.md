@@ -234,3 +234,57 @@ Der PoC verwendet lediglich die bereits ausführbaren Entity-Typen
 `SamplingEvent`, `Occurrence` und `MeasurementOrFact`. Medien-, Sample-,
 Spatial-, Dive- und Transect-Profile sowie eine vollständige Relations-Workbench
 sind spätere Arbeitspakete. Siehe [P0.4-Checkpoint](P0.4-CHECKPOINT.md).
+
+
+
+## P0.5 – verpflichtende Schema-Pins für semantische Entity-RUNs
+
+Technischer Import (`imported_unmapped`) und rein technische DAG-Verarbeitung
+bleiben ohne fachliche Profile möglich. **Jede** Pipeline mit `entities`
+benötigt dagegen explizite, vom verantwortlichen Benutzer freigegebene
+`profile_bindings`. Ein unprofilierter P0.2-Entity-RUN ist nicht mehr zulässig;
+es existieren keine Altläufe, für die eine Kompatibilitätsschicht nötig wäre.
+Ein später erzeugter RUN friert seine Versions-/Hash-Pins dennoch für die
+historische Verifikation ein.
+
+Die mitgelieferten v0.12-Verträge (ökologische Schemas v0.8, JSON Schema
+Draft 2020-12) werden bewusst installiert:
+
+```sh
+fairmorph-engine install-profile-contracts --project ./survey.fairmorph --confirmed-by researcher
+fairmorph-engine profile-bindings --project ./survey.fairmorph --entities SamplingEvent,MeasurementOrFact
+```
+
+Das zweite Kommando gibt die exakt bestätigten `schema_id`,
+`schema_version` und `schema_sha256` zurück. Diese werden als
+`profile_bindings.envelope` und `profile_bindings.entities` in die
+zu registrierende Pipeline übernommen. Die Profile `SamplingEvent`,
+`Occurrence` und `MeasurementOrFact` werden bei RUN-Ausführung anhand ihrer
+materialisierten Datenzeilen validiert. Die übrigen fünf Domänenprofile
+sind installierbar und einzeln validierbar, aber keine Behauptung zusätzlicher
+materialisierter Entitätspfade.
+
+Optionale kuratierte Metadaten werden unabhängig von den Ergebnis-Parquets
+im technischen `metadata-envelope` erfasst. Dieser dokumentiert etwa
+`entity_id`, `entity_type`, Revisionsidentität, Einspielzeit,
+`source`, `review_status`, `attributes` und die präzise
+`field_provenance` unter JSON-Pointern (z. B.
+`/attributes/event_type`). Die Freigabe ist eine eindeutige Nutzerhandlung,
+ohne zwingenden zweiten Reviewer:
+
+```sh
+fairmorph-engine record-metadata --project ./survey.fairmorph \
+  --pipeline-sha256 <sha> --entity-type SamplingEvent --entity-id e1 \
+  --attributes attributes.json --provenance provenance.json \
+  --source user_confirmed --confirmed-by researcher
+
+fairmorph-engine show-metadata-snapshot --project ./survey.fairmorph --pipeline-sha256 <sha>
+```
+
+Nur explizit kuratierte und bestätigte Metadaten erhalten SQLite-Revisionen;
+es entstehen keine Pflicht-Envelope-Zeilen für jede Datenzelle. Ein RUN
+friert `profile_bindings` und die zum Lauf gültige `metadata_snapshot`
+zusammen mit Feldfreigaben und P0.4-Relationen ein. Verifikation rekonstruiert
+den historischen Stand aus unveränderlichen Revisionen, ohne neue
+Profilversionen zur Interpretation alter RUNs heranzuziehen.
+Siehe [P0.5-Checkpoint](P0.5-CHECKPOINT.md).
