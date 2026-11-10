@@ -9,6 +9,7 @@ FAIRmorph Engine is an **offline-first, dataset-independent data transformation 
 | Document | Coverage |
 | --- | --- |
 | [v0.13 PoC development policy and v0.12 conformance gaps](FRAMEWORK-v0.13-POC-SCOPE.md) | Three binding rules, implemented scope, unresolved contracts and next milestones |
+| [Chapter-by-chapter v0.12 coverage matrix](FRAMEWORK-v0.12-COVERAGE-MATRIX.md) | Mapping of framework chapters 01–15 to P0.1–P0.5 evidence and open gaps |
 | [P0.2–P0.5 checkpoints](P0.5-CHECKPOINT.md) | Reviewed source semantics, sparse change audit, versioned relations and schema-pinned curated metadata |
 | [Project-selected DAG/Entity RUN](project-driven-run.md) | Generic DAG pipeline, confirmed entity profiles and historical RUN snapshots |
 | [User Guide](USER-GUIDE.md) | Input configuration, example CSV and mapping JSON, contracts, project structure, processing and verification |
