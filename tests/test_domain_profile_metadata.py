@@ -230,7 +230,7 @@ def test_invalid_values_provenance_and_schema_pin_are_blocked(tmp_path):
             field_provenance={},
             source="user_confirmed", confirmed_by="owner",
         )
-    with pytest.raises(ValueError, match="existing technical"):
+    with pytest.raises(ValueError, match="does not exist in confirmed projection"):
         register_metadata_revision(
             project, sha, entity_type="SamplingEvent", entity_id="nonexistent",
             attributes={"event_type": "point_count"},
