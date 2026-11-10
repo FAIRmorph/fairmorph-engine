@@ -19,6 +19,10 @@ Installed executable: `fairmorph-engine` (Typer). Success and error events are w
 | `replace-relation` | `--project PATH --pipeline-sha256 HASH --relation-id ID --object-id ID --confirmed-by USER --source-reference TEXT` | Replace the target via a new assertion |
 | `retract-relation` | `--project PATH --pipeline-sha256 HASH --relation-id ID --confirmed-by USER --source-reference TEXT` | Revoke current relation without erasing history |
 | `show-relations` | `--project PATH --pipeline-sha256 HASH` | Inspect current confirmed relation snapshot and profile pins |
+| `install-profile-contracts` | `--project PATH --confirmed-by USER` | Explicitly approve/install eight local v0.12 domain schemas and the metadata envelope |
+| `profile-bindings` | `--project PATH --entities SamplingEvent,MeasurementOrFact` | Return verified schema ID, SemVer and SHA pins to put in a pipeline |
+| `record-metadata` | `--project PATH --pipeline-sha256 HASH --entity-type KIND --entity-id ID --attributes FILE --provenance FILE --source SOURCE --confirmed-by USER [--parent-revision-id ID]` | Append a reviewed domain metadata envelope revision |
+| `show-metadata-snapshot` | `--project PATH --pipeline-sha256 HASH` | Inspect active pinned metadata revisions |
 | `select-pipeline` | `--project PATH --pipeline-sha256 HASH` | Select a confirmed project DAG revision |
 | `run-pipeline` | `--project PATH` | Run the selected mapping/DAG and publish RUN/2 |
 | `export-package` | `--project PATH --run-id ID` | Export verified RUN as a Data Package |
@@ -103,12 +107,24 @@ The original profile-mapping RUN/2 path (`core.run_executor`) continues to use i
 
 SQLite stores the append-only assertion log and a transactionally maintained current projection. `execute_pipeline_run` embeds the relation snapshot in `inputs.snapshot.json`; `verify_pipeline_run` reconstructs the **historical** assertion state even after subsequent corrections. Only the declared entity kinds/predicates are supported in the vertical PoC; there is no mandatory reviewer separate from the user who confirms the relation. See `docs/P0.4-CHECKPOINT.md`.
 
-## 10. Local schema registry — `core.schema_registry`
+## 10. P0.5 domain-profile selection and metadata revisions
+
+- `core.domain_profiles.profile_bundle() -> dict`: resolve the installed offline JSON Schema Draft 2020-12 contracts from the framework v0.12 schema bundle.
+- `install_builtin_profiles(project, confirmed_by) -> dict`: explicitly approve/install eight v0.8 ecological domain schemas and the v0.8 metadata-envelope contract into the existing project schema registry.
+- `profile_bindings_for(project, entity_types) -> dict`: return a complete, explicitly pinned `profile_bindings` configuration fragment for previously approved schema versions.
+- `resolve_profiles(project, config) -> dict`: verify exact schema ID, version, SHA-256 and approval state; no automatic `latest` resolution or remote schema fetch.
+- `validate_entity_profiles(resolved, entity_frames)`: validate published P0.2 entity rows against the selected domain profile, separately from technical IDs and relation references.
+- `core.metadata_revisions.register_metadata_revision(project, pipeline_sha256, *, entity_type, entity_id, attributes, field_provenance, source, confirmed_by, parent_revision_id=None) -> dict`: append a single approved, validated metadata envelope for a real projected entity.
+- `metadata_snapshot(project, pipeline_sha256, *, through_sequence=None, entity_frames=None) -> dict`: resolve current or historically pinned metadata revision references and schema hashes.
+
+**P0.5 contract:** An Entity pipeline **must** have explicit approved `profile_bindings`; unprofiled old P0.2 configurations are rejected rather than upgraded. Technical imports and purely technical DAG processing need no domain profile. No preexisting user RUNs require migration. `RUN/2` freezes the selected schema versions plus an optional set of explicitly curated metadata revisions. This does not duplicate all observations as SQLite rows. See `docs/P0.5-CHECKPOINT.md`.
+
+## 11. Local schema registry — `core.schema_registry`
 
 - `register_schema(project, *, schema_id, schema_version, kind, schema, status="draft", reviewer=None) -> dict`: validate Draft 2020-12, reject remote references and persist immutable content under SHA-256. Kinds: `core`, `source`, `export`, `extension`.
 - `get_schema(project, *, schema_id, schema_version) -> tuple[dict, str]`: load only an exact version and verify its content pin.
 
-## 11. Publication APIs
+## 12. Publication APIs
 
 These functions consume **explicit external** profiles and metadata; they do not infer Darwin Core semantics.
 
@@ -126,6 +142,6 @@ These functions consume **explicit external** profiles and metadata; they do not
 
 A preflight or materialization result with `publication_ready: false` is not a final publication approval.
 
-## 12. Error handling
+## 13. Error handling
 
 Typical errors include `ValueError` (invalid profiles, unapproved mappings, integrity failures), `OSError` (filesystem), SQLite exceptions, JSON Schema `ValidationError` and missing optional processing dependencies. Integrations should inspect `result` events, avoid manual edits to RUNs, and use recovery only after stopping writers.
