@@ -1,4 +1,4 @@
-# FAIRmorph Framework v0.12: Field Semantics and Mapping Foundation
+> **Historische Arbeitsnotiz aus dem frühen v0.12-Stand, nicht die aktuelle To-do-Liste.** P0.1–P0.5 wurden inzwischen als vertikaler PoC umgesetzt und technisch getestet. Nächster Paketfokus: **P0.6 Workbench**. Die vor-1.0-Regeln (kein Vollprodukt, Kernverträge verpflichtend, keine Rückwärtskompatibilität, nur vorwärts konsistente Entwicklung) stehen in [v0.13 PoC Scope](FRAMEWORK-v0.13-POC-SCOPE.md).\n\n# FAIRmorph Framework v0.12: Field Semantics and Mapping Foundation
 
 ## Scope
 
