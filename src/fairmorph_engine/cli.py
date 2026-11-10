@@ -233,6 +233,7 @@ def register_pipeline_command(
 ) -> None:
     """Register a content-addressed pipeline configuration in the project."""
     from jsonschema.exceptions import ValidationError
+
     from fairmorph_engine.core.pipeline_run import register_pipeline
 
     try:
@@ -252,6 +253,7 @@ def select_pipeline_command(
 ) -> None:
     """Bind the project to an immutable, explicitly declared DAG."""
     from jsonschema.exceptions import ValidationError
+
     from fairmorph_engine.core.project_execution import select_project_pipeline
 
     try:
