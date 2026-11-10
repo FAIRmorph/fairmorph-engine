@@ -394,7 +394,7 @@ def project_entities(config: dict, tables: dict[str, pl.DataFrame]) -> dict[str,
         event = result["Event"]
         if "eventID" not in event.columns:
             raise ValueError("parentEventID requires explicit eventID")
-        parents = dict(zip(event["eventID"].to_list(), event["parentEventID"].to_list()))
+        parents = dict(zip(event["eventID"].to_list(), event["parentEventID"].to_list(), strict=True))
         if set(parents.values()) - {None} - set(parents):
             raise ValueError("Event parentEventID contains orphan references")
         for event_id in parents:
