@@ -106,9 +106,9 @@ def test_unknown_profile_column_rejected_without_draft(tmp_path):
         stage_csv_mapping(project, imported["resource_id"], bad)
 
 
-def test_reviewer_identity_mandatory(tmp_path):
+def test_confirming_user_identity_mandatory(tmp_path):
     project, _, draft = _prepare(tmp_path)
-    with pytest.raises(ValueError, match="reviewer"):
+    with pytest.raises(ValueError, match="confirming user identity"):
         approve_staged_mapping(project, draft["mapping_sha256"], "")
 
 
