@@ -206,3 +206,28 @@ def test_generic_run_pins_approved_title_and_preserves_older_run(tmp_path):
     revision_file.write_text("{}", encoding="utf-8")
     with pytest.raises(ValueError, match="changed or missing"):
         verify_project(project)
+
+
+def test_project_only_cli_reads_draft_and_approval_files(tmp_path):
+    from typer.testing import CliRunner
+
+    from fairmorph_engine.cli import app
+
+    project = tmp_path / "project"
+    initialize_project(project)
+    draft(project, "User-entered dataset title via project file")
+
+    runner = CliRunner()
+    staged = runner.invoke(app, ["stage-dataset-metadata", "--project", str(project)])
+    assert staged.exit_code == 0, staged.output
+    sha = json.loads(staged.stdout.strip())["data"]["revision_sha256"]
+    assert show_dataset_metadata(project)["status"] == "unconfigured"
+
+    approval(project, sha)
+    approved = runner.invoke(app, ["approve-dataset-metadata", "--project", str(project)])
+    assert approved.exit_code == 0, approved.output
+    status = runner.invoke(app, ["show-dataset-metadata", "--project", str(project)])
+    assert status.exit_code == 0
+    assert json.loads(status.stdout.strip())["data"]["title"] == (
+        "User-entered dataset title via project file"
+    )
