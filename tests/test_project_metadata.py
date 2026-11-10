@@ -2,6 +2,7 @@
 import json
 
 import pytest
+from jsonschema.exceptions import ValidationError
 
 from fairmorph_engine.core.project import initialize_project
 from fairmorph_engine.core.project_metadata import (
@@ -89,14 +90,14 @@ def test_unapproved_and_invalid_files_are_rejected(tmp_path):
     draft(project, "A descriptive dataset title")
     sha = stage_dataset_metadata(project)["revision_sha256"]
     approval(project, sha, "  ")
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         approve_dataset_metadata(project)
     approval(project, "f" * 64)
     with pytest.raises(ValueError, match="Unknown"):
         approve_dataset_metadata(project)
     assert show_dataset_metadata(project)["status"] == "unconfigured"
     draft(project, "x")
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         stage_dataset_metadata(project)
 
 
