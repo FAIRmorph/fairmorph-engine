@@ -72,7 +72,7 @@ def test_independent_survey_full_lifecycle(tmp_path):
         str(project),
         "--mapping-sha256",
         staged["mapping_sha256"],
-        "--reviewer",
+        "--confirmed-by",
         "survey-reviewer",
     )
     run = _cli(
