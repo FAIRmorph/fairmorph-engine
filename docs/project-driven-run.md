@@ -163,22 +163,30 @@ full relation-assertion history, record-/cell-level provenance, generic
 export adapters or DwC-A/EML conformance. See `docs/P0.2-CHECKPOINT.md`.
 
 
-## P0.3 – physical row and cell lineage in RUN/2
+## P0.3 – deklarative Herkunft und sparsames Änderungs-Audit
 
-The generic declarative pipeline emits `audit/lineage.parquet` alongside
-the published output Parquet tables. It traces physical source rows and cells
-through `table.select/1`, `table.filter/1`, `table.distinct/1`,
-`table.derive/1` (including conditional selection), `table.join/1`
-and `table.unpivot/1`. Explicit semantic projections copy those references
-to the `SamplingEvent`, `Occurrence` or `MeasurementOrFact` targets.
-Every referenced import is identified by `resource_id`, original-object
-SHA-256, zero-based source data-row offset and original column name.
-Row and cell lineage are separately identifiable using `lineage_type`.
+Die Quelle eines Feldes ergibt sich aus dem SHA-256-gepinnten Importobjekt,
+der bestätigten SourceFieldDefinition-Revision und der expliziten
+Mapping-/Transformationskonfiguration. Eine Wiederholung dieses Nachweises
+**für jede unveränderte Zelle** wird nicht gespeichert.
 
-The evidence is a checksummed RUN/2 artifact. `verify-project` reconstructs
-the lineage from the pinned source and DAG and compares it with the stored
-Parquet. Output rows without physical source values (constants or unmatched
-joins) are marked `source_kind=derived`. Data-row offsets are technical
-provenance, **not** stable biological identifiers. Missing and zero values
-remain distinct. For schema, invariants, tests and deliberate PoC boundaries,
-see [P0.3 checkpoint](P0.3-CHECKPOINT.md).
+Jeder generische DAG-RUN/2 enthält in `audit/pipeline.json` die versionierten
+Regeln, Ressourcenbindungen, Ergebniskennzahlen, Eingangs-/Ausgangszeilenzahlen
+pro Operator sowie `value_change_count`. Filter, Join, Distinct, Select und
+Unpivot können anhand der gepinnten Eingaben und Operatoren reproduziert
+werden, ohne eine zweite Tabelle aller Ursprungszellen zu speichern.
+
+Wenn `table.derive/1` einen Wert gegenüber einer eindeutig vergleichbaren
+Eingabespalte **tatsächlich verändert**, wird ausschließlich diese Abweichung
+in `audit/value_changes.parquet` protokolliert: Regel, Tabellen-/Spaltenbezug,
+lokaler Zeilenoffset, Datentyp sowie Vorher-/Nachher-Wert. Bei einem unveränderten
+RUN fehlt diese Datei vollständig. `null` und numerische Null sind ausdrücklich
+unterscheidbar. Für neue/zusammengesetzte Werte ohne einzelne Vergleichsbasis
+zeigt `fields_without_direct_value_comparison` im Regelaudit an, dass allein
+die deklarierte Regel den Ursprung beschreibt.
+
+RUN/2 verankert die erzeugten Auditdateien mit SHA-256 und Dateigröße im
+Manifest. `verify-project` verifiziert Ergebnisse, Mengenaudit und vorhandene
+Wertänderungen erneut anhand der unveränderten Originalquellen und DAG-Regeln.
+Der PoC verlangt keine unabhängige zweite bestätigende Person. Details und
+Grenzen: [P0.3-Checkpoint](P0.3-CHECKPOINT.md).
