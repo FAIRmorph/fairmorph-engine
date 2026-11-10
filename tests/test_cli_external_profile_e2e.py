@@ -117,7 +117,7 @@ def test_external_profile_cli_review_and_run(tmp_path, counting_unit):
                 str(project),
                 "--mapping-sha256",
                 staged["mapping_sha256"],
-                "--reviewer",
+                "--confirmed-by",
                 "reviewer",
             ],
         )
@@ -245,7 +245,7 @@ def test_generic_publication_integrity_against_real_verified_run(tmp_path):
                 str(project),
                 "--mapping-sha256",
                 staged["mapping_sha256"],
-                "--reviewer",
+                "--confirmed-by",
                 "reviewer",
             ],
         )
