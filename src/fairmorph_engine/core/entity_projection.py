@@ -11,7 +11,6 @@ from pathlib import Path
 
 import polars as pl
 
-from fairmorph_engine.core.registry import canonical_bytes
 from fairmorph_engine.core.run_executor import _write_json
 
 ENTITIES = ("Observation", "Event", "Occurrence")
