@@ -207,9 +207,7 @@ def trace_pipeline(
                 }
                 for row in range(frame.height)
             ],
-            records=[
-                frozenset({(resource, checksum, row)}) for row in range(frame.height)
-            ],
+            records=[frozenset({(resource, checksum, row)}) for row in range(frame.height)],
         )
     pending = {step["id"]: step for step in config["steps"]}
     while pending:
