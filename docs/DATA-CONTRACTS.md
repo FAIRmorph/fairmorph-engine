@@ -1,4 +1,4 @@
-# Data Contracts, Mapping Semantics and Publication Formats
+# Data Contracts, Mapping Semantics and Publication Formats (v0.13 PoC)
 
 ## 1. Contract model
 
@@ -20,7 +20,7 @@ Executable contracts are located in `src/fairmorph_engine/contracts/`; additiona
 | `publication-projection.schema.json` | Publication table and column projection |
 | `publication-integrity.schema.json` | Publication identifiers and integrity rules |
 
-Legacy PoC contracts, including `run.schema.json`, `export.schema.json` and `project.schema.json`, are used by `core.export.validate_contract`. **The actual schema is authoritative for required fields, enumerations and additional-properties rules.**
+Some experimental legacy contracts remain in the codebase, but **backward compatibility is not required before framework version 1.0**. An obsolete reader is not a forward development constraint. **The current executable schema** is authoritative for required fields, enumerations and additional-properties rules.
 
 ## 3. External CSV mapping profiles
 
@@ -35,11 +35,11 @@ The process is **validate and stage draft → review field revisions → approve
 
 See the [User Guide](USER-GUIDE.md) for exact profile fields, constraints and a working-shaped synthetic example.
 
-## 4. RUN/2 artifacts
+## 4. RUN/2 artifacts — two deliberately separate PoC paths
 
 `runs/<run_id>/manifest.json` records `schema_version = fairmorph.poc.run/2`, `run_id`, `status = completed`, execution metadata, `configuration_sha256`, `input_snapshot_sha256` and artifact paths/sizes/SHA-256 hashes.
 
-`inputs.snapshot.json` captures approved source and registry pins; `configuration.snapshot.json` captures the mapping configuration. `outputs/observations.parquet` stores normalized rows (including `record_id`, `source_identifier`, `source_line`, `source_column`, `target_field`, `value` and, for typed mappings, `value_type`). `audit/lineage.parquet` preserves provenance. `reports/quality.json` reports observed metrics.
+**External CSV-profile path:** `inputs.snapshot.json` captures approved source/registry pins; `configuration.snapshot.json` captures the mapping configuration. `outputs/observations.parquet` stores normalized rows (including `record_id`, `source_identifier`, `source_line`, `source_column`, `target_field`, `value`, and optional `value_type`). `audit/lineage.parquet` preserves this path’s reference provenance. `reports/quality.json` reports observed metrics.\n\n**Generic DAG + semantic Entity path:** Named output Parquet tables are published; `audit/pipeline.json` holds the versioned DAG, source bindings, per-step row counts and value-change totals. Only when a directly comparable derived value actually changes is `audit/value_changes.parquet` created. **No exhaustive row/cell-lineage Parquet is generated for this path.** `inputs.snapshot.json` also freezes confirmed SourceFieldDefinition evidence; on Entity pipelines it pins the P0.4 relation snapshot and mandatory P0.5 approved domain/envelope schema IDs, versions, hashes and optional curated metadata revision snapshot. `verify-project` replays and verifies these frozen dependencies.\n\n**P0.5 strict rule:** `entities` without a full approved `profile_bindings` set is rejected during pipeline registration. Technical import or pure table DAGs can remain unprofiled. The local `profile-bundle.v012.json` contains eight v0.8 domain schema drafts plus an offline metadata-envelope with embedded provenance `$defs`; the original v0.12 framework files contain a separate `provenance-entry.schema.json`, so canonical schema hashes are not automatically byte-equal.
 
 RUN/2 verification checks source and registry references in addition to artifact bytes. Checksums alone cannot establish scientific validity.
 
@@ -62,4 +62,4 @@ Adapters neither infer scientific taxonomy nor publish to an external service.
 
 ## 7. Versioning and compatibility
 
-Schema versions, mapping versions and transformation versions are independent of the Python package version. Export verification distinguishes RUN/1 and RUN/2; publication projections require RUN/2. The local schema registry supports new profile kinds without an automatic SQLite core migration. General project migration and guaranteed backward compatibility of Draft APIs are not yet provided.
+Schema versions, mapping versions, transformation versions and framework documentation versions are independent of the Python package version. The current vertical PoC uses `fairmorph.poc.run/2`. Old reader branches may remain as implementation details, **but there is no backward-compatibility or migration obligation for experimental PoC artifacts before framework v1.0**. Every new change must update code, contracts, tests and documentation **forward-consistently**; completed valid RUN evidence and immutable source objects must not be silently rewritten. The local schema registry can add profile kinds without automatically migrating the SQLite core. See [v0.13 policy](FRAMEWORK-v0.13-POC-SCOPE.md).
