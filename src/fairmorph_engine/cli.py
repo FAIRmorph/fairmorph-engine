@@ -109,8 +109,7 @@ def stage_csv_mapping_command(
 
     try:
         emit_event(
-            "result",
-            status="success", data=stage_csv_mapping(project, resource_id, profile)
+            "result", status="success", data=stage_csv_mapping(project, resource_id, profile)
         )
     except (ValueError, OSError, KeyError, ValidationError) as error:
         emit_event("result", status="error", message=str(error))
@@ -290,7 +289,6 @@ def confirm_projection_command(
         raise typer.Exit(code=1) from error
 
 
-
 @app.command(name="assert-relation")
 def assert_relation_command(
     project: Annotated[Path, typer.Option("--project")],
@@ -390,7 +388,8 @@ def show_relations_command(
 
     try:
         emit_event(
-            "result", status="success",
+            "result",
+            status="success",
             data=relation_snapshot(project, pipeline_sha256),
         )
     except (ValueError, RuntimeError, OSError, KeyError, ValidationError) as error:
