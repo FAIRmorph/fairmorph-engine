@@ -356,6 +356,11 @@ def _append(
                 object_entity_id = previous["object_entity_id"]
             elif operation != "replace":
                 raise ValueError("Unsupported relation operation")
+            # A target correction must not silently erase scientific validity.
+            if valid_from is None:
+                valid_from = previous["valid_time"]["valid_from"]
+            if valid_to is None:
+                valid_to = previous["valid_time"]["valid_to"]
         document = _assertion(
             sha,
             profile,
