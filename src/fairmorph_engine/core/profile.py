@@ -1,6 +1,6 @@
 """Register an external, reviewed CSV mapping profile without scientific defaults.
 
-Staging a profile is not an approval. Reviewers explicitly approve the exact
+Staging a profile is not confirmation. Users explicitly confirm the exact
 field revisions and mapping hash; source bytes are pinned before registration.
 """
 
@@ -209,7 +209,7 @@ def approve_staged_mapping(project: Path, mapping_sha256: str, reviewer: str) ->
     approved, and a second approval of the same revision is never implicit.
     """
     if not isinstance(reviewer, str) or not reviewer.strip():
-        raise ValueError("Explicit reviewer identity required")
+        raise ValueError("Explicit confirming user identity required")
     timestamp = datetime.now(UTC).isoformat()
     mapping_review_id = str(uuid.uuid4())
     with _catalog(project) as db:
