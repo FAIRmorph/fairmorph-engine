@@ -171,7 +171,7 @@ Review the field descriptions, counting units, missing-value semantics, zero sem
 fairmorph-engine approve-mapping \
   --project ./survey-project \
   --mapping-sha256 MAPPING_SHA256 \
-  --reviewer "data-curator"
+  --confirmed-by "data-curator"
 ```
 
 Use the exact mapping SHA-256 from staging. Approval is an explicit, recorded action; it is not inferred from a valid JSON document.
