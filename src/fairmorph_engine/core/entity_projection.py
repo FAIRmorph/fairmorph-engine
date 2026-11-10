@@ -124,9 +124,7 @@ def _column_provenance(config: dict, tables: dict) -> dict:
     provenance = {}
     for name, resource in config["resources"].items():
         resource_id = resource["resource_id"]
-        provenance[name] = {
-            col: {(resource_id, col)} for col in tables[name].columns
-        }
+        provenance[name] = {col: {(resource_id, col)} for col in tables[name].columns}
     pending = {step["id"]: step for step in config["steps"]}
     while pending:
         ready = sorted(
@@ -219,7 +217,7 @@ def _evidence(project: Path, config: dict, tables: dict) -> dict:
                         for fmt in resource_names.values():
                             prefix = "csv:" if fmt == "csv" else "parquet:"
                             if locator["path"].startswith(prefix):
-                                original_column = locator["path"][len(prefix):]
+                                original_column = locator["path"][len(prefix) :]
                                 break
                     if original_column is None or (resource_id, original_column) not in source:
                         raise ValueError("Field definition does not match source-column provenance")
@@ -231,7 +229,9 @@ def _evidence(project: Path, config: dict, tables: dict) -> dict:
                         (rid,),
                     ).fetchone()
                     if review is None or review[1] != "approved":
-                        raise ValueError("SourceFieldDefinition requires explicit user confirmation")
+                        raise ValueError(
+                            "SourceFieldDefinition requires explicit user confirmation"
+                        )
                     current = db.execute(
                         "SELECT revision_id FROM current_field_definitions WHERE source_field_id=?",
                         (field_id,),
@@ -243,7 +243,9 @@ def _evidence(project: Path, config: dict, tables: dict) -> dict:
                             definition.get("counting_unit") != "individual"
                             or definition["value_semantics"]["zero_meaning"] == "unknown"
                         ):
-                            raise ValueError("individualCount requires confirmed count/zero semantics")
+                            raise ValueError(
+                                "individualCount requires confirmed count/zero semantics"
+                            )
                     pinned.add((resource_id, original_column))
                     revisions[rid] = {
                         "revision_id": rid,
@@ -262,14 +264,18 @@ def _evidence(project: Path, config: dict, tables: dict) -> dict:
                     raise ValueError(
                         f"{kind}.{target} source definitions do not cover exact DAG provenance"
                     )
-                bindings.append({
-                    "entity": kind,
-                    "target_field": target,
-                    "source_table": spec["source_table"],
-                    "source_column": binding["column"],
-                    "description": binding["description"],
-                    "definition_revision_ids": sorted(pin["definition_revision_id"] for pin in binding["source_definitions"]),
-                })
+                bindings.append(
+                    {
+                        "entity": kind,
+                        "target_field": target,
+                        "source_table": spec["source_table"],
+                        "source_column": binding["column"],
+                        "description": binding["description"],
+                        "definition_revision_ids": sorted(
+                            pin["definition_revision_id"] for pin in binding["source_definitions"]
+                        ),
+                    }
+                )
     return {
         "schema_version": "fairmorph.projection.evidence/1",
         "field_definition_schema_sha256": digest(_field_schema()),
@@ -305,7 +311,13 @@ def confirm_projection(project: Path, sha: str, confirmed_by: str) -> dict:
             raise ValueError("Projection already confirmed; register a new revision")
         db.execute(
             "INSERT INTO projection_confirmations VALUES (?, ?, ?, ?, ?)",
-            (sha, confirmed_by.strip(), timestamp, canonical_bytes(evidence).decode(), digest(evidence)),
+            (
+                sha,
+                confirmed_by.strip(),
+                timestamp,
+                canonical_bytes(evidence).decode(),
+                digest(evidence),
+            ),
         )
     return require_confirmation(project, sha)
 
@@ -335,11 +347,16 @@ def require_confirmation(project: Path, sha: str) -> dict:
                 "WHERE review_id=? AND revision_id=?",
                 (item["confirmation"]["review_id"], item["revision_id"]),
             ).fetchone()
-            if review is None or review != (
-                item["confirmation"]["decision"],
-                item["confirmation"]["confirmed_by"],
-                item["confirmation"]["confirmed_at"],
-            ) or review[0] != "approved":
+            if (
+                review is None
+                or review
+                != (
+                    item["confirmation"]["decision"],
+                    item["confirmation"]["confirmed_by"],
+                    item["confirmation"]["confirmed_at"],
+                )
+                or review[0] != "approved"
+            ):
                 raise ValueError("Projection field confirmation was modified")
     return {
         "schema_version": "fairmorph.projection.confirmation/1",
@@ -351,7 +368,9 @@ def require_confirmation(project: Path, sha: str) -> dict:
     }
 
 
-def verify_projection_evidence(project: Path, config: dict, tables: dict, confirmation: dict) -> None:
+def verify_projection_evidence(
+    project: Path, config: dict, tables: dict, confirmation: dict
+) -> None:
     """Require exact source-field provenance at RUN execution."""
     current = _evidence(project, config, tables)
     if digest(current) != confirmation["evidence_sha256"]:
