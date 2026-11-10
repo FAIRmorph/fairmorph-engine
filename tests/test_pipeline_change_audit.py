@@ -121,9 +121,11 @@ def test_logs_only_derived_values_that_actually_change(tmp_path):
         ],
         "normalized",
     )
-    assert pl.read_parquet(run / "outputs" / "normalized.parquet")[
-        "count"
-    ].to_list() == [0, 0, None]
+    assert pl.read_parquet(run / "outputs" / "normalized.parquet")["count"].to_list() == [
+        0,
+        0,
+        None,
+    ]
     events = pl.read_parquet(run / "audit" / "value_changes.parquet")
     assert events.height == 1
     assert events["step_id"].to_list() == ["normalize"]
@@ -192,9 +194,7 @@ def test_multi_source_derived_values_are_described_once_by_mapping_rule(tmp_path
         "named",
     )
     assert not (run / "audit" / "value_changes.parquet").exists()
-    assert _audit(run)["step_audit"][0]["fields_without_direct_value_comparison"] == [
-        "description"
-    ]
+    assert _audit(run)["step_audit"][0]["fields_without_direct_value_comparison"] == ["description"]
 
 
 def test_distinct_removal_is_counted_without_doubling_cell_evidence(tmp_path):
