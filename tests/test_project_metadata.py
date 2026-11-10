@@ -126,3 +126,66 @@ def test_sqlite_revisions_and_approval_are_append_only(tmp_path):
             db.execute("DELETE FROM dataset_metadata_revisions WHERE revision_sha256=?", (sha,))
         with pytest.raises(sqlite3.IntegrityError):
             db.execute("UPDATE dataset_metadata_approvals SET confirmed_by='other'")
+
+
+def test_generic_run_pins_approved_title_and_preserves_older_run(tmp_path):
+    from fairmorph_engine.core.export import verify_project
+    from fairmorph_engine.core.pipeline_run import register_pipeline
+    from fairmorph_engine.core.project import import_resource
+    from fairmorph_engine.core.project_execution import (
+        execute_project_run,
+        select_project_pipeline,
+    )
+
+    project = tmp_path / "project"
+    initialize_project(project)
+    source = tmp_path / "source.csv"
+    source.write_text("sample,count\\nS1,0\\nS2,3\\n", encoding="utf-8")
+    resource = import_resource(project, source, "survey")
+    pipeline = {
+        "schema_version": "fairmorph.pipeline/1",
+        "resources": {
+            "survey": {"resource_id": resource["resource_id"], "format": "csv"},
+        },
+        "steps": [{
+            "id": "choose", "operator": "table.select/1",
+            "inputs": ["survey"], "output": "selected",
+            "parameters": {"columns": ["sample", "count"]},
+        }],
+        "outputs": ["selected"],
+    }
+    sha = register_pipeline(project, pipeline)["pipeline_sha256"]
+    select_project_pipeline(project, sha)
+
+    first = execute_project_run(project)
+    assert first["schema_version"] == "fairmorph.poc.run/2"
+    first_snapshot = json.loads(
+        (project / "runs" / first["run_id"] / "inputs.snapshot.json").read_text()
+    )
+    assert "dataset_metadata_snapshot" not in first_snapshot
+
+    draft(project, "Title of approved survey dataset")
+    rev1 = stage_dataset_metadata(project)["revision_sha256"]
+    approval(project, rev1)
+    approve_dataset_metadata(project)
+    second = execute_project_run(project)
+    second_snapshot = json.loads(
+        (project / "runs" / second["run_id"] / "inputs.snapshot.json").read_text()
+    )
+    assert second_snapshot["dataset_metadata_snapshot"]["title"] == "Title of approved survey dataset"
+    assert second_snapshot["dataset_metadata_snapshot"]["revision_sha256"] == rev1
+
+    draft(project, "Later revised title of survey dataset", rev1)
+    rev2 = stage_dataset_metadata(project)["revision_sha256"]
+    approval(project, rev2)
+    approve_dataset_metadata(project)
+
+    assert verify_project(project)["completed_runs"] == 2
+    assert json.loads(
+        (project / "runs" / second["run_id"] / "inputs.snapshot.json").read_text()
+    ) == second_snapshot
+
+    revision_file = project / "configurations" / "dataset-metadata" / f"{rev1}.json"
+    revision_file.write_text("{}", encoding="utf-8")
+    with pytest.raises(ValueError, match="changed or missing"):
+        verify_project(project)
