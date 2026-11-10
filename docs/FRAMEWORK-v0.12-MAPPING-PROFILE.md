@@ -37,7 +37,7 @@ fairmorph-engine stage-csv-mapping --project ./CS-PHOC.fairmorph \
   --resource-id <RESOURCE_ID> --profile examples/cs-phoc/mapping-profile.json
 # Scientific reviewer confirms the exact mapping and recorded source semantics:
 fairmorph-engine approve-mapping --project ./CS-PHOC.fairmorph \
-  --mapping-sha256 <MAPPING_SHA256> --reviewer <REVIEWER_ID>
+  --mapping-sha256 <MAPPING_SHA256> --confirmed-by <REVIEWER_ID>
 fairmorph-engine run-mapping --project ./CS-PHOC.fairmorph \
   --mapping-sha256 <MAPPING_SHA256>
 ```
