@@ -4,14 +4,14 @@ No dataset-specific inference: the Workbench can produce these declarative
 bindings, while the responsible user explicitly confirms the pinned configuration.
 """
 
-import json
+import sqlite3
 import re
 from datetime import UTC, datetime
 from pathlib import Path
 
 import polars as pl
 
-from fairmorph_engine.core.run_executor import _write_json
+from fairmorph_engine.core.registry import _catalog
 
 ENTITIES = ("Observation", "Event", "Occurrence")
 ID = {"Observation": "observationID", "Event": "eventID", "Occurrence": "occurrenceID"}
@@ -46,41 +46,63 @@ def validate_entities(config):
             raise ValueError("Occurrence requires an explicit eventID relationship")
 
 
-def approval_path(project: Path, sha: str) -> Path:
-    if not re.fullmatch(r"[0-9a-f]{64}", sha):
-        raise ValueError("Invalid configuration SHA-256")
-    return project / "configurations" / "approvals" / f"{sha}.json"
+def _confirmation_table(db: sqlite3.Connection) -> None:
+    """Append-only confirmations in the same project registry as field reviews."""
+    db.execute(
+        "CREATE TABLE IF NOT EXISTS projection_confirmations ("
+        "configuration_sha256 TEXT PRIMARY KEY, "
+        "confirmed_by TEXT NOT NULL, confirmed_at TEXT NOT NULL, "
+        "decision TEXT NOT NULL CHECK(decision='approved'))"
+    )
 
 
 def approve_projection(project: Path, sha: str, reviewer: str) -> dict:
+    """Explicit confirmation by a responsible user; no second actor is required."""
     from fairmorph_engine.core.pipeline_run import load_pipeline
 
     if not isinstance(reviewer, str) or not reviewer.strip():
         raise ValueError("Explicit confirming user identity required")
     config = load_pipeline(project, sha)
     validate_entities(config)
-    path = approval_path(project, sha)
-    if path.exists() or path.is_symlink():
-        raise ValueError("Projection already reviewed; register a new revision")
-    record = {
+    timestamp = datetime.now(UTC).isoformat()
+    with _catalog(project) as db:
+        _confirmation_table(db)
+        if db.execute(
+            "SELECT 1 FROM projection_confirmations WHERE configuration_sha256=?", (sha,)
+        ).fetchone():
+            raise ValueError("Projection already confirmed; register a new revision")
+        db.execute(
+            "INSERT INTO projection_confirmations VALUES (?, ?, ?, 'approved')",
+            (sha, reviewer.strip(), timestamp),
+        )
+    return {
         "schema_version": "fairmorph.projection.approval/1",
         "configuration_sha256": sha,
         "reviewer": reviewer.strip(),
-        "reviewed_at": datetime.now(UTC).isoformat(),
+        "reviewed_at": timestamp,
         "decision": "approved",
     }
-    _write_json(path, record)
-    return record
 
 
 def require_approval(project: Path, sha: str) -> dict:
-    path = approval_path(project, sha)
-    if not path.is_file() or path.is_symlink():
+    """Resolve the immutable user confirmation from the project registry."""
+    if not re.fullmatch(r"[0-9a-f]{64}", sha):
+        raise ValueError("Invalid configuration SHA-256")
+    with _catalog(project) as db:
+        _confirmation_table(db)
+        row = db.execute(
+            "SELECT confirmed_by, confirmed_at, decision FROM projection_confirmations "
+            "WHERE configuration_sha256=?", (sha,)
+        ).fetchone()
+    if row is None or row[2] != "approved" or not row[0]:
         raise ValueError("Projection requires explicit user confirmation")
-    record = json.loads(path.read_text(encoding="utf-8"))
-    if set(record) != {"schema_version", "configuration_sha256", "reviewer", "reviewed_at", "decision"} or record["schema_version"] != "fairmorph.projection.approval/1" or record["configuration_sha256"] != sha or record["decision"] != "approved" or not record["reviewer"].strip():
-        raise ValueError("Invalid projection approval")
-    return record
+    return {
+        "schema_version": "fairmorph.projection.approval/1",
+        "configuration_sha256": sha,
+        "reviewer": row[0],
+        "reviewed_at": row[1],
+        "decision": row[2],
+    }
 
 
 def project_entities(config: dict, tables: dict[str, pl.DataFrame]) -> dict[str, pl.DataFrame]:
