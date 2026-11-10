@@ -6,6 +6,7 @@ import sqlite3
 import polars as pl
 import pytest
 
+from fairmorph_engine.core.domain_profiles import install_builtin_profiles, profile_bindings_for
 from fairmorph_engine.core.entity_projection import confirm_projection
 from fairmorph_engine.core.export import verified_run, verify_project
 from fairmorph_engine.core.pipeline_run import register_pipeline
@@ -17,6 +18,7 @@ from fairmorph_engine.core.registry import define_field, review_field
 def _setup(tmp_path, *, duplicate_events=False, confirm_fields=True):
     project = tmp_path / "project"
     initialize_project(project)
+    install_builtin_profiles(project, "responsible-user")
     source = tmp_path / "source.csv"
     event2 = "e1" if duplicate_events else "e2"
     source.write_text(
@@ -60,7 +62,7 @@ def _binding(column, pins):
     }
 
 
-def _config(resource_id, pins, *, event_only=False):
+def _config(project, resource_id, pins, *, event_only=False):
     entities = {
         "SamplingEvent": {
             "source_table": "normalized",
@@ -117,12 +119,13 @@ def _config(resource_id, pins, *, event_only=False):
         ],
         "outputs": ["normalized"],
         "entities": entities,
+        "profile_bindings": profile_bindings_for(project, list(entities)),
     }
 
 
 def test_entity_vertical_slice_pins_fields_and_verifies_run(tmp_path):
     project, resource_id, pins = _setup(tmp_path)
-    sha = register_pipeline(project, _config(resource_id, pins))["pipeline_sha256"]
+    sha = register_pipeline(project, _config(project, resource_id, pins))["pipeline_sha256"]
     with pytest.raises(ValueError, match="confirmation"):
         select_project_pipeline(project, sha)
     confirmation = confirm_projection(project, sha, "responsible-user")
@@ -155,7 +158,7 @@ def test_entity_vertical_slice_pins_fields_and_verifies_run(tmp_path):
 
 def test_event_only_run_does_not_require_occurrence(tmp_path):
     project, resource_id, pins = _setup(tmp_path)
-    sha = register_pipeline(project, _config(resource_id, pins, event_only=True))["pipeline_sha256"]
+    sha = register_pipeline(project, _config(project, resource_id, pins, event_only=True))["pipeline_sha256"]
     confirm_projection(project, sha, "responsible-user")
     select_project_pipeline(project, sha)
     manifest = execute_project_run(project)
@@ -166,7 +169,7 @@ def test_event_only_run_does_not_require_occurrence(tmp_path):
 
 def test_unconfirmed_field_blocks_projection(tmp_path):
     project, resource_id, pins = _setup(tmp_path, confirm_fields=False)
-    sha = register_pipeline(project, _config(resource_id, pins))["pipeline_sha256"]
+    sha = register_pipeline(project, _config(project, resource_id, pins))["pipeline_sha256"]
     with pytest.raises(ValueError, match="SourceFieldDefinition requires"):
         confirm_projection(project, sha, "responsible-user")
 
@@ -174,14 +177,14 @@ def test_unconfirmed_field_blocks_projection(tmp_path):
 def test_incorrect_field_revision_pin_blocks_confirmation(tmp_path):
     project, resource_id, pins = _setup(tmp_path)
     pins["event"]["definition_sha256"] = "0" * 64
-    sha = register_pipeline(project, _config(resource_id, pins))["pipeline_sha256"]
+    sha = register_pipeline(project, _config(project, resource_id, pins))["pipeline_sha256"]
     with pytest.raises(ValueError, match="identity or hash"):
         confirm_projection(project, sha, "responsible-user")
 
 
 def test_duplicate_sampling_event_rejected_before_run(tmp_path):
     project, resource_id, pins = _setup(tmp_path, duplicate_events=True)
-    sha = register_pipeline(project, _config(resource_id, pins))["pipeline_sha256"]
+    sha = register_pipeline(project, _config(project, resource_id, pins))["pipeline_sha256"]
     confirm_projection(project, sha, "responsible-user")
     select_project_pipeline(project, sha)
     with pytest.raises(ValueError, match="SamplingEvent entity_id"):
@@ -191,7 +194,7 @@ def test_duplicate_sampling_event_rejected_before_run(tmp_path):
 
 def test_incomplete_field_mapping_rejected(tmp_path):
     project, resource_id, pins = _setup(tmp_path)
-    config = _config(resource_id, pins)
+    config = _config(project, resource_id, pins)
     del config["entities"]["SamplingEvent"]["fields"]["entity_id"]["source_definitions"]
     with pytest.raises(ValueError, match="explicit field contract"):
         register_pipeline(project, config)
