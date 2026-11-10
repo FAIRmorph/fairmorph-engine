@@ -16,12 +16,14 @@ from fairmorph_engine.core.registry import _catalog, digest
 from fairmorph_engine.core.schema_registry import get_schema, register_schema
 
 _BUNDLE = Path(__file__).resolve().parents[1] / "contracts" / "profile-bundle.v012.json"
-_TECHNICAL_FIELDS = frozenset({
-    "entity_id",
-    "parent_event_ref",
-    "sampling_event_ref",
-    "occurrence_ref",
-})
+_TECHNICAL_FIELDS = frozenset(
+    {
+        "entity_id",
+        "parent_event_ref",
+        "sampling_event_ref",
+        "occurrence_ref",
+    }
+)
 _PIN_FIELDS = frozenset({"schema_id", "schema_version", "schema_sha256"})
 
 
@@ -134,11 +136,17 @@ def profile_bindings_for(project: Path, entity_types: list[str]) -> dict:
     pins = {}
     for kind in [*entity_types, "metadata-envelope"]:
         schema = bundle["envelope"] if kind == "metadata-envelope" else bundle["domains"][kind]
-        version = bundle["envelope_version"] if kind == "metadata-envelope" else bundle["domain_version"]
+        version = (
+            bundle["envelope_version"] if kind == "metadata-envelope" else bundle["domain_version"]
+        )
         db_kind = "core" if kind == "metadata-envelope" else "domain"
         _registered_schema(
             project,
-            {"schema_id": schema["$id"], "schema_version": version, "schema_sha256": digest(schema)},
+            {
+                "schema_id": schema["$id"],
+                "schema_version": version,
+                "schema_sha256": digest(schema),
+            },
             db_kind,
         )
         pins[kind] = {
@@ -174,7 +182,9 @@ def validate_attributes(schema: dict, attributes: dict, *, context: str) -> None
         if not isinstance(error, ValidationError):
             raise
         location = "/".join(str(part) for part in error.absolute_path)
-        raise ValueError(f"{context} profile validation failed at {location or '/'}: {error.message}") from error
+        raise ValueError(
+            f"{context} profile validation failed at {location or '/'}: {error.message}"
+        ) from error
     if schema["title"] == "SamplingEvent" and "event_time" in attributes:
         value = attributes["event_time"]
         if "start" in value and "end" in value:
@@ -184,27 +194,22 @@ def validate_attributes(schema: dict, attributes: dict, *, context: str) -> None
                 raise ValueError(f"{context} event_time start must precede end with timezones")
 
 
-def validate_entity_profiles(
-    resolved: dict | None, entity_frames: dict[str, pl.DataFrame]
-) -> None:
+def validate_entity_profiles(resolved: dict | None, entity_frames: dict[str, pl.DataFrame]) -> None:
     """Validate concrete projected rows; technical IDs and FKs are separate fields."""
     if resolved is None:
         return
     for kind, frame in entity_frames.items():
         schema = resolved["entities"][kind]
         for row_index, row in enumerate(frame.to_dicts()):
-            attributes = _compatible_json({
-                name: value for name, value in row.items()
-                if name not in _TECHNICAL_FIELDS
-            })
+            attributes = _compatible_json(
+                {name: value for name, value in row.items() if name not in _TECHNICAL_FIELDS}
+            )
             validate_attributes(schema, attributes, context=f"{kind} row {row_index}")
 
 
 def validate_metadata_envelope(resolved: dict, kind: str, envelope: dict) -> None:
     """Both JSON Schemas are required; field-provenance pointers must be real."""
-    Draft202012Validator(
-        resolved["envelope"], format_checker=FormatChecker()
-    ).validate(envelope)
+    Draft202012Validator(resolved["envelope"], format_checker=FormatChecker()).validate(envelope)
     if envelope["entity_type"] != kind:
         raise ValueError("Metadata envelope entity_type differs from selected domain profile")
     validate_attributes(
