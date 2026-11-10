@@ -19,12 +19,13 @@ from fairmorph_engine.core.registry import (
     digest,
 )
 
-ENTITIES = ("Observation", "Event", "Occurrence", "MeasurementOrFact")
-ID = {"Observation": "observationID", "Event": "eventID", "Occurrence": "occurrenceID", "MeasurementOrFact": "measurementID"}
+ENTITIES = ("SamplingEvent", "Occurrence", "MeasurementOrFact")
 RELATIONS = {
-    "Observation": {"eventID": "Event"},
-    "Occurrence": {"eventID": "Event", "observationID": "Observation"},
-    "MeasurementOrFact": {"eventID": "Event", "occurrenceID": "Occurrence"},
+    "Occurrence": {"sampling_event_ref": "SamplingEvent"},
+    "MeasurementOrFact": {
+        "sampling_event_ref": "SamplingEvent",
+        "occurrence_ref": "Occurrence",
+    },
 }
 _SHA = re.compile(r"[0-9a-f]{64}")
 _NAME = re.compile(r"[A-Za-z][A-Za-z0-9_]*")
@@ -48,8 +49,13 @@ def validate_entities(config: dict) -> None:
         if not isinstance(spec["description"], str) or len(spec["description"].strip()) < 12:
             raise ValueError(f"{kind} requires a substantive user description")
         fields = spec["fields"]
-        if not isinstance(fields, dict) or ID[kind] not in fields:
-            raise ValueError(f"{kind} requires an explicit {ID[kind]} binding")
+        required = {"entity_id"}
+        if kind == "SamplingEvent":
+            required.add("event_type")
+        if kind == "MeasurementOrFact":
+            required.update({"measurement_type", "value"})
+        if not isinstance(fields, dict) or not required.issubset(fields):
+            raise ValueError(f"{kind} requires explicit bindings for {sorted(required)}")
         for target, binding in fields.items():
             if not isinstance(target, str) or not _NAME.fullmatch(target):
                 raise ValueError("Invalid semantic target field")
@@ -365,15 +371,30 @@ def project_entities(config: dict, tables: dict[str, pl.DataFrame]) -> dict[str,
         output = frame.select(
             [pl.col(binding["column"]).alias(target) for target, binding in fields.items()]
         )
-        identity = output.get_column(ID[kind])
+        identity = output.get_column("entity_id")
         if not output.height or identity.null_count() or identity.n_unique() != output.height:
-            raise ValueError(f"{kind} {ID[kind]} must be unique and non-null")
+            raise ValueError(f"{kind} entity_id must be unique and non-null")
         if identity.dtype == pl.String and identity.str.strip_chars().eq("").any():
-            raise ValueError(f"{kind} {ID[kind]} cannot be blank")
-        if kind == "Event" and "eventID" in output.columns:
-            ids = output.get_column("eventID")
-            if ids.null_count() or ids.n_unique() != output.height:
-                raise ValueError("Event eventID must be unique and non-null when mapped")
+            raise ValueError(f"{kind} entity_id cannot be blank")
+        required_text = {
+            "SamplingEvent": "event_type",
+            "MeasurementOrFact": "measurement_type",
+        }.get(kind)
+        if required_text:
+            values = output.get_column(required_text)
+            if values.null_count() or (
+                values.dtype == pl.String and values.str.strip_chars().eq("").any()
+            ):
+                raise ValueError(f"{kind}.{required_text} must be defined")
+        if kind == "MeasurementOrFact" and output.get_column("value").null_count():
+            if "missing_reason" not in output.columns:
+                raise ValueError("Null measurement requires explicit missing_reason")
+            missing = output.filter(
+                pl.col("value").is_null()
+                & (pl.col("missing_reason").is_null() | (pl.col("missing_reason") == ""))
+            )
+            if missing.height:
+                raise ValueError("Null measurement requires missing_reason")
         result[kind] = output
     for child, references in RELATIONS.items():
         if child not in result:
@@ -381,7 +402,7 @@ def project_entities(config: dict, tables: dict[str, pl.DataFrame]) -> dict[str,
         for foreign_key, parent in references.items():
             if foreign_key not in result[child].columns:
                 continue
-            parent_key = ID[parent]
+            parent_key = "entity_id"
             if parent not in result or parent_key not in result[parent].columns:
                 raise ValueError(f"{child}.{foreign_key} has no mapped parent identity")
             child_ids = result[child].get_column(foreign_key)
@@ -390,19 +411,23 @@ def project_entities(config: dict, tables: dict[str, pl.DataFrame]) -> dict[str,
                 raise ValueError(f"{child}.{foreign_key} contains missing/incompatible keys")
             if set(child_ids.to_list()) - set(parent_ids.to_list()):
                 raise ValueError(f"{child}.{foreign_key} contains orphan references")
-    if "Event" in result and "parentEventID" in result["Event"].columns:
-        event = result["Event"]
-        if "eventID" not in event.columns:
-            raise ValueError("parentEventID requires explicit eventID")
-        parents = dict(zip(event["eventID"].to_list(), event["parentEventID"].to_list(), strict=True))
+    if "SamplingEvent" in result and "parent_event_ref" in result["SamplingEvent"].columns:
+        events = result["SamplingEvent"]
+        parents = dict(
+            zip(
+                events["entity_id"].to_list(),
+                events["parent_event_ref"].to_list(),
+                strict=True,
+            )
+        )
         if set(parents.values()) - {None} - set(parents):
-            raise ValueError("Event parentEventID contains orphan references")
-        for event_id in parents:
+            raise ValueError("SamplingEvent parent reference contains orphan keys")
+        for entity_id in parents:
             visited = set()
-            current = event_id
+            current = entity_id
             while current is not None:
                 if current in visited:
-                    raise ValueError("Cyclic parentEventID hierarchy")
+                    raise ValueError("Cyclic parent-event hierarchy")
                 visited.add(current)
                 current = parents[current]
     return result
