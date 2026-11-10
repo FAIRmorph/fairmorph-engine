@@ -226,6 +226,41 @@ def run_pipeline_command(
         raise typer.Exit(code=1) from error
 
 
+@app.command(name="register-pipeline")
+def register_pipeline_command(
+    project: Annotated[Path, typer.Option("--project")],
+    definition: Annotated[Path, typer.Option("--definition", help="Declarative pipeline JSON to register")],
+) -> None:
+    """Register a content-addressed pipeline configuration in the project."""
+    from jsonschema.exceptions import ValidationError
+    from fairmorph_engine.core.pipeline_run import register_pipeline
+
+    try:
+        if not definition.is_file() or definition.is_symlink():
+            raise ValueError("Pipeline definition must be a regular file")
+        config = json.loads(definition.read_text(encoding="utf-8"))
+        emit_event("result", status="success", data=register_pipeline(project, config))
+    except (ValueError, RuntimeError, OSError, KeyError, ValidationError) as error:
+        emit_event("result", status="error", message=str(error))
+        raise typer.Exit(code=1) from error
+
+
+@app.command(name="select-pipeline")
+def select_pipeline_command(
+    project: Annotated[Path, typer.Option("--project")],
+    pipeline_sha256: Annotated[str, typer.Option("--pipeline-sha256")],
+) -> None:
+    """Bind the project to an immutable, explicitly declared DAG."""
+    from jsonschema.exceptions import ValidationError
+    from fairmorph_engine.core.project_execution import select_project_pipeline
+
+    try:
+        emit_event("result", status="success", data=select_project_pipeline(project, pipeline_sha256))
+    except (ValueError, RuntimeError, OSError, KeyError, ValidationError) as error:
+        emit_event("result", status="error", message=str(error))
+        raise typer.Exit(code=1) from error
+
+
 @app.command(name="handshake")
 def handshake() -> None:
     """Advertise the supported PoC contract without changing any project data."""
@@ -246,6 +281,8 @@ def handshake() -> None:
                 "run-mapping",
                 "select-mapping",
                 "run-pipeline",
+                "register-pipeline",
+                "select-pipeline",
                 "export-package",
                 "verify-project",
                 "reconcile-runs",
