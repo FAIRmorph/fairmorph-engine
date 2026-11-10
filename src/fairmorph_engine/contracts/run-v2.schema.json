@@ -37,7 +37,8 @@
     "transformation_version": {
       "enum": [
         "wide-to-long-counts/1",
-        "wide-to-long-values/1"
+        "wide-to-long-values/1",
+        "fairmorph.pipeline/1"
       ]
     },
     "configuration_sha256": {
