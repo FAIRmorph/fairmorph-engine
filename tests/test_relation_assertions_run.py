@@ -257,7 +257,6 @@ def test_cli_assert_and_show_explicit_user_relation(tmp_path):
     )
 
 
-
 def test_valid_time_offsets_and_source_class_do_not_replace_user_confirmation(tmp_path):
     project, sha = _project(tmp_path)
     approved = assert_relation(
