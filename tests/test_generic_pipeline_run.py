@@ -18,8 +18,13 @@ def configuration(resource_id):
         "schema_version": "fairmorph.pipeline/1",
         "resources": {"survey": {"resource_id": resource_id, "format": "csv"}},
         "steps": [
-            {"id": "select", "operator": "table.select/1", "inputs": ["survey"],
-             "output": "result", "parameters": {"columns": ["event", "count"]}}
+            {
+                "id": "select",
+                "operator": "table.select/1",
+                "inputs": ["survey"],
+                "output": "result",
+                "parameters": {"columns": ["event", "count"]},
+            }
         ],
         "outputs": ["result"],
     }
@@ -41,7 +46,10 @@ def test_generic_dag_end_to_end_without_runtime_config(tmp_path):
     assert manifest["transformation_version"] == "fairmorph.pipeline/1"
     assert pl.read_parquet(run_dir / "outputs" / "result.parquet")["count"].to_list() == [0, 7]
     assert verify_project(project)["completed_runs"] == 1
-    assert json.loads((run_dir / "inputs.snapshot.json").read_text())["sources"][0]["sha256"] == resource["sha256"]
+    assert (
+        json.loads((run_dir / "inputs.snapshot.json").read_text())["sources"][0]["sha256"]
+        == resource["sha256"]
+    )
 
 
 def test_pipeline_rejects_source_tampering_before_run(tmp_path):
