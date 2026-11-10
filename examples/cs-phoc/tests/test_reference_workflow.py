@@ -78,7 +78,7 @@ def test_csphoc_generic_reference_vertical_slice(tmp_path):
         str(project),
         "--mapping-sha256",
         staged["mapping_sha256"],
-        "--reviewer",
+        "--confirmed-by",
         "reference-reviewer",
     )
     run = _result(
