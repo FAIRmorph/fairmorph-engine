@@ -490,6 +490,53 @@ def show_metadata_snapshot_command(
         raise typer.Exit(code=1) from error
 
 
+
+@app.command(name="show-dataset-metadata")
+def show_dataset_metadata_command(
+    project: Annotated[Path, typer.Option("--project")],
+) -> None:
+    """Read the current explicitly approved project-level dataset title."""
+    from fairmorph_engine.core.project_metadata import show_dataset_metadata
+
+    try:
+        emit_event("result", status="success", data=show_dataset_metadata(project))
+    except (ValueError, RuntimeError, OSError, KeyError) as error:
+        emit_event("result", status="error", message=str(error))
+        raise typer.Exit(code=1) from error
+
+
+@app.command(name="stage-dataset-metadata")
+def stage_dataset_metadata_command(
+    project: Annotated[Path, typer.Option("--project")],
+) -> None:
+    """Read project-local draft and register a new immutable, unapproved revision."""
+    from jsonschema.exceptions import ValidationError
+
+    from fairmorph_engine.core.project_metadata import stage_dataset_metadata
+
+    try:
+        emit_event("result", status="success", data=stage_dataset_metadata(project))
+    except (ValueError, RuntimeError, OSError, KeyError, ValidationError) as error:
+        emit_event("result", status="error", message=str(error))
+        raise typer.Exit(code=1) from error
+
+
+@app.command(name="approve-dataset-metadata")
+def approve_dataset_metadata_command(
+    project: Annotated[Path, typer.Option("--project")],
+) -> None:
+    """Read a distinct explicit approval file and commit its staged revision."""
+    from jsonschema.exceptions import ValidationError
+
+    from fairmorph_engine.core.project_metadata import approve_dataset_metadata
+
+    try:
+        emit_event("result", status="success", data=approve_dataset_metadata(project))
+    except (ValueError, RuntimeError, OSError, KeyError, ValidationError) as error:
+        emit_event("result", status="error", message=str(error))
+        raise typer.Exit(code=1) from error
+
+
 @app.command(name="handshake")
 def handshake() -> None:
     """Advertise the supported PoC contract without changing any project data."""
@@ -524,6 +571,9 @@ def handshake() -> None:
                 "export-package",
                 "verify-project",
                 "reconcile-runs",
+                "show-dataset-metadata",
+                "stage-dataset-metadata",
+                "approve-dataset-metadata",
             ],
         },
     )
