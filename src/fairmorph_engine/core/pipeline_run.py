@@ -46,7 +46,7 @@ def validate_pipeline(config):
         raise ValueError("Invalid published outputs")
     if not set(outputs).issubset({s["output"] for s in config["steps"]}):
         raise ValueError("Published outputs must be produced by DAG steps")
-    if set(outputs) & {kind.lower() for kind in ("Observation", "Event", "Occurrence")} and "entities" in config:
+    if set(outputs) & {kind.lower() for kind in config["entities"]} and "entities" in config:
         raise ValueError("Entity output names are reserved for approved projections")
     if any(not re.fullmatch(r"[A-Za-z][A-Za-z0-9_-]*", n) for n in outputs):
         raise ValueError("Invalid output filename")
@@ -104,11 +104,11 @@ def resolve_resources(project, config):
 
 def execute_pipeline_run(project, sha, emit=lambda *_a, **_k: None):
     config = load_pipeline(project, sha)
-    approval = None
+    confirmation = None
     if "entities" in config:
-        from fairmorph_engine.core.entity_projection import require_approval
+        from fairmorph_engine.core.entity_projection import require_confirmation
 
-        approval = require_approval(project, sha)
+        confirmation = require_confirmation(project, sha)
     frames, pins = resolve_resources(project, config)
     tables = execute_pipeline({"schema_version": config["schema_version"], "steps": config["steps"]}, frames)
     entity_frames = {}
@@ -133,8 +133,8 @@ def execute_pipeline_run(project, sha, emit=lambda *_a, **_k: None):
             frame.write_parquet(staging / "outputs" / f"{kind.lower()}.parquet")
             metrics.append({"name": kind.lower(), "rows": frame.height, "columns": frame.columns})
         snapshot = {"schema_version": "fairmorph.pipeline.inputs/1", "configuration_sha256": sha, "sources": pins}
-        if approval is not None:
-            snapshot["projection_approval"] = approval
+        if confirmation is not None:
+            snapshot["projection_confirmation"] = confirmation
         _write_json(staging / "inputs.snapshot.json", snapshot)
         _write_json(staging / "configuration.snapshot.json", config)
         _write_json(staging / "audit" / "pipeline.json", {"configuration_sha256": sha, "steps": config["steps"], "source_bindings": pins, "outputs": metrics})
@@ -191,8 +191,8 @@ def verify_pipeline_run(project, run_dir, manifest):
         approval = require_approval(project, sha)
     snapshot = json.loads((run_dir / "inputs.snapshot.json").read_text(encoding="utf-8"))
     expected_snapshot = {"schema_version": "fairmorph.pipeline.inputs/1", "configuration_sha256": sha, "sources": pins}
-    if approval is not None:
-        expected_snapshot["projection_approval"] = approval
+    if confirmation is not None:
+        expected_snapshot["projection_confirmation"] = confirmation
     if snapshot != expected_snapshot:
         raise ValueError("RUN source pins mismatch")
     audit = json.loads((run_dir / "audit" / "pipeline.json").read_text(encoding="utf-8"))
