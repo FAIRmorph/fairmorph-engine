@@ -97,8 +97,11 @@ fairmorph-engine select-pipeline --project ./survey.fairmorph --pipeline-sha256 
 fairmorph-engine run-pipeline --project ./survey.fairmorph
 ```
 
-The approval record is retained under `configurations/approvals/`. The RUN/2
-input snapshot records the reviewer, timestamp and pinned configuration SHA.
+The user confirmation is recorded as an append-only entry in the project
+SQLite registry (`projection_confirmations`). The RUN/2 input snapshot records
+the confirming user, timestamp and pinned configuration SHA. Existing CLI
+`--reviewer` is retained for compatibility and denotes the confirming user,
+not an independent second person.
 The Engine never infers taxonomy, occurrence status or aggregation semantics.
 It enforces unique, non-null entity identifiers and checks declared Event and
 Observation foreign keys. Duplicate Event rows must be resolved explicitly
