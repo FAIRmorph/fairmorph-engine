@@ -119,6 +119,7 @@ def _apply(operator, frames, params):
             on=keys,
             how="left",
             validate={"1:1": "1:1", "1:m": "1:m", "m:1": "m:1", "m:m": "m:m"}[cardinality],
+            maintain_order="left_right",
         )
         if result.height != left.height and params.get("preserve_left_rows", True):
             raise ValueError("Join changes left row count")
