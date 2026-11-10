@@ -103,7 +103,7 @@ def _verified_revision(project: Path, db: sqlite3.Connection, sha: str) -> dict:
         or document["parent_revision_sha256"] != row[1]
     ):
         raise ValueError("Dataset metadata revision changed or missing")
-    _validate(document, CONTRACT)
+    _validate(document, "dataset-metadata")
     return document
 
 
@@ -132,7 +132,7 @@ def show_dataset_metadata(project: Path) -> dict:
 def stage_dataset_metadata(project: Path) -> dict:
     """Register one immutable project-file draft, without approving it."""
     doc = _read_json_file(project / DRAFT)
-    _validate(doc, CONTRACT)
+    _validate(doc, "dataset-metadata")
     sha = digest(doc)
     with _database(project) as db:
         parent = _current(db)
@@ -169,7 +169,7 @@ def stage_dataset_metadata(project: Path) -> dict:
 def approve_dataset_metadata(project: Path) -> dict:
     """Approve a specific staged hash from a separate explicit project-file decision."""
     decision = _read_json_file(project / APPROVAL)
-    _validate(decision, APPROVAL_CONTRACT)
+    _validate(decision, "dataset-metadata-approval")
     sha = decision["revision_sha256"]
     with _database(project) as db:
         db.execute("BEGIN IMMEDIATE")
