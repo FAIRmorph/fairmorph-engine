@@ -47,6 +47,8 @@ def validate_pipeline(config):
 
 
 def register_pipeline(project, config):
+    if not (project / "project.json").is_file() or (project / "project.json").is_symlink():
+        raise ValueError("Initialize project before registering a pipeline")
     validate_pipeline(config)
     sha = hashlib.sha256(canonical_bytes(config)).hexdigest()
     path = pipeline_path(project, sha)
