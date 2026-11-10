@@ -91,8 +91,15 @@ def _revision_events(db: sqlite3.Connection, sha: str, cutoff: int | None):
 def _active_revisions(events: list, pins: dict, resolved: dict) -> dict:
     active = {}
     for (
-        _, revision_id, kind, entity_id, parent_id,
-        raw, checksum, raw_pins, approved_by,
+        _,
+        revision_id,
+        kind,
+        entity_id,
+        parent_id,
+        raw,
+        checksum,
+        raw_pins,
+        approved_by,
     ) in events:
         envelope = json.loads(raw)
         if (
@@ -186,9 +193,15 @@ def register_metadata_revision(
             "parent_revision_id,envelope_json,envelope_sha256,schema_pins_json,approved_by) "
             "VALUES (?,?,?,?,?,?,?,?,?)",
             (
-                envelope["metadata_revision_id"], pipeline_sha256, entity_type,
-                entity_id, previous, canonical_bytes(envelope).decode(), checksum,
-                canonical_bytes(schema_pins).decode(), confirmed_by.strip(),
+                envelope["metadata_revision_id"],
+                pipeline_sha256,
+                entity_type,
+                entity_id,
+                previous,
+                canonical_bytes(envelope).decode(),
+                checksum,
+                canonical_bytes(schema_pins).decode(),
+                confirmed_by.strip(),
             ),
         )
         db.execute(
@@ -222,9 +235,7 @@ def metadata_snapshot(
     if pins is None:
         raise ValueError("Metadata snapshot requires explicit profile bindings")
     resolved = resolve_profiles(project, config)
-    if through_sequence is not None and (
-        type(through_sequence) is not int or through_sequence < 0
-    ):
+    if through_sequence is not None and (type(through_sequence) is not int or through_sequence < 0):
         raise ValueError("Invalid metadata sequence boundary")
     with _catalog(project) as db:
         _tables(db)
@@ -241,8 +252,8 @@ def metadata_snapshot(
             }
             if actual != {k: v["metadata_revision_id"] for k, v in active.items()}:
                 raise ValueError("Current metadata pointer disagrees with revision history")
-        cutoff = through_sequence if through_sequence is not None else (
-            events[-1][0] if events else 0
+        cutoff = (
+            through_sequence if through_sequence is not None else (events[-1][0] if events else 0)
         )
     if entity_frames is not None:
         validate_entity_profiles(resolved, entity_frames)
