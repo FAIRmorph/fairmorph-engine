@@ -109,7 +109,8 @@ def stage_csv_mapping_command(
 
     try:
         emit_event(
-            "result", status="success", data=stage_csv_mapping(project, resource_id, profile)
+            "result",
+            status="success", data=stage_csv_mapping(project, resource_id, profile)
         )
     except (ValueError, OSError, KeyError, ValidationError) as error:
         emit_event("result", status="error", message=str(error))
@@ -307,8 +308,13 @@ def assert_relation_command(
 
     try:
         data = assert_relation(
-            project, pipeline_sha256, predicate, subject_id, object_id,
-            confirmed_by, source_reference,
+            project,
+            pipeline_sha256,
+            predicate,
+            subject_id,
+            object_id,
+            confirmed_by,
+            source_reference,
         )
         emit_event("result", status="success", data=data)
     except (ValueError, RuntimeError, OSError, KeyError, ValidationError) as error:
@@ -332,8 +338,12 @@ def replace_relation_command(
 
     try:
         data = replace_relation(
-            project, pipeline_sha256, relation_id, object_id,
-            confirmed_by, source_reference,
+            project,
+            pipeline_sha256,
+            relation_id,
+            object_id,
+            confirmed_by,
+            source_reference,
         )
         emit_event("result", status="success", data=data)
     except (ValueError, RuntimeError, OSError, KeyError, ValidationError) as error:
@@ -356,7 +366,11 @@ def retract_relation_command(
 
     try:
         data = retract_relation(
-            project, pipeline_sha256, relation_id, confirmed_by, source_reference,
+            project,
+            pipeline_sha256,
+            relation_id,
+            confirmed_by,
+            source_reference,
         )
         emit_event("result", status="success", data=data)
     except (ValueError, RuntimeError, OSError, KeyError, ValidationError) as error:
