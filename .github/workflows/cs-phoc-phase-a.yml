@@ -92,13 +92,16 @@ jobs:
 
           output = project / "runs" / run["run_id"] / "outputs/counts_with_events.parquet"
           table = pl.read_parquet(output)
-          count_zero = table.filter(pl.col("count_value") == 0).height
+          # Unpivot reads mixed CSV fields as strings. Validate numeric values
+          # explicitly without mutating immutable source objects or RUN output.
+          count_values = table["count_value"].cast(pl.Int64, strict=True)
+          count_zero = (count_values == 0).sum()
           assert table.height == 16940, ("long rows", table.height)
           assert count_zero == 11599, ("explicit zero values", count_zero)
-          assert table["count_value"].null_count() == 0
+          assert count_values.null_count() == 0
           assert table["count_id"].n_unique() == 2144
           assert table["event_id"].n_unique() <= 322
-          assert table["count_value"].sum() == 79232
+          assert count_values.sum() == 79232
           assert verified["status"] == "verified"
           assert verified["completed_runs"] == 1
           assert verified["source_objects"] == 2
@@ -115,7 +118,7 @@ jobs:
               "run_id": run["run_id"],
               "long_rows": table.height,
               "explicit_zero_values": count_zero,
-              "count_sum": table["count_value"].sum(),
+              "count_sum": count_values.sum(),
               "verified": verified["status"],
               "scientific_approval": False,
           }
