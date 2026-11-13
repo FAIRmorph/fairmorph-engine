@@ -1,12 +1,12 @@
 # FAIRmorph Engine
 
-> **Prototype Fund application proof of concept — not funded software.** FAIRmorph was developed solely to prepare an application to Germany’s [Prototype Fund](https://prototypefund.de/). No funding award, selection or official endorsement is claimed. This repository contains the experimental technical foundation, not a production-ready system. [Evidence and six-month development plan](https://www.fairmorph.org/guide/prototype-fund/).
+> **Prototype Fund application — [read FAIRmorph’s concrete application, technical evidence and six-month plan](https://www.fairmorph.org/guide/prototype-fund/) (German).** This Engine repository contains one part of the application proof of concept, not a production-ready system. FAIRmorph was developed solely to prepare the application; no funding award, selection or official endorsement is claimed. [Detailed technical evidence](https://www.fairmorph.org/guide/prototype-fund-technical/).
 
 **A local-first Python engine for importing, transforming, reviewing and verifying research data.**
 
 FAIRmorph Engine is a **technical proof of concept** (Python package version `0.1.0`), not a production-ready biodiversity publication platform. It provides generic, dataset-independent processing and immutable execution evidence. It does **not** generate scientific interpretations from raw field names, use AI, or replace expert review.
 
-**Built on FOSS, with scientific curation as the added layer.** [Polars](https://pola.rs/) executes generic table transformations; Typer, Pydantic/JSON Schema and lxml support the CLI, contracts and XML validation. FAIRmorph adds reviewed field meanings, versioned decisions and verifiable RUN/audit evidence. Frictionless is declared as a dependency but **does not execute the current pipelines**; its planned role is technical Data Package description and validation. RUNs remain repository-neutral; destination-specific exports are separate. [Architecture and funding roadmap](https://www.fairmorph.org/guide/prototype-fund/).
+**Built on FOSS, with scientific curation as the added layer.** [Polars](https://pola.rs/) executes generic table transformations; Typer, Pydantic/JSON Schema and lxml support the CLI, contracts and XML validation. FAIRmorph adds reviewed field meanings, versioned decisions and verifiable RUN/audit evidence. Frictionless is declared as a dependency but **does not execute the current pipelines**; its planned role is technical Data Package description and validation. RUNs remain repository-neutral; destination-specific exports are separate. [Detailed FOSS architecture and technical roadmap](https://www.fairmorph.org/guide/prototype-fund-technical/).
 
 ## What you can do now
 
