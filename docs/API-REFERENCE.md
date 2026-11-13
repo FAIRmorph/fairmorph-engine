@@ -1,6 +1,6 @@
 # CLI and Python API
 
-**Scope:** Current **v0.13 Engine proof of concept**. Python implementation APIs are **not** a stable SemVer SDK, and this is not a complete v0.12 product. Before framework document version 1.0 there is **no backward-compatibility obligation** for experimental PoC contracts; changes must be **forward-consistent** across schema, code, tests and docs. Current implementation authority is `src/fairmorph_engine/` and its tests. See [v0.13 policy](FRAMEWORK-v0.13-POC-SCOPE.md).
+**Scope:** Current **Engine proof of concept**. Python implementation APIs are **not** a stable SemVer SDK, and this is not a complete product. Before a stable public release there is **no backward-compatibility obligation** for experimental PoC contracts; changes must be **forward-consistent** across schema, code, tests and docs. Current implementation authority is `src/fairmorph_engine/` and its tests. See [scope and development policy](SCOPE-AND-DEVELOPMENT.md).
 
 ## 1. CLI contract
 
@@ -109,7 +109,7 @@ SQLite stores the append-only assertion log and a transactionally maintained cur
 
 ## 10. Approved domain-profile selection and metadata revisions
 
-- `core.domain_profiles.profile_bundle() -> dict`: resolve the installed offline JSON Schema Draft 2020-12 contracts from the framework v0.12 schema bundle.
+- `core.domain_profiles.profile_bundle() -> dict`: resolve the installed offline JSON Schema Draft 2020-12 contracts from the locally versioned schema bundle.
 - `install_builtin_profiles(project, confirmed_by) -> dict`: explicitly approve/install eight v0.8 ecological domain schemas and the v0.8 metadata-envelope contract into the existing project schema registry.
 - `profile_bindings_for(project, entity_types) -> dict`: return a complete, explicitly pinned `profile_bindings` configuration fragment for previously approved schema versions.
 - `resolve_profiles(project, config) -> dict`: verify exact schema ID, version, SHA-256 and approval state; no automatic `latest` resolution or remote schema fetch.

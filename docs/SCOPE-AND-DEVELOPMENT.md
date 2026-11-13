@@ -1,8 +1,8 @@
-# Scope and development policy (v0.13)
+# Scope and development policy
 
-**Status:** Technical framework and implementation policy for the pre-1.0 FAIRmorph Engine proof of concept. The Python package's version (`0.1.0`) and framework document version (`v0.13`) are distinct. The v0.13 framework extends the v0.12 architecture; **it does not assert complete implementation of that architecture**.
+**Status:** Technical scope and development policy for the FAIRmorph Engine proof of concept. The Python package version (`0.1.0`) is distinct from experimental internal schema revisions. This document describes implemented capabilities and limitations; it does not claim complete ecological publication support.
 
-## Binding principles before framework 1.0
+## Binding principles before a stable public release
 
 1. **Build a verifiable vertical proof of concept, not an entire product.** The scope is an inspectable, reproducible path from imported source data through explicit decisions and a verified RUN. Comprehensive UI workflows, user roles, installation bundles, scalability, signatures, migration support and production-grade operational durability are not implied.
 2. **Preserve the scientific and technical boundaries.** Original source bytes are immutable; physical source identity is distinct from scientific interpretation. Scientific field definitions and domain mappings require explicit review before semantic use. Null and numerical zero remain distinct. Actual entity/schema/relationship revisions and RUN snapshots are version-pinned and verifiable. Do not invent fields, ecological interpretations or publication approvals from a successful import or pipeline run.
@@ -28,7 +28,7 @@ The Engine's automated suite exercises generic behavior with synthetic inputs. S
 
 Separately, [FAIRmorph validations](https://github.com/FAIRmorph/fairmorph-validations) reproduces a **pinned** Engine revision on genuine CS-PHOC research CSVs. Its [independent reviewer guide](https://github.com/FAIRmorph/fairmorph-validations/blob/main/docs/CS-PHOC-REPRODUCTION-AND-RESULTS.md) reports results and limits. In that test, the generic Engine executes a verified tabular RUN; **dataset-specific code in the validations repository**, not the Engine's generic publication adapter, creates the three test outputs. The Workbench is not exercised in this evidence.
 
-## Framework compatibility and review implications
+## Prototype compatibility and review implications
 
 Engine registry approvals are **explicit, revision-bound actions**; an unreviewed draft or project-user discussion is not an approved scientific record. A `verified` project status proves the defined integrity checks passed, not that a biologist signed off the interpretation. A schema-valid DwC-A or EML document is not automatically publication-ready.
 

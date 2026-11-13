@@ -20,7 +20,7 @@ Executable contracts are located in `src/fairmorph_engine/contracts/`; additiona
 | `publication-projection.schema.json` | Publication table and column projection |
 | `publication-integrity.schema.json` | Publication identifiers and integrity rules |
 
-Some experimental legacy contracts remain in the codebase, but **backward compatibility is not required before framework version 1.0**. An obsolete reader is not a forward development constraint. **The current executable schema** is authoritative for required fields, enumerations and additional-properties rules.
+Some experimental legacy contracts remain in the codebase, but **backward compatibility is not required before a stable public release**. An obsolete reader is not a forward development constraint. **The current executable schema** is authoritative for required fields, enumerations and additional-properties rules.
 
 ## 3. External CSV mapping profiles
 
@@ -62,4 +62,4 @@ Adapters neither infer scientific taxonomy nor publish to an external service.
 
 ## 7. Versioning and compatibility
 
-Schema versions, mapping versions, transformation versions and framework documentation versions are independent of the Python package version. The current vertical PoC uses `fairmorph.poc.run/2`. Old reader branches may remain as implementation details, **but there is no backward-compatibility or migration obligation for experimental PoC artifacts before framework v1.0**. Every new change must update code, contracts, tests and documentation **forward-consistently**; completed valid RUN evidence and immutable source objects must not be silently rewritten. The local schema registry can add profile kinds without automatically migrating the SQLite core. See [v0.13 policy](FRAMEWORK-v0.13-POC-SCOPE.md).
+Schema versions, mapping versions, transformation versions and documentation revisions are independent of the Python package version. The current vertical PoC uses `fairmorph.poc.run/2`. Old reader branches may remain as implementation details, **but there is no backward-compatibility or migration obligation for experimental PoC artifacts before a stable public release**. Every new change must update code, contracts, tests and documentation **forward-consistently**; completed valid RUN evidence and immutable source objects must not be silently rewritten. The local schema registry can add profile kinds without automatically migrating the SQLite core. See [scope and development policy](SCOPE-AND-DEVELOPMENT.md).

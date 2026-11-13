@@ -1,6 +1,6 @@
 # Architecture
 
-**Status:** Engine v0.13 vertical proof of concept, Python package `0.1.0`. Core technical capabilities are tested with synthetic data; the separately pinned CS-PHOC case provides additional, bounded real-data validation. This is not a complete product. [Binding pre-1.0 rules](FRAMEWORK-v0.13-POC-SCOPE.md).
+**Status:** Engine vertical proof of concept, Python package `0.1.0`. Core technical capabilities are tested with synthetic data; the separately pinned CS-PHOC case provides additional, bounded real-data validation. This is not a complete product. [Binding pre-1.0 rules](SCOPE-AND-DEVELOPMENT.md).
 
 ## 1. System boundary and trust model
 
@@ -89,10 +89,10 @@ RUN creation uses staging and publication, and `verify-project` replays the gene
 
 ## 6. Validated coverage and remaining work
 
-The current Engine implements the core project/import, generic RUN, reviewed semantic mapping, selected domain relation, schema-pin and metadata mechanisms in a bounded v0.13 PoC. The ordinary Engine CI exercises generic technical behavior with synthetic inputs. The independent [CS-PHOC validation repository](https://github.com/FAIRmorph/fairmorph-validations/blob/main/docs/CS-PHOC-REPRODUCTION-AND-RESULTS.md) checks real research input against a **pinned** Engine version, including a generic RUN/2, but its DwC-A/TSV/GeoJSON test exporters are **dataset-specific code outside the Engine**.
+The current Engine implements the core project/import, generic RUN, reviewed semantic mapping, selected domain relation, schema-pin and metadata mechanisms in a bounded technical proof of concept. The ordinary Engine CI exercises generic technical behavior with synthetic inputs. The independent [CS-PHOC validation repository](https://github.com/FAIRmorph/fairmorph-validations/blob/main/docs/CS-PHOC-REPRODUCTION-AND-RESULTS.md) checks real research input against a **pinned** Engine version, including a generic RUN/2, but its DwC-A/TSV/GeoJSON test exporters are **dataset-specific code outside the Engine**.
 
 Open implementation and assurance work includes broader Workbench field/profile interviews, generic publication projection and integration, additional independent datasets, more domain profiles, spatial-specialist validation, backups/recovery, multiwriter safety, distribution, and a stable migration/security model. A fully reviewed and approved scientific publication has not been demonstrated by the CS-PHOC test.
 
-Before framework version 1.0, experimental contracts and APIs can evolve together with tests and documentation. Immutable source objects and completed RUN records must not be silently rewritten.
+Before a stable public release, experimental contracts and APIs can evolve together with tests and documentation. Immutable source objects and completed RUN records must not be silently rewritten.
 
-See [framework scope](FRAMEWORK-v0.13-POC-SCOPE.md), [operations](OPERATIONS.md), [user guide](USER-GUIDE.md) and [API reference](API-REFERENCE.md).
+See [project scope](SCOPE-AND-DEVELOPMENT.md), [operations](OPERATIONS.md), [user guide](USER-GUIDE.md) and [API reference](API-REFERENCE.md).
