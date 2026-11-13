@@ -1,8 +1,10 @@
 # FAIRmorph Engine
 
+> **Prototype Fund (Germany) · Proof of concept — not production software.** FAIRmorph is an experimental open-source project for the German [Prototype Fund](https://prototypefund.de/). The Engine supports limited, documented technical workflows; it is not a production-ready or scientifically approved publishing system.
+
 **A local-first Python engine for importing, transforming, reviewing and verifying research data.**
 
-FAIRmorph Engine is a **v0.13 framework proof of concept** (Python package version `0.1.0`), not a production-ready biodiversity publication platform. It provides generic, dataset-independent processing and immutable execution evidence. It does **not** generate scientific interpretations from raw field names, use AI, or replace expert review.
+FAIRmorph Engine is a **technical proof of concept** (Python package version `0.1.0`), not a production-ready biodiversity publication platform. It provides generic, dataset-independent processing and immutable execution evidence. It does **not** generate scientific interpretations from raw field names, use AI, or replace expert review.
 
 ## What you can do now
 
@@ -37,7 +39,7 @@ Next, follow the **[worked user guide](docs/USER-GUIDE.md)** to import a synthet
 - **[CLI and Python API](docs/API-REFERENCE.md)** — supported commands and implementation interfaces.
 - **[Architecture](docs/ARCHITECTURE.md)** and **[data contracts](docs/DATA-CONTRACTS.md)** — project layout, immutable identity, schema validation and boundaries.
 - **[Operations and tests](docs/OPERATIONS.md)** — CI, verification, recovery and error handling.
-- **[v0.13 framework scope](docs/FRAMEWORK-v0.13-POC-SCOPE.md)** — implemented coverage, limits and pre-1.0 compatibility policy.
+- **[Scope and development policy](docs/SCOPE-AND-DEVELOPMENT.md)** — implemented coverage, limits and pre-1.0 compatibility policy.
 
 ## Real research data: independent validation
 
@@ -49,6 +51,6 @@ For that fixed dataset, the Engine's technical RUN/2 passed cell-level checks, a
 
 Source imports do not imply scientific approval. Never treat a numeric zero as a blank, invent an animal occurrence or source-author endorsement, or use test metadata as final publication metadata. Outputs can be technically verified while semantic review and publication permissions remain outstanding.
 
-Before framework version 1.0, experimental APIs and project formats can change; finished, pinned source objects and completed run evidence must not be silently rewritten. For the policy, see [v0.13 scope](docs/FRAMEWORK-v0.13-POC-SCOPE.md).
+Before a stable public release, experimental APIs and project formats can change; finished, pinned source objects and completed run evidence must not be silently rewritten. For the policy, see [project scope](docs/SCOPE-AND-DEVELOPMENT.md).
 
 This repository is licensed under [MIT](LICENSE).
