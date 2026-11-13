@@ -1,62 +1,59 @@
-# CS-PHOC real-data reference publication test (manual)
+# CS-PHOC: Manual Reference Publication Example
 
-This directory contains **example-specific configuration**, not built-in scientific semantics in FAIRmorph Engine.
+This directory contains a **dataset-specific example**, not generic biological semantics or a production publication workflow in FAIRmorph Engine. The original CS-PHOC research belongs to its authors; source and derivative publications must not be confused.
 
-## Start in GitHub Actions (recommended)
+For the principal **independent real-data validation**, including exact original source revisions, 16,940 source-cell comparisons, all three locally generated test outputs and caveats, use [fairmorph-validations](https://github.com/FAIRmorph/fairmorph-validations/blob/main/docs/CS-PHOC-REPRODUCTION-AND-RESULTS.md). That validation does **not** use this Engine example to claim generic multi-format publication support.
 
-1. Open [CS-PHOC external reference regression](https://github.com/FAIRmorph/fairmorph-engine/actions/workflows/cs-phoc-reference.yml).
-2. Select **Run workflow**, branch **`refactor/framework-v012-foundation`**, then **Run workflow**.
-3. Wait for both `ubuntu-latest` and `windows-latest` jobs.
-4. Open the completed workflow run and download **`cs-phoc-reference-ubuntu-latest`** or **`cs-phoc-reference-windows-latest`** under **Artifacts**.
-5. Inspect `publication/eml.xml`, `publication/meta.xml`, `publication/event.txt`, `publication/occurrence.txt`, `publication/cs-phoc-dwca.zip` and `test-report.json`.
+## Run the optional Engine example
 
-**Important:** A newly added workflow step is not considered passing until the manual workflow is actually run. The standard PR CI does **not** execute this separate reference workflow.
-
-## Start locally
-
-Requirements: Python 3.11+, repository checkout, installed development dependencies, writable output directory.
+Requires Python **3.11+**, the Engine dependencies installed, and a writable **new output directory**. From the Engine repository root:
 
 ```bash
-git checkout refactor/framework-v012-foundation
 python -m pip install -e ".[dev]"
 python examples/cs-phoc/run_reference_publication.py --output ./cs-phoc-reference-output
 ```
 
-The output directory **must not exist** before invocation. To rerun, use a new name, e.g. `--output ./cs-phoc-reference-output-02`. The same command works in PowerShell.
+The destination **must not already exist**; use a new path for each repeat. The command imports the two bundled CSV reference files, stages and confirms an explicit example count-mapping profile, executes a verified reference RUN, exports a generic Data Package, compares all mapped recorded count cells against the source, and runs an **example-scoped** publisher-style Event/Occurrence conversion.
 
-The runner performs a real generic CLI lifecycle: project initialization, imports of the two CSV files, explicit mapping staging and reviewer approval, RUN/2 execution, immutable RUN verification, Data Package export and project verification. It then independently checks every mapped source cell and produces the **reference** EML/DwC-A export.
+This example **does not execute `core.publication_adapters.export_dwca()`**. It uses a separate legacy reference converter restricted to this example. The generated EML is FAIRmorph-derived, not the original publisher's EML; the example does **not** claim official EML/DwC-A XSD validation, external submission or author endorsement.
 
-### Configuration files
+## What it generates
 
-| File | Role |
-| --- | --- |
-| `mapping-profile.json` | Pinned CS-PHOC count fields, zero/missing policies, acceptance totals and source SHA |
-| `publication-metadata.json` | Publisher/DOI/license provenance and explicit non-endorsement note |
-| `reference-publication.json` | Reference export row counts, output formats, Event core/Occurrence extension and provenance guardrails |
-| `run_reference_publication.py` | Manual test driver, checks and archive generation |
-| `legacy/dwca.py` | **Historical, publisher-compatible reference scientific mapping** used only by this example driver |
+```text
+cs-phoc-reference-output/
+  project/                       # New local Engine project, imports and RUN
+  approved-mapping.json          # Example-specific approved profile snapshot
+  publication/
+    event.txt                    # Site-specific Darwin Core Event rows
+    occurrence.txt               # Age/sex category Occurrence records
+    meta.xml                     # Darwin Core Archive metadata
+    eml.xml                      # FAIRmorph-generated derivative metadata
+    cs-phoc-dwca.zip             # ZIP packaging of those files
+  test-report.json               # Source hashes, RUN identity and checks
+```
 
-The configuration `reference-publication.json` is an **example-level reference configuration**, not an input that can be passed directly to `core.publication_adapters.export_dwca`.
-
-### Expected outputs and acceptance
-
-| Check | Expected |
+| Check | Expected from this pinned reference example |
 | --- | ---: |
-| Generic RUN observations | 16,940 |
-| Explicit zeros | 11,599 |
-| Count sum | 79,232 |
-| Reference Darwin Core Event rows | 536 |
-| Reference Darwin Core Occurrence rows | 16,940 |
-| ZIP members | `event.txt`, `occurrence.txt`, `meta.xml`, `eml.xml` |
+| Source survey windows | 322 |
+| Source count records | 2,144 |
+| Generic RUN observation records | 16,940 |
+| Reference site-specific Events | 536 |
+| Reference Occurrences | 16,940 |
+| Recorded explicit zeros | 11,599 |
+| Sum of category count values | 79,232 |
 
-The runner also verifies the approved counts SHA-256, each source-cell value against the generic RUN, project integrity, ZIP CRC and XML well-formedness. Its `test-report.json` pins the RUN manifest, input hashes and generated file hashes.
+The `test-report.json` carries the actual RUN manifest digest, source file digests, generated file hashes and specific validation limitations. **Count records are not unique individual animals; the sum is not a seal population estimate.** Empty source categories are omitted, not zero-filled.
 
-**Validation boundary:** The generated EML and DwC-A are a **reference implementation export**, **not an execution of the generic publication adapters**. The legacy scientific mapping is deliberately confined to the CS-PHOC example; it is not imported by the Engine core. The driver does **not** claim official EML XSD validation or official DwC-A XSD validation, nor byte equivalence with the original publisher's archive. The resulting EML is a FAIRmorph-derived metadata document, **not the publisher's original IPT EML**, and nothing is uploaded or published.
+## Files and boundaries
 
-### Why the generic publication adapter cannot yet generate this archive
+| File | Purpose |
+| --- | --- |
+| `mapping-profile.json` | Explicit count-field and zero/missing policy used by the example |
+| `reference-publication.json` | Source digests, expected row totals and example output intentions |
+| `publication-metadata.json` | Research-source attribution and derivative metadata details |
+| `run_reference_publication.py` | Manual, locally reproducible example driver |
+| `legacy/dwca.py` | Historical publisher-compatible data projection; intentionally outside Engine core |
 
-`core.publication_adapters.export_dwca` requires a verified RUN/2 with separately pinned, declared **Event and Occurrence Parquet tables**, a publication profile containing the exact RUN manifest and metadata SHA-256, a projection plan naming those artifacts and an integrity plan with validated identifiers and foreign keys. The current generic count RUN contains `outputs/observations.parquet` and lineage, but **does not contain a published Event table nor the author-specific Occurrence columns**. The publication contracts intentionally prohibit inventing them.
+The **generic** `core.publication_adapters.export_dwca` path instead requires a verified RUN with separately declared Event/Occurrence output artifacts and explicit publication profile, projection, integrity and metadata documents. The current example's count RUN does not automatically supply those tables. Technical metadata validity is not scientific review or publication authorization.
 
-The reference runner therefore provides a **real, manually executable output test now** without pretending that the generic adapter's Event/Occurrence projection is implemented. To qualify a **generic-adapter EML/DwC-A acceptance**, a subsequent change must add an explicit, reviewed projection/materialization stage producing both tables as checksum-pinned RUN artifacts, external publication-profile/projection/integrity JSON, official XSD validation and regression checks against the publisher's reference fingerprints. That work is **still open**.
-
-See [PoC Acceptance Report](../../docs/POC-ACCEPTANCE-REPORT.md) and [User Guide](../../docs/USER-GUIDE.md).
+**For routine Engine use**, start with the [user guide](../../docs/USER-GUIDE.md), not this dataset-specific example.
