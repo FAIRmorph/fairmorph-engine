@@ -28,6 +28,18 @@ Its source-grounded expectations are:
 
 A blank is **not** the number zero. Scientific meaning and units are decisions supplied explicitly by the operator, not inferred by the Engine.
 
+The expected *logical* long-form result is easy to inspect before running any software:
+
+| Source record | Source column | Value |
+| --- | --- | ---: |
+| `S01` | `oak_count` | 2 |
+| `S01` | `pine_count` | 0 |
+| `S02` | `oak_count` | 0 |
+| `S02` | `pine_count` | 3 |
+| `S03` | `pine_count` | 1 |
+
+There is **no `S03 / oak_count` output row**, because that source cell is blank. These five rows describe the scientific-independent value projection; the Engine's actual Parquet also contains provenance fields and generated record identifiers.
+
 ```bash
 fairmorph-engine init-project --project ./survey.fairmorph --name "Example Survey"
 fairmorph-engine import-resource --project ./survey.fairmorph --source ./survey.csv --role survey
