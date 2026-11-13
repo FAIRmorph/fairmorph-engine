@@ -1,4 +1,4 @@
-# RUN/2 recovery (PoC)
+# RUN recovery
 
 The RUN directory and its SHA-256-verified manifest are the authoritative
 publication evidence. SQLite and `project.json` are separate indexes and do
