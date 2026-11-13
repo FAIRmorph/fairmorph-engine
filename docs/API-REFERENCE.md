@@ -1,6 +1,6 @@
 # CLI and Python API Reference
 
-**Scope:** Technical framework **v0.13 vertical PoC** (P0.1–P0.5). Python implementation APIs are **not** a stable SemVer SDK, and this is not a complete v0.12 product. Before framework document version 1.0 there is **no backward-compatibility obligation** for experimental PoC contracts; changes must be **forward-consistent** across schema, code, tests and docs. Current implementation authority is `src/fairmorph_engine/` and its tests. See [v0.13 policy](FRAMEWORK-v0.13-POC-SCOPE.md).
+**Scope:** Current **v0.13 Engine proof of concept**. Python implementation APIs are **not** a stable SemVer SDK, and this is not a complete v0.12 product. Before framework document version 1.0 there is **no backward-compatibility obligation** for experimental PoC contracts; changes must be **forward-consistent** across schema, code, tests and docs. Current implementation authority is `src/fairmorph_engine/` and its tests. See [v0.13 policy](FRAMEWORK-v0.13-POC-SCOPE.md).
 
 ## 1. CLI contract
 
@@ -76,7 +76,7 @@ Both operate on explicitly declared columns; neither infers scientific semantics
 - `core.export.verify_project(project: Path) -> dict`: validate sources, imports, packages, indexed RUNs, SQLite references and exports; includes `completed_runs`, `exports`, `status`.
 - `core.run_recovery.reconcile_runs(project: Path) -> dict`: validate completed RUN directories and repair missing SQLite/JSON index entries; includes `recovered`, `pending`, `status`. **Never run concurrently with writers.**
 
-## 7. P0.2 semantic entity projection
+## 7. Reviewed source semantics and Entity projection
 
 - `core.pipeline_run.register_pipeline(project, config) -> dict`: store SHA-256-pinned declarative DAG (and optional `entities`).
 - `core.entity_projection.confirm_projection(project, sha, confirmed_by) -> dict`: validate the exact `SourceFieldDefinition` revisions and field provenance, then store one revision-bound user confirmation in SQLite.
@@ -86,7 +86,7 @@ Both operate on explicitly declared columns; neither infers scientific semantics
 
 This is a v0.12 **vertical PoC**, not a complete production schema or publication adapter. The `--confirmed-by` argument is a user identity, not a four-eyes or external-review requirement. See `docs/project-driven-run.md` and [generic project-driven RUN](project-driven-run.md).
 
-## 8. P0.3 sparse change audit for generic DAG RUN/2
+## 8. Sparse changed-value audit for generic DAG RUN/2
 
 - `core.pipeline.execute_pipeline(config, resources, on_step=...)`: optionally report each executed operator with input/output frames to an observer; does not change the registered DAG contract.
 - `core.change_audit.ChangeAudit`: collect per-step row counts and differences of directly comparable `table.derive/1` values without materializing a source-cell table.
@@ -95,9 +95,9 @@ This is a v0.12 **vertical PoC**, not a complete production schema or publicatio
 
 For combined/constant derived values without a single comparison baseline, `fields_without_direct_value_comparison` records the exceptional field in `audit/pipeline.json`. Normal field provenance remains deterministic via source hashes, field revisions and the saved declarative rule. This is **not** a guarantee of full per-cell auditability; see [generic project-driven RUN](project-driven-run.md).
 
-The original profile-mapping RUN/2 path (`core.run_executor`) continues to use its own established lineage artifacts for the CS-PHOC reference demonstration. The sparse audit is the **generic DAG** P0.3 contract; harmonizing both paths is a separate planned task.
+The original profile-mapping RUN/2 path (`core.run_executor`) continues to use its own established lineage artifacts for the CS-PHOC reference demonstration. The sparse audit applies to the **generic DAG** workflow; harmonizing both paths is a separate planned task.
 
-## 9. P0.4 versioned domain relations
+## 9. Versioned domain relations
 
 - `core.relation_assertions.relation_profile() -> dict`: load the installed, versioned `fairmorph.ecology.core/0.12-poc.1` predicate contract and content hash.
 - `assert_relation(project, pipeline_sha256, predicate, subject_entity_id, object_entity_id, confirmed_by, source_reference, *, source_kind="user_confirmed", valid_from=None, valid_to=None) -> dict`: append one user-confirmed typed relation.
@@ -107,17 +107,17 @@ The original profile-mapping RUN/2 path (`core.run_executor`) continues to use i
 
 SQLite stores the append-only assertion log and a transactionally maintained current projection. `execute_pipeline_run` embeds the relation snapshot in `inputs.snapshot.json`; `verify_pipeline_run` reconstructs the **historical** assertion state even after subsequent corrections. Only the declared entity kinds/predicates are supported in the vertical PoC; there is no mandatory reviewer separate from the user who confirms the relation. See [architecture](ARCHITECTURE.md).
 
-## 10. P0.5 domain-profile selection and metadata revisions
+## 10. Approved domain-profile selection and metadata revisions
 
 - `core.domain_profiles.profile_bundle() -> dict`: resolve the installed offline JSON Schema Draft 2020-12 contracts from the framework v0.12 schema bundle.
 - `install_builtin_profiles(project, confirmed_by) -> dict`: explicitly approve/install eight v0.8 ecological domain schemas and the v0.8 metadata-envelope contract into the existing project schema registry.
 - `profile_bindings_for(project, entity_types) -> dict`: return a complete, explicitly pinned `profile_bindings` configuration fragment for previously approved schema versions.
 - `resolve_profiles(project, config) -> dict`: verify exact schema ID, version, SHA-256 and approval state; no automatic `latest` resolution or remote schema fetch.
-- `validate_entity_profiles(resolved, entity_frames)`: validate published P0.2 entity rows against the selected domain profile, separately from technical IDs and relation references.
+- `validate_entity_profiles(resolved, entity_frames)`: validate published semantic entity rows against the selected domain profile, separately from technical IDs and relation references.
 - `core.metadata_revisions.register_metadata_revision(project, pipeline_sha256, *, entity_type, entity_id, attributes, field_provenance, source, confirmed_by, parent_revision_id=None) -> dict`: append a single approved, validated metadata envelope for a real projected entity.
 - `metadata_snapshot(project, pipeline_sha256, *, through_sequence=None, entity_frames=None) -> dict`: resolve current or historically pinned metadata revision references and schema hashes.
 
-**P0.5 contract:** An Entity pipeline **must** have explicit approved `profile_bindings`; unprofiled old P0.2 configurations are rejected rather than upgraded. Technical imports and purely technical DAG processing need no domain profile. No preexisting user RUNs require migration. `RUN/2` freezes the selected schema versions plus an optional set of explicitly curated metadata revisions. This does not duplicate all observations as SQLite rows. See [data contracts](DATA-CONTRACTS.md).
+**Entity profile rule:** An Entity pipeline **must** have explicit approved `profile_bindings`; unprofiled Entity configurations are rejected rather than silently upgraded. Technical imports and purely technical DAG processing need no domain profile. No preexisting user RUNs require migration. `RUN/2` freezes the selected schema versions plus an optional set of explicitly curated metadata revisions. This does not duplicate all observations as SQLite rows. See [data contracts](DATA-CONTRACTS.md).
 
 ## 11. Local schema registry — `core.schema_registry`
 
