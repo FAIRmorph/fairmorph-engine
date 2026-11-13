@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "fairmorph-engine"
 version = "0.1.0"
-description = "Offline-first engine for biodiversity data curation, EML 2.2.0 metadata editing, deterministic auditing, and Darwin Core / GeoPackage packaging orchestration."
+description = "Local-first Python proof of concept for research-data imports, declarative tabular transformations, versioned review decisions, verifiable RUNs and scoped EML/DwC-A adapters."
 readme = "README.md"
 requires-python = ">=3.11"
 license = "MIT"
@@ -18,7 +18,7 @@ keywords = [
     "data-curation",
     "darwin-core",
     "eml-metadata",
-    "geopackage",
+    "reproducible-workflows",
     "fair-data",
 ]
 classifiers = [

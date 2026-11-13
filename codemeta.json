@@ -4,7 +4,7 @@
   "identifier": "org.fairmorph.engine",
   "name": "fairmorph-engine",
   "version": "0.1.0",
-  "description": "Offline-first engine for biodiversity data curation, EML 2.2.0 metadata editing, deterministic auditing, and Darwin Core / GeoPackage packaging orchestration.",
+  "description": "Local-first Python proof of concept for research-data imports, declarative tabular transformations, versioned review decisions, verifiable RUNs and scoped EML/DwC-A adapters.",
   "license": "https://spdx.org/licenses/MIT",
   "codeRepository": "https://github.com/fairmorph/fairmorph-engine",
   "issueTracker": "https://github.com/fairmorph/fairmorph-engine/issues",
@@ -29,14 +29,14 @@
     "Windows",
     "macOS"
   ],
-  "applicationCategory": "Bio-Informatics, GIS, Scientific Data Curation, CLI",
+  "applicationCategory": "Scientific Data Curation, Python CLI",
   "keywords": [
     "biodiversity-data",
     "data-curation",
     "darwin-core",
     "eml-metadata",
-    "geopackage",
+    "reproducible-workflows",
     "fair-data"
   ],
-  "dateModified": "2026-11-07"
+  "dateModified": "2026-11-13"
 }

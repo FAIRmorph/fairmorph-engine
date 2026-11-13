@@ -2,7 +2,7 @@ cff-version: 1.2.0
 message: "If you use this software, please cite it using the metadata from this file."
 type: software
 title: "fairmorph-engine"
-abstract: "Offline-first engine for biodiversity data curation, EML 2.2.0 metadata editing, deterministic auditing, and Darwin Core / GeoPackage packaging orchestration."
+abstract: "Local-first Python proof of concept for research-data imports, declarative tabular transformations, versioned review decisions, verifiable RUNs and scoped EML/DwC-A adapters."
 version: 0.1.0
 date-released: "2026-11-07"
 license: MIT
@@ -19,5 +19,5 @@ keywords:
   - typer-cli
   - darwin-core
   - eml-metadata
-  - geopackage
+  - reproducible-workflows
   - deterministic-auditing
