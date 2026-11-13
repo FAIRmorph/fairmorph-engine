@@ -19,7 +19,7 @@ These links target the canonical files in this repository. On [fairmorph.org](ht
 | How do I test, recover and operate the PoC safely? | [Operations](./OPERATIONS.md) and [RUN recovery](./RUN-RECOVERY.md) |
 | Which capabilities are implemented versus deferred? | [Project scope](./SCOPE-AND-DEVELOPMENT.md) |
 | What has actually passed on real research data? | [Independent CS-PHOC validation results](https://github.com/FAIRmorph/fairmorph-validations/blob/main/docs/CS-PHOC-REPRODUCTION-AND-RESULTS.md) |
-| How do I execute the Engine's separate, manual historical CS-PHOC reference example? | [Example README](../examples/cs-phoc/README.md) |
+| How do I execute the optional CS-PHOC CSV-mapping regression test? | [Engine mapping regression](../examples/cs-phoc/README.md) |
 
 ## Terminology reviewers should distinguish
 

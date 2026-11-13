@@ -5,7 +5,7 @@ on:
 
 jobs:
   reference-regression:
-    name: External reference regression
+    name: Engine CSV mapping regression
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -18,16 +18,5 @@ jobs:
           python-version: "3.11"
       - name: Install test dependencies
         run: python -m pip install -e ".[dev]"
-      - name: Run external CS-PHOC regression
+      - name: Verify CS-PHOC mapping workflow and Data Package
         run: python -m pytest -q examples/cs-phoc/tests/test_reference_workflow.py
-      - name: Generate real CS-PHOC reference EML and DwC-A
-        run: python examples/cs-phoc/run_reference_publication.py --output cs-phoc-reference-output
-      - name: Upload reference export and acceptance evidence
-        uses: actions/upload-artifact@v4
-        with:
-          name: cs-phoc-reference-${{ matrix.os }}
-          path: |
-            cs-phoc-reference-output/publication/
-            cs-phoc-reference-output/test-report.json
-            cs-phoc-reference-output/approved-mapping.json
-          if-no-files-found: error
