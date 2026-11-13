@@ -58,4 +58,4 @@ For the original public CS-PHOC research dataset, use the separate [fairmorph-va
 
 That external test pins the Engine version, imports original source bytes, verifies a generic RUN/2, registers **unreviewed** source-field drafts, and independently audits **dataset-specific** DwC-A, PANGAEA-preparation TSV and GeoJSON test files. Its test exporter is **outside** Engine core. The Workbench was not exercised. This is evidence of a bounded real-data technical test, not generic publication or biological approval.
 
-For source and package contracts see [data contracts](DATA-CONTRACTS.md), and for what v0.13 promises see [framework scope](FRAMEWORK-v0.13-POC-SCOPE.md).
+For source and package contracts see [data contracts](DATA-CONTRACTS.md), and for what this prototype implements see [framework scope](SCOPE-AND-DEVELOPMENT.md).
