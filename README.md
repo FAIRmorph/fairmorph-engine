@@ -1,6 +1,6 @@
 # FAIRmorph Engine
 
-> **Prototype Fund (Germany) · Proof of concept — not production software.** FAIRmorph is an experimental open-source project for the German [Prototype Fund](https://prototypefund.de/). The Engine supports limited, documented technical workflows; it is not a production-ready or scientifically approved publishing system.
+> **Prototype Fund application proof of concept — not funded software.** FAIRmorph was developed solely to prepare an application to Germany’s [Prototype Fund](https://prototypefund.de/). No funding award, selection or official endorsement is claimed. This repository contains the experimental technical foundation, not a production-ready system. [Evidence and six-month development plan](https://www.fairmorph.org/guide/prototype-fund/).
 
 **A local-first Python engine for importing, transforming, reviewing and verifying research data.**
 
