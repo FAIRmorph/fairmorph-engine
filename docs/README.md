@@ -17,7 +17,7 @@ These links target the canonical files in this repository. On [fairmorph.org](ht
 | What files are created and what does a verified RUN mean? | [Architecture](./ARCHITECTURE.md) |
 | What are the JSON contract and publication-adapter limits? | [Data contracts](./DATA-CONTRACTS.md) |
 | How do I test, recover and operate the PoC safely? | [Operations](./OPERATIONS.md) and [RUN recovery](./RUN-RECOVERY.md) |
-| Which capabilities are implemented versus deferred? | [Framework scope](./SCOPE-AND-DEVELOPMENT.md) |
+| Which capabilities are implemented versus deferred? | [Project scope](./SCOPE-AND-DEVELOPMENT.md) |
 | What has actually passed on real research data? | [Independent CS-PHOC validation results](https://github.com/FAIRmorph/fairmorph-validations/blob/main/docs/CS-PHOC-REPRODUCTION-AND-RESULTS.md) |
 | How do I execute the Engine's separate, manual historical CS-PHOC reference example? | [Example README](../examples/cs-phoc/README.md) |
 
