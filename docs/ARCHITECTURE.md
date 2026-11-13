@@ -77,7 +77,7 @@ A **CSV-profile RUN** differs: it uses `outputs/observations.parquet`, `audit/li
 - **No inferred semantics.** Technical `entity_id` differs from scientific `event_id` / `occurrence_id`. SamplingEvent requires no coordinates, taxon, GPS, transect or Occurrence.
 - **Source bytes do not mutate.** An imported object has a SHA-256 content address; resource/import identity and semantic field identity are separate.
 - **Explicit confirmation.** SourceFieldDefinition revisions, target entity mappings, relation assertions and metadata revisions require explicit responsible-user action; a second independent reviewer is not mandatory.
-- **Strict profile selection (P0.5).** Every semantic Entity pipeline **must** pin an explicitly approved envelope and exact domain schema ID/version/hash for each selected entity. No legacy unprofiled Entity pipeline path is supported. Purely technical source imports and non-entity DAG runs need no domain profile.
+- **Strict semantic profile selection.** Every semantic Entity pipeline **must** pin an explicitly approved envelope and exact domain schema ID/version/hash for each selected entity. No legacy unprofiled Entity pipeline path is supported. Purely technical source imports and non-entity DAG runs need no domain profile.
 - **No confusion between zero and missing.** A real numeric `0` remains a data value; `null` requires explicit applicable missing semantics in a projected measurement.
 - **Independent versioning.** Domain profiles, relation profile, input objects, field definition revisions and configuration/RUN are separately addressable; completed RUN/2 pins the exact reproducible state.
 
