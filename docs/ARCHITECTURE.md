@@ -95,4 +95,4 @@ Open implementation and assurance work includes broader Workbench field/profile 
 
 Before a stable public release, experimental contracts and APIs can evolve together with tests and documentation. Immutable source objects and completed RUN records must not be silently rewritten.
 
-See [framework scope](SCOPE-AND-DEVELOPMENT.md), [operations](OPERATIONS.md), [user guide](USER-GUIDE.md) and [API reference](API-REFERENCE.md).
+See [project scope](SCOPE-AND-DEVELOPMENT.md), [operations](OPERATIONS.md), [user guide](USER-GUIDE.md) and [API reference](API-REFERENCE.md).
