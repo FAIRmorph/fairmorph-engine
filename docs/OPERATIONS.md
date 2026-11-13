@@ -1,4 +1,4 @@
-# FAIRmorph Engine — Operations and Verification
+# Operations and verification
 
 This document describes **current operational procedures** for the local Python Engine proof of concept, not an approval checklist tied to historical development branches. The system is **not** a production multiuser data service.
 
