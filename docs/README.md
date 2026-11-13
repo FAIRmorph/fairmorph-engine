@@ -1,21 +1,23 @@
 # FAIRmorph Engine documentation
 
-**Start with [the user guide](USER-GUIDE.md)** if you want a complete, reproducible example; use the [generic pipeline guide](project-driven-run.md) if you are building a declarative DAG or semantic Entity projection.
+**Start with [the user guide](./USER-GUIDE.md)** if you want a complete, reproducible example; use the [generic pipeline guide](./project-driven-run.md) if you are building a declarative DAG or semantic Entity projection.
 
 This is documentation for the **Python Engine v0.13 vertical proof of concept** (Python package version `0.1.0`). It is **not** the separate Workbench UI documentation and does not claim a production-ready biodiversity publication product.
+
+These links target the canonical files in this repository. On [fairmorph.org](https://www.fairmorph.org/engine/docs/), the same documents are mirrored to website routes; the portal converts file links into documentation-page links automatically.
 
 ## Choose the right document
 
 | Question | Document |
 | --- | --- |
 | How do I install the Engine? | [Installation](../INSTALL.md) |
-| How do I import a CSV, review a mapping, execute, verify and export a Data Package? | [User guide: fully worked example](USER-GUIDE.md) |
-| How do I run a technical DAG or use explicitly reviewed scientific Entity profiles? | [Generic project-driven RUN/2](project-driven-run.md) |
-| Which CLI commands and Python functions actually exist? | [CLI and Python API](API-REFERENCE.md) |
-| What files are created and what does a verified RUN mean? | [Architecture](ARCHITECTURE.md) |
-| What are the JSON contract and publication-adapter limits? | [Data contracts](DATA-CONTRACTS.md) |
-| How do I test, recover and operate the PoC safely? | [Operations](OPERATIONS.md) and [RUN recovery](RUN-RECOVERY.md) |
-| Which v0.13 guarantees are implemented versus deferred? | [Framework scope](FRAMEWORK-v0.13-POC-SCOPE.md) |
+| How do I import a CSV, review a mapping, execute, verify and export a Data Package? | [User guide: fully worked example](./USER-GUIDE.md) |
+| How do I run a technical DAG or use explicitly reviewed scientific Entity profiles? | [Generic project-driven RUN/2](./project-driven-run.md) |
+| Which CLI commands and Python functions actually exist? | [CLI and Python API](./API-REFERENCE.md) |
+| What files are created and what does a verified RUN mean? | [Architecture](./ARCHITECTURE.md) |
+| What are the JSON contract and publication-adapter limits? | [Data contracts](./DATA-CONTRACTS.md) |
+| How do I test, recover and operate the PoC safely? | [Operations](./OPERATIONS.md) and [RUN recovery](./RUN-RECOVERY.md) |
+| Which v0.13 guarantees are implemented versus deferred? | [Framework scope](./FRAMEWORK-v0.13-POC-SCOPE.md) |
 | What has actually passed on real research data? | [Independent CS-PHOC validation results](https://github.com/FAIRmorph/fairmorph-validations/blob/main/docs/CS-PHOC-REPRODUCTION-AND-RESULTS.md) |
 | How do I execute the Engine's separate, manual historical CS-PHOC reference example? | [Example README](../examples/cs-phoc/README.md) |
 
