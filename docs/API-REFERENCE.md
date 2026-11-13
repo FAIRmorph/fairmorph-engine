@@ -1,6 +1,6 @@
 # CLI and Python API
 
-**Scope:** Current **v0.13 Engine proof of concept**. Python implementation APIs are **not** a stable SemVer SDK, and this is not a complete product. Before a stable public release there is **no backward-compatibility obligation** for experimental PoC contracts; changes must be **forward-consistent** across schema, code, tests and docs. Current implementation authority is `src/fairmorph_engine/` and its tests. See [scope and development policy](SCOPE-AND-DEVELOPMENT.md).
+**Scope:** Current **Engine proof of concept**. Python implementation APIs are **not** a stable SemVer SDK, and this is not a complete product. Before a stable public release there is **no backward-compatibility obligation** for experimental PoC contracts; changes must be **forward-consistent** across schema, code, tests and docs. Current implementation authority is `src/fairmorph_engine/` and its tests. See [scope and development policy](SCOPE-AND-DEVELOPMENT.md).
 
 ## 1. CLI contract
 
