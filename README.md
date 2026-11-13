@@ -17,35 +17,16 @@ FAIRmorph Engine is a **v0.13 framework proof of concept** (Python package versi
 
 Two execution workflows exist and **must not be conflated**: a simple reviewed CSV mapping (`stage-csv-mapping` → `approve-mapping` → `run-mapping`) and a generic declarative pipeline (`register-pipeline` → `select-pipeline` → `run-pipeline`, with explicit semantic confirmation when entities are involved). Their artifacts are not interchangeable.
 
-## Install and try the Engine
+## Get started
 
-Requires **Python 3.11 or newer**. Clone this repository and run:
+The Engine requires **Python 3.11+**. Follow **[installation and verification](INSTALL.md)** to set up a virtual environment, install the package, and check the CLI:
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate                 # Windows PowerShell: .venv\Scripts\Activate.ps1
-python -m pip install -e ".[dev]"
 fairmorph-engine --help
 fairmorph-engine handshake
 ```
 
-For an immediately reproducible example, create a CSV:
-
-```csv
-site_id,oak_count,pine_count
-S01,2,0
-S02,0,3
-S03,,1
-```
-
-Save it as `survey.csv`, then initialize and import:
-
-```bash
-fairmorph-engine init-project --project ./survey.fairmorph --name "Example Survey"
-fairmorph-engine import-resource --project ./survey.fairmorph --source ./survey.csv --role survey
-```
-
-The import prints a machine-generated `resource_id` and input `sha256`; it does not produce a completed RUN. Follow the **[complete user guide](docs/USER-GUIDE.md)** to create an explicit mapping, approve it, execute a RUN, verify the project and inspect the resulting files. Expected long-format result for this specific sample: **5 recorded category cells**, **2 zeros**, and a **count sum of 6**. Those are illustrative fixture values, not biological conclusions or hardcoded Engine limits.
+Next, follow the **[worked user guide](docs/USER-GUIDE.md)** to import a synthetic CSV, declare and explicitly approve a mapping, execute a RUN, verify its artifacts and export a Data Package. Its example expects **five recorded category cells**, **two explicit zeros** and a **count sum of six**. These are illustrative fixture values, not biological conclusions or Engine limits.
 
 ## Documentation
 

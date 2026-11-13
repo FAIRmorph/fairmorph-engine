@@ -44,27 +44,17 @@ python -m ruff format --check src tests
 
 The ordinary pytest suite is configured under `tests/`. Additional reference examples can have their own test procedures. Passing tests verifies technical behavior, **not scientific approval of an external dataset**.
 
-## First project
+## Next: run a complete example
 
-After installation, create a CSV named `survey.csv`:
+Continue with the [worked CSV-to-RUN user guide](docs/USER-GUIDE.md). It supplies a small synthetic CSV, expected count values, explicit mapping declarations, separate approval, a verified RUN and Data Package export. Keeping the worked example in one guide avoids conflicting copies of commands or test data.
 
-```csv
-site_id,oak_count,pine_count
-S01,2,0
-S02,0,3
-S03,,1
-```
-
-Then execute:
+If you want only to initialize a project before proceeding, use:
 
 ```bash
 fairmorph-engine init-project --project ./survey.fairmorph --name "Example Survey"
-fairmorph-engine import-resource --project ./survey.fairmorph --source ./survey.csv --role survey
 ```
 
-Expected behavior: a new local project directory is created and the original CSV bytes are registered as a SHA-256-addressed source resource. The CLI returns JSON-line result events with the imported resource identifier and checksum. Importing is **not** a transformation, approval or export.
-
-To transform, review and verify this example, continue with the [user guide](docs/USER-GUIDE.md). For project lifecycle and safe recovery, see [operations](docs/OPERATIONS.md).
+The Engine will create a **new** project directory; do not reuse an existing path. Importing a file or creating a project does not mean its scientific contents have been reviewed. For project lifecycle and safe recovery, see [operations](docs/OPERATIONS.md).
 
 ## Separate Workbench
 
