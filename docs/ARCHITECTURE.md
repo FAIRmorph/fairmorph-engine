@@ -1,6 +1,6 @@
 # FAIRmorph Engine — Architecture and v0.13 Vertical PoC
 
-**Status:** P0.1–P0.5 implemented and synthetically CI-tested; framework v0.13, Python package `0.1.0`. This is a **vertical PoC**, not a complete product. [Binding pre-1.0 rules](FRAMEWORK-v0.13-POC-SCOPE.md).
+**Status:** Engine v0.13 vertical proof of concept, Python package `0.1.0`. Core technical capabilities are tested with synthetic data; the separately pinned CS-PHOC case provides additional, bounded real-data validation. This is not a complete product. [Binding pre-1.0 rules](FRAMEWORK-v0.13-POC-SCOPE.md).
 
 ## 1. System boundary and trust model
 
@@ -43,7 +43,7 @@ A separate **CSV external-profile path** (`stage-csv-mapping` / `approve-mapping
 | `core.run_executor`, `core.profile`, `processing.tabular` | Separate CSV profile mapping execution and traditional reference lineage path |
 | `core.export`, `core.run_recovery` | Artifact/checksum verification, reference Data Package export, explicit indexed-RUN reconciliation |
 | `core.publication_*`, `core.eml_compiler` | Independently controlled EML / Darwin Core adapter primitives; not complete generalized publication lifecycle |
-| Workbench / website | **Outside the verified P0.1–P0.5 vertical slice**; P0.6 and later integration |
+| Workbench / website | Separate frontend and product surfaces; the CS-PHOC automated test does **not** exercise the Workbench |
 
 ## 3. Project and RUN filesystem
 
@@ -77,7 +77,7 @@ A **CSV-profile RUN** differs: it uses `outputs/observations.parquet`, `audit/li
 - **No inferred semantics.** Technical `entity_id` differs from scientific `event_id` / `occurrence_id`. SamplingEvent requires no coordinates, taxon, GPS, transect or Occurrence.
 - **Source bytes do not mutate.** An imported object has a SHA-256 content address; resource/import identity and semantic field identity are separate.
 - **Explicit confirmation.** SourceFieldDefinition revisions, target entity mappings, relation assertions and metadata revisions require explicit responsible-user action; a second independent reviewer is not mandatory.
-- **Strict profile selection (P0.5).** Every semantic Entity pipeline **must** pin an explicitly approved envelope and exact domain schema ID/version/hash for each selected entity. No legacy unprofiled Entity pipeline path is supported. Purely technical source imports and non-entity DAG runs need no domain profile.
+- **Strict semantic profile selection.** Every semantic Entity pipeline **must** pin an explicitly approved envelope and exact domain schema ID/version/hash for each selected entity. No legacy unprofiled Entity pipeline path is supported. Purely technical source imports and non-entity DAG runs need no domain profile.
 - **No confusion between zero and missing.** A real numeric `0` remains a data value; `null` requires explicit applicable missing semantics in a projected measurement.
 - **Independent versioning.** Domain profiles, relation profile, input objects, field definition revisions and configuration/RUN are separately addressable; completed RUN/2 pins the exact reproducible state.
 
@@ -87,10 +87,12 @@ The generic DAG retains deterministic, declarative transformations and hashes th
 
 RUN creation uses staging and publication, and `verify-project` replays the generic DAG and validates its output, sparse audit, profile/relation/metadata snapshots and manifests. SQLite and `project.json` do not share a single atomic commit; `reconcile-runs` is an explicit index recovery mechanism, **not** a substitute for tested full-power-loss recovery or backup/restore. SHA-256 detects modified bytes; it is not an authenticated signature or publication approval.
 
-## 6. v0.12 coverage and next work
+## 6. Validated coverage and remaining work
 
-P0.1–P0.5 demonstrate **core contracts** in a deliberately narrow vertical PoC. Open: **P0.6 Workbench** source-field/profile preview, findings and explicit user interactions; **P0.7** generalized target-specific EML/DwC-A/GeoPackage publication profiles; **P0.8** real CS-PHOC and second independent dataset regression. Later: all media/spatial/transect/dive profiles, typed search indices/R-Tree, complete source-cell preview, scaling, installer, IPC, security, backups, schema migrations and multiuser recovery.
+The current Engine implements the core project/import, generic RUN, reviewed semantic mapping, selected domain relation, schema-pin and metadata mechanisms in a bounded v0.13 PoC. The ordinary Engine CI exercises generic technical behavior with synthetic inputs. The independent [CS-PHOC validation repository](https://github.com/FAIRmorph/fairmorph-validations/blob/main/docs/CS-PHOC-REPRODUCTION-AND-RESULTS.md) checks real research input against a **pinned** Engine version, including a generic RUN/2, but its DwC-A/TSV/GeoJSON test exporters are **dataset-specific code outside the Engine**.
 
-Before **framework documentation version 1.0** there is **no backward-compatibility obligation** for experimental PoC contracts. Make every breaking change *forward-consistent* across code, schemas, tests and docs; do not silently rewrite valid completed RUN evidence or immutable source data.
+Open implementation and assurance work includes broader Workbench field/profile interviews, generic publication projection and integration, additional independent datasets, more domain profiles, spatial-specialist validation, backups/recovery, multiwriter safety, distribution, and a stable migration/security model. A fully reviewed and approved scientific publication has not been demonstrated by the CS-PHOC test.
 
-See [v0.13 gap analysis](FRAMEWORK-v0.13-POC-SCOPE.md), [P0.3 checkpoint](P0.3-CHECKPOINT.md), [P0.4 checkpoint](P0.4-CHECKPOINT.md), [P0.5 checkpoint](P0.5-CHECKPOINT.md) and [Technical CI evidence](POC-ACCEPTANCE-REPORT.md).
+Before framework version 1.0, experimental contracts and APIs can evolve together with tests and documentation. Immutable source objects and completed RUN records must not be silently rewritten.
+
+See [framework scope](FRAMEWORK-v0.13-POC-SCOPE.md), [operations](OPERATIONS.md), [user guide](USER-GUIDE.md) and [API reference](API-REFERENCE.md).
