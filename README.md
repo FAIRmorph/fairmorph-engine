@@ -6,6 +6,8 @@
 
 FAIRmorph Engine is a **technical proof of concept** (Python package version `0.1.0`), not a production-ready biodiversity publication platform. It provides generic, dataset-independent processing and immutable execution evidence. It does **not** generate scientific interpretations from raw field names, use AI, or replace expert review.
 
+**Built on FOSS, with scientific curation as the added layer.** [Polars](https://pola.rs/) executes generic table transformations; Typer, Pydantic/JSON Schema and lxml support the CLI, contracts and XML validation. FAIRmorph adds reviewed field meanings, versioned decisions and verifiable RUN/audit evidence. Frictionless is declared as a dependency but **does not execute the current pipelines**; its planned role is technical Data Package description and validation. RUNs remain repository-neutral; destination-specific exports are separate. [Architecture and funding roadmap](https://www.fairmorph.org/guide/prototype-fund/).
+
 ## What you can do now
 
 | Capability | Available behavior | Limit |

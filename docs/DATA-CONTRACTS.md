@@ -45,7 +45,9 @@ RUN/2 verification checks source and registry references in addition to artifact
 
 ## 5. Generic Data Package
 
-`export_data_package` first verifies the RUN, then creates `package/datapackage.json`, `observations.csv`, `lineage.csv` and `quality.json` in a versioned export directory. An `export-manifest.json` pins the source RUN and exported artifacts. **This generic Data Package is not a Darwin Core Archive.**
+For the supported **reviewed CSV-mapping RUN path**, `export_data_package` verifies the RUN and writes `package/datapackage.json`, `observations.csv`, `lineage.csv` and `quality.json`; `export-manifest.json` pins the artifacts. This is a **limited Data Package-style export**, not a Darwin Core Archive or a universal exporter for arbitrary generic DAG results. Its basic resource descriptor is not yet comprehensively described with Table Schemas or validated by Frictionless.
+
+The internal `project.json` and `packages/<id>/virtual-descriptor.json` are **FAIRmorph-specific project contracts**, not standard Data Packages. Planned Frictionless integration will describe and technically validate resources and exchange packages; Polars-based transformations, reviewed scientific meanings and RUN audits remain separate. [Implementation status and roadmap](https://www.fairmorph.org/guide/prototype-fund/).
 
 ## 6. Optional publication pipeline
 
