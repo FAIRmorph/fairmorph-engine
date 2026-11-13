@@ -1,59 +1,73 @@
 # FAIRmorph Engine
 
-**Local-first, headless biodiversity data curation and transformation engine.**
+**A local-first Python engine for importing, transforming, reviewing and verifying research data.**
 
-> **Development status:** Vertical **Proof of Concept** under the technical framework **v0.13** (full v0.12 foundation plus PoC policy); Python package version `0.1.0`. This is **not** a feature-complete, production-ready FAIRmorph product or a claim of full v0.12 conformance.
+FAIRmorph Engine is a **v0.13 framework proof of concept** (Python package version `0.1.0`), not a production-ready biodiversity publication platform. It provides generic, dataset-independent processing and immutable execution evidence. It does **not** generate scientific interpretations from raw field names, use AI, or replace expert review.
 
-## Current functional vertical slice (P0.1–P0.5)
+## What you can do now
 
-- **P0.1 – Project and DAG:** Import original CSV/Parquet bytes into an immutable SHA-256 object store; use a project-selected, version-pinned declarative Polars DAG to publish checksum-verified RUN/2 Parquet artifacts.
-- **P0.2 – Scientific field semantics:** Versioned `SourceFieldDefinition` records and explicit responsible-user confirmation; project `SamplingEvent`, optionally `Occurrence` and `MeasurementOrFact`. Never infer taxonomic or counting semantics from a column name; numeric zero is not missing.
-- **P0.3 – Sparse audit:** RUN rules and input/output cardinalities in `audit/pipeline.json`; `audit/value_changes.parquet` records **only actual directly comparable changed values**. Unmodified source cells are **not** duplicated into an exhaustive field-lineage table.
-- **P0.4 – Relations:** Append-only typed relation assertions; `assert`, `replace`, `retract` with explicit user review and source references; four selected event/occurrence/measurement predicates with cardinality/cycle checks, a current view, and historical RUN pins.
-- **P0.5 – Profiles and curated metadata:** Locally registered JSON Schema Draft 2020-12 profiles (eight schema drafts), mandatory **approved exact schema ID/version/hash pins** for semantic Entity pipelines; separately approved append-only metadata envelopes with historical RUN snapshots.
+| Capability | Available behavior | Limit |
+| --- | --- | --- |
+| Import | Preserve original source bytes in a SHA-256-addressed project store; assign resource IDs | Imported data is not scientifically interpreted or approved |
+| Transform | Run a declarative, project-selected DAG with tabular operations; persist verified RUN/2 Parquet | Only implemented operators and selected semantic entities are supported |
+| Review | Register versioned field definitions, mappings, domain profiles, relations and metadata with explicit review/confirmation actions | Drafts and technical verification are not automatic scientific approval |
+| Audit | Record source/configuration pins, operator row counts, selected sparse changed-value evidence and immutable run manifests | Not an exhaustive per-cell provenance table for every DAG operator |
+| Export | Provide a verified-run Data Package path and separate EML/DwC-A publication adapters | Generic publication requires separately valid publication plans and metadata; no universal PANGAEA/GeoJSON exporter is demonstrated |
+| Integrate | Expose a local Typer CLI with JSON-line events | The separate Workbench does not yet expose every Engine workflow |
 
-Both the `run-mapping` CSV-profile reference path and `run-pipeline` generic DAG path exist. They currently use **different audit and export artifacts**; this is a documented PoC boundary, not a promise of interchangeable packages. Example export/EML/DwC-A components exist but do not collectively establish a generally validated publication service.
+Two execution workflows exist and **must not be conflated**: a simple reviewed CSV mapping (`stage-csv-mapping` → `approve-mapping` → `run-mapping`) and a generic declarative pipeline (`register-pipeline` → `select-pipeline` → `run-pipeline`, with explicit semantic confirmation when entities are involved). Their artifacts are not interchangeable.
 
-## Quick start
+## Install and try the Engine
 
-Requires Python **3.11+**. Install locally:
+Requires **Python 3.11 or newer**. Clone this repository and run:
 
 ```bash
+python -m venv .venv
+source .venv/bin/activate                 # Windows PowerShell: .venv\Scripts\Activate.ps1
 python -m pip install -e ".[dev]"
 fairmorph-engine --help
-fairmorph-engine init-project --project ./survey.fairmorph
+fairmorph-engine handshake
+```
+
+For an immediately reproducible example, create a CSV:
+
+```csv
+site_id,oak_count,pine_count
+S01,2,0
+S02,0,3
+S03,,1
+```
+
+Save it as `survey.csv`, then initialize and import:
+
+```bash
+fairmorph-engine init-project --project ./survey.fairmorph --name "Example Survey"
 fairmorph-engine import-resource --project ./survey.fairmorph --source ./survey.csv --role survey
 ```
 
-A technical import **does not** require an ecological profile. Before a **semantic entity pipeline**, declare/review source fields, then explicitly install approved schemas:
-
-```bash
-fairmorph-engine install-profile-contracts --project ./survey.fairmorph --confirmed-by researcher
-fairmorph-engine profile-bindings --project ./survey.fairmorph --entities SamplingEvent,MeasurementOrFact
-```
-
-Place the returned exact pins under `profile_bindings` of the declarative pipeline, then use `register-pipeline` → `confirm-projection` → `select-pipeline` → `run-pipeline` → `verify-project`. The original `stage-csv-mapping` / `approve-mapping` / `run-mapping` command family remains a separate technical reference path. See [Project-driven RUN](docs/project-driven-run.md) and [User Guide](docs/USER-GUIDE.md).
-
-## Implementation policy before framework version 1.0
-
-1. **Vertical PoC only, not an entire product.** Implement a small authentic end-to-end scientific path, not every production feature.
-2. **Core contracts are mandatory, breadth and operational hardening are not yet fully differentiated.** Preserve immutable source identity, explicit field/semantic confirmation, deterministic declaration and source/result pins, entity/relation validity, scientific zero/missing distinction and reproducible RUN evidence. Keep incomplete capabilities visibly deferred.
-3. **No backward-compatibility obligation for experimental PoC artifacts before v1.0.** Iterate **forward consistently**: change code, contracts, tests, examples and docs together. Do not silently rewrite immutable source bytes or completed valid RUN evidence.
-
-See [Technical Framework v0.13 – PoC rules and gap analysis](docs/FRAMEWORK-v0.13-POC-SCOPE.md). For the full original framework, use the complete v0.13 source bundle accompanying the technical documentation.
-
-## Verification and next milestones
-
-Last verified code baseline before these documentation edits: [GitHub CI run #307](https://github.com/FAIRmorph/fairmorph-engine/actions/runs/42858754662), commit `c8480ba36bbac55245cce69fd94db58c1adafcbe`, **129 passing tests on Linux and Windows**, with Ruff lint and format checks. Subsequent edits require their own CI results.
-
-- **P0.6 next:** Workbench user journey – source-field semantics, profile choice, preview, findings, explicit mapping review and relation/metadata revision UI.
-- **P0.7:** generalized, independently validated EML, Darwin Core Archive and GeoPackage publication profiles.
-- **P0.8:** real CS-PHOC plus independent second-dataset regression, key/join/provenance and resource tests.
-
-Production backups/recovery, multiuser locking, migration infrastructure, security/signatures, complete IPC and scalable packaging are later work, **not already delivered**.
+The import prints a machine-generated `resource_id` and input `sha256`; it does not produce a completed RUN. Follow the **[complete user guide](docs/USER-GUIDE.md)** to create an explicit mapping, approve it, execute a RUN, verify the project and inspect the resulting files. Expected long-format result for this specific sample: **5 recorded category cells**, **2 zeros**, and a **count sum of 6**. Those are illustrative fixture values, not biological conclusions or hardcoded Engine limits.
 
 ## Documentation
 
-Start with [Documentation Index](docs/README.md), [Architecture](docs/ARCHITECTURE.md), [Contracts](docs/DATA-CONTRACTS.md), [P0.5 checkpoint](docs/P0.5-CHECKPOINT.md), and [PoC acceptance evidence](docs/POC-ACCEPTANCE-REPORT.md).
+- **[Installation](INSTALL.md)** — Python-only installation, verification and platform notes.
+- **[User guide](docs/USER-GUIDE.md)** — first complete CSV-to-RUN workflow, example inputs, expected output and troubleshooting.
+- **[Documentation index](docs/README.md)** — choose the correct guide for your workflow.
+- **[Generic project pipelines](docs/project-driven-run.md)** — declarative DAG, field semantics, entity profiles, relations and historical RUN snapshots.
+- **[CLI and Python API](docs/API-REFERENCE.md)** — supported commands and implementation interfaces.
+- **[Architecture](docs/ARCHITECTURE.md)** and **[data contracts](docs/DATA-CONTRACTS.md)** — project layout, immutable identity, schema validation and boundaries.
+- **[Operations and tests](docs/OPERATIONS.md)** — CI, verification, recovery and error handling.
+- **[v0.13 framework scope](docs/FRAMEWORK-v0.13-POC-SCOPE.md)** — implemented coverage, limits and pre-1.0 compatibility policy.
 
-**Scientific caution:** Structural schema validity, a checksum, and an explicitly accepted mapping do not themselves establish scientific correctness or permission to publish data.
+## Real research data: independent validation
+
+The separate [fairmorph-validations](https://github.com/FAIRmorph/fairmorph-validations) repository tests a **pinned** Engine version against the original CS-PHOC seal census data. Its [reproduction and results guide](https://github.com/FAIRmorph/fairmorph-validations/blob/main/docs/CS-PHOC-REPRODUCTION-AND-RESULTS.md) distinguishes source observations, generic Engine processing, dataset-specific test exports and the independently audited results.
+
+For that fixed dataset, the Engine's technical RUN/2 passed cell-level checks, and the validation repository generated **test-only** DwC-A, TSV and GeoJSON outputs. **Those three exported formats were generated by validation-repository code, not by a generic Engine multi-format publication workflow.** Formal scientific approval of the field drafts and publisher-ready output remain outside the result. The Workbench was **not** involved in that automated test.
+
+## Technical boundaries and license
+
+Source imports do not imply scientific approval. Never treat a numeric zero as a blank, invent an animal occurrence or source-author endorsement, or use test metadata as final publication metadata. Outputs can be technically verified while semantic review and publication permissions remain outstanding.
+
+Before framework version 1.0, experimental APIs and project formats can change; finished, pinned source objects and completed run evidence must not be silently rewritten. For the policy, see [v0.13 scope](docs/FRAMEWORK-v0.13-POC-SCOPE.md).
+
+This repository is licensed under [MIT](LICENSE).
