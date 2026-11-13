@@ -1,4 +1,4 @@
-# Generic project-driven RUN/2 pipelines
+# Project-driven pipelines
 
 This guide covers the Engine's **declarative DAG workflow**, which is distinct from the simpler reviewed CSV mapping workflow in the [user guide](USER-GUIDE.md). Data processing executes locally inside a project with imported, SHA-256-pinned original inputs.
 
