@@ -1,4 +1,4 @@
-# Install FAIRmorph Engine
+# Installation
 
 FAIRmorph Engine is a **Python package and command-line application**. It does not require Node.js, Rust, Tauri, Svelte or the FAIRmorph Workbench to run. Those technologies belong to the separate optional Workbench repository.
 

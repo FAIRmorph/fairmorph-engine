@@ -1,4 +1,4 @@
-# CS-PHOC: Manual Reference Publication Example
+# CS-PHOC reference example
 
 This directory contains a **dataset-specific example**, not generic biological semantics or a production publication workflow in FAIRmorph Engine. The original CS-PHOC research belongs to its authors; source and derivative publications must not be confused.
 

@@ -1,4 +1,4 @@
-# FAIRmorph Engine documentation
+# Documentation
 
 **Start with [the user guide](./USER-GUIDE.md)** if you want a complete, reproducible example; use the [generic pipeline guide](./project-driven-run.md) if you are building a declarative DAG or semantic Entity projection.
 

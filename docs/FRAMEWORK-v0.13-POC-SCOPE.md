@@ -1,4 +1,4 @@
-# FAIRmorph Framework v0.13 — Scope and Development Policy
+# Scope and development policy (v0.13)
 
 **Status:** Technical framework and implementation policy for the pre-1.0 FAIRmorph Engine proof of concept. The Python package's version (`0.1.0`) and framework document version (`v0.13`) are distinct. The v0.13 framework extends the v0.12 architecture; **it does not assert complete implementation of that architecture**.
 

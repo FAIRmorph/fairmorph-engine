@@ -1,4 +1,4 @@
-# FAIRmorph Engine — Architecture and v0.13 Vertical PoC
+# Architecture
 
 **Status:** Engine v0.13 vertical proof of concept, Python package `0.1.0`. Core technical capabilities are tested with synthetic data; the separately pinned CS-PHOC case provides additional, bounded real-data validation. This is not a complete product. [Binding pre-1.0 rules](FRAMEWORK-v0.13-POC-SCOPE.md).
 

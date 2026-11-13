@@ -1,4 +1,4 @@
-# FAIRmorph Engine User Guide
+# User guide
 
 This guide demonstrates a **complete, locally executable CSV-to-verified-RUN workflow** using the Engine's reviewed mapping CLI. It uses synthetic data so the expected results are transparent and reproducible. No external biodiversity interpretation or Workbench UI is needed.
 

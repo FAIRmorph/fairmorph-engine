@@ -1,4 +1,4 @@
-# Data Contracts, Mapping Semantics and Publication Formats (v0.13 PoC)
+# Data contracts and publication formats
 
 ## 1. Contract model
 
